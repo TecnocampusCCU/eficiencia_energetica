@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/plugins/eficiencia_energetica" >
+        <file>icon.png</file>
+    </qresource>
+</RCC>
