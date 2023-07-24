@@ -36,57 +36,44 @@
 """
 
 
-from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication
-from qgis.PyQt.QtGui import QIcon
-from qgis.PyQt.QtWidgets import QAction, QMessageBox, QApplication
-
-import os
-import sys
-import processing
-from os.path import expanduser
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
-from PyQt5.QtWidgets import QAction, QMessageBox, QApplication
-from PyQt5.QtCore import QSizeF
-from PyQt5.QtGui import QColor
-from qgis.core import QgsMapLayer
-from qgis.core import QgsField
-from qgis.core import QgsVectorLayer
-from qgis.core import QgsVectorLayerUtils
-from qgis.core import QgsVectorLayerExporter
-from qgis.core import QgsProject
-from qgis.core import QgsGeometry
-from qgis.core import QgsFeature
-from qgis.core import QgsFeatureRequest
-from qgis.core import QgsDataSourceUri
-from qgis.core import QgsProcessingException
-from qgis.core import QgsCoordinateReferenceSystem
-from qgis.core import QgsWkbTypes
-from qgis.core import QgsDiagram
-from qgis.core import QgsPieDiagram
-from qgis.core import QgsDiagramSettings
-from qgis.core import QgsDiagramRenderer
-from qgis.core import QgsDiagramLayerSettings
-from qgis.core import QgsLinearlyInterpolatedDiagramRenderer
-from qgis.core import QgsPalLayerSettings
-from qgis.core import QgsTextFormat
-from qgis.core import QgsVectorLayerSimpleLabeling
-
-
-import psycopg2
-import unicodedata
-import datetime
-import time
-from qgis.utils import iface
-from PyQt5.QtSql import *
-import qgis.utils
 import collections
+import datetime
+import os
+import os.path
+import sys
+import time
+import unicodedata
+from os.path import expanduser
 
-# Initialize Qt resources from file resources.py
-from .resources import *
+import processing
+import psycopg2
+import qgis.utils
+from PyQt5.QtCore import *
+from PyQt5.QtCore import QSizeF
+from PyQt5.QtGui import *
+from PyQt5.QtGui import QColor
+from PyQt5.QtSql import *
+from PyQt5.QtWidgets import QAction, QApplication, QMessageBox
+from qgis.core import (QgsCoordinateReferenceSystem, QgsDataDefinedSizeLegend,
+                       QgsDataSourceUri, QgsDiagram, QgsDiagramLayerSettings,
+                       QgsDiagramRenderer, QgsDiagramSettings, QgsFeature,
+                       QgsFeatureRenderer, QgsFeatureRequest, QgsField,
+                       QgsGeometry, QgsLinearlyInterpolatedDiagramRenderer,
+                       QgsMapLayer, QgsPalLayerSettings, QgsPieDiagram,
+                       QgsProcessingException, QgsProject,
+                       QgsSingleSymbolRenderer, QgsSymbol, QgsTextFormat,
+                       QgsUnitTypes, QgsVectorLayer, QgsVectorLayerExporter,
+                       QgsVectorLayerSimpleLabeling, QgsVectorLayerUtils,
+                       QgsWkbTypes)
+from qgis.PyQt.QtCore import QCoreApplication, QSettings, QTranslator
+from qgis.PyQt.QtGui import QIcon
+from qgis.PyQt.QtWidgets import QAction, QApplication, QMessageBox
+from qgis.utils import iface
+
 # Import the code for the dialog
 from .eficiencia_energetica_dialog import EficEnergDialog
-import os.path
+# Initialize Qt resources from file resources.py
+from .resources import *
 
 '''Varibles globals'''
 Versio_modul = "V_Q3.230720"
@@ -2363,6 +2350,8 @@ class EficEnerg:
                 parcelDiagramNumHabitSettings.categoryAttributes = NumDiagramColors.keys()
                 parcelDiagramNumHabitSettings.scaleByArea = True
                 parcelDiagramNumHabitSettings.categoryLabels = parcelDiagramNumHabitSettings.categoryAttributes
+                parcelDiagramNumHabitSettings.enabled = True
+
 
                 parcelDiagramNumHabitRenderer = QgsLinearlyInterpolatedDiagramRenderer()
                 parcelDiagramNumHabitRenderer.setLowerValue(0)
@@ -2372,13 +2361,67 @@ class EficEnerg:
                 parcelDiagramNumHabitRenderer.setClassificationField("TotalEE")
                 parcelDiagramNumHabitRenderer.setDiagram(parcelDiagramNumHabit)
                 parcelDiagramNumHabitRenderer.setDiagramSettings(parcelDiagramNumHabitSettings)
-                
+
+                '''
+                datadefinedsizelegend = QgsDataDefinedSizeLegend()
+                datadefinedsizelegend.setSizeScaleField("TotalEE")
+                datadefinedsizelegend.setSizeScaleFieldUnits(QgsUnitTypes.RenderMapUnits)
+                datadefinedsizelegend.setClassifyEnabled(True)
+                datadefinedsizelegend.setClassifyMode(QgsDataDefinedSizeLegend.Fractile)
+                datadefinedsizelegend.setMinimumSize(QSizeF(0, 0))
+                datadefinedsizelegend.setMaximumSize(QSizeF(30, 30))
+                datadefinedsizelegend.setClassificationMethod(QgsDataDefinedSizeLegend.SizeLegendJenks)
+                parcelDiagramNumHabitRenderer.setDataDefinedSizeLegend(datadefinedsizelegend)
+                '''
+
                 capaUnidaParcelNumHabit_temp.setDiagramRenderer(parcelDiagramNumHabitRenderer)
                 parcelDiagramNumHabitLayerSettings = QgsDiagramLayerSettings()
-
                 capaUnidaParcelNumHabit_temp.setDiagramLayerSettings(parcelDiagramNumHabitLayerSettings)
+
                 capaUnidaParcelNumHabit_temp.triggerRepaint()
                 QApplication.processEvents()
+
+                print(f"Aplicat renderer del diagrama, renderer: {capaUnidaParcelNumHabit_temp.renderer()}")
+
+
+                '''
+                symbol = QgsSymbol.defaultSymbol(capaUnidaParcelNumHabit_temp.geometryType())
+                singlesymbolrenderer = QgsSingleSymbolRenderer(symbol)
+                #singlesymbolrenderer.convertFromRenderer(parcelDiagramNumHabitRenderer)
+                #singlesymbolrenderer.setDiagram(parcelDiagramNumHabit)
+                #singlesymbolrenderer.setDiagramSettings(parcelDiagramNumHabitSettings)
+                datadefinedsizelegend = QgsDataDefinedSizeLegend()
+                'datadefinedsizelegend.AlignBottom=1'
+                'datadefinedsizelegend.AlignCenter=0'
+                'datadefinedsizelegend.LegendCollapse=1'
+                'datadefinedsizelegend.LegendSeparated=0'
+                datadefinedsizelegend.setLegendType(QgsDataDefinedSizeLegend.LegendCollapsed)
+                datadefinedsizelegend.setVerticalAlignment(QgsDataDefinedSizeLegend.AlignBottom)
+                datadefinedsizelegend.setClasses([
+                    QgsDataDefinedSizeLegend.SizeClass(92.0, '92'),
+                    QgsDataDefinedSizeLegend.SizeClass(80.0, '80'),
+                    QgsDataDefinedSizeLegend.SizeClass(60.0, '60'),
+                    QgsDataDefinedSizeLegend.SizeClass(40.0, '40'),
+                    QgsDataDefinedSizeLegend.SizeClass(20.0, '20')
+                ])
+                print(datadefinedsizelegend.verticalAlignment())
+                print(datadefinedsizelegend.legendType())
+                print(datadefinedsizelegend.classes())
+                singlesymbolrenderer.setDataDefinedSizeLegend(datadefinedsizelegend)
+
+
+                #iface.layerTreeView().refreshLayerSymbology(capaUnidaParcelNumHabit_temp.id())
+
+                
+
+                capaUnidaParcelNumHabit_temp.setRenderer(singlesymbolrenderer)
+                capaUnidaParcelNumHabit_temp.triggerRepaint()
+                QApplication.processEvents()
+
+                print(f"Aplicat renderer de la llegenda, renderer: {capaUnidaParcelNumHabit_temp.renderer()}")
+                '''
+
+
 
             if self.dlg.checkm2.isChecked():
                 uri.setDataSource(schema1, f"Resum{parcel}Recomptem2", 'geom')
