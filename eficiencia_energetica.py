@@ -94,46 +94,14 @@ numEntitats = 0
 
 habitatges = None
 habitatgesLayer = None
-parcel = None
-parcelLayer = None
-parcelLayerJoined = None
-parcelLayerResumNumHabit = None
-parcelLayerResumm2 = None
-parcelLayerResumMitjana = None
-parcelLayerResumModa = None
-parcelLayerResumMediana = None
-illes = None
-illesLayer = None
-illesLayerJoined = None
-illesLayerResumNumHabit = None
-illesLayerResumm2 = None
-illesLayerResumMitjana = None
-illesLayerResumModa = None
-illesLayerResumMediana = None
-districtes = None
-districtesLayer = None
-districtesLayerJoined = None
-districtesLayerResumNumHabit = None
-districtesLayerResumm2 = None
-districtesLayerResumMitjana = None
-districtesLayerResumModa = None
-districtesLayerResumMediana = None
-barris = None
-barrisLayer = None
-barrisLayerJoined = None
-barrisLayerResumNumHabit = None
-barrisLayerResumm2 = None
-barrisLayerResumMitjana = None
-barrisLayerResumModa = None
-barrisLayerResumMediana = None
-seccions = None
-seccionsLayer = None
-seccionsLayerJoined = None
-seccionsLayerResumNumHabit = None
-seccionsLayerResumm2 = None
-seccionsLayerResumMitjana = None
-seccionsLayerResumModa = None
-seccionsLayerResumMediana = None
+entitat = None
+entitatLayer = None
+entitatLayerJoined = None
+entitatLayerResumNumHabit = None
+entitatLayerResumm2 = None
+entitatLayerResumMitjana = None
+entitatLayerResumModa = None
+entitatLayerResumMediana = None
 
 class EficEnerg:
     """QGIS Plugin Implementation."""
@@ -171,27 +139,13 @@ class EficEnerg:
         self.dlg.comboBD.currentIndexChanged.connect(self.on_change_ComboConn)
         self.dlg.comboSchema.currentIndexChanged.connect(self.on_change_comboSchema)
         self.dlg.comboHabitatges.currentIndexChanged.connect(self.on_change_comboHabitatges)
-        self.dlg.comboParcel.currentIndexChanged.connect(self.on_change_comboParcel)
-        self.dlg.comboIlles.currentIndexChanged.connect(self.on_change_comboIlles)
-        self.dlg.comboDistrictes.currentIndexChanged.connect(self.on_change_comboDistrictes)
-        self.dlg.comboBarris.currentIndexChanged.connect(self.on_change_comboBarris)
-        self.dlg.comboSeccions.currentIndexChanged.connect(self.on_change_comboSeccions)
-        self.dlg.checkParcel.stateChanged.connect(self.on_change_checkParcel)
-        self.dlg.checkIlles.stateChanged.connect(self.on_change_checkIlles)
-        self.dlg.checkDistrictes.stateChanged.connect(self.on_change_checkDistrictes)
-        self.dlg.checkBarris.stateChanged.connect(self.on_change_checkBarris)
-        self.dlg.checkSeccions.stateChanged.connect(self.on_change_checkSeccions)
+        self.dlg.comboEntitat.currentIndexChanged.connect(self.on_change_comboEntitat)
         self.dlg.checkNumHabit.stateChanged.connect(self.on_change_checkNumHabit)
         self.dlg.checkm2.stateChanged.connect(self.on_change_checkm2)
         self.dlg.checkMitjana.stateChanged.connect(self.on_change_checkMitjana)
         self.dlg.checkModa.stateChanged.connect(self.on_change_checkModa)
         self.dlg.checkMediana.stateChanged.connect(self.on_change_checkMediana)
 
-        self.dlg.checkParcel.stateChanged.connect(self.on_change_entitatsIOperacions)
-        self.dlg.checkIlles.stateChanged.connect(self.on_change_entitatsIOperacions)
-        self.dlg.checkDistrictes.stateChanged.connect(self.on_change_entitatsIOperacions)
-        self.dlg.checkBarris.stateChanged.connect(self.on_change_entitatsIOperacions)
-        self.dlg.checkSeccions.stateChanged.connect(self.on_change_entitatsIOperacions)
         self.dlg.checkNumHabit.stateChanged.connect(self.on_change_entitatsIOperacions)
         self.dlg.checkm2.stateChanged.connect(self.on_change_entitatsIOperacions)
         self.dlg.checkMitjana.stateChanged.connect(self.on_change_entitatsIOperacions)
@@ -317,12 +271,8 @@ class EficEnerg:
         global textBox
         global uri
         s = QSettings()
-        self.dlg.comboBarris.clear()
-        self.dlg.comboDistrictes.clear()
         self.dlg.comboHabitatges.clear()
-        self.dlg.comboIlles.clear()
-        self.dlg.comboParcel.clear()
-        self.dlg.comboSeccions.clear()
+        self.dlg.comboEntitat.clear()
         select = 'Selecciona connexió'
         nom_conn = self.dlg.comboBD.currentText()
 
@@ -389,11 +339,7 @@ class EficEnerg:
 
         self.dlg.groupEntitats.setEnabled(True)
         self.dlg.comboHabitatges.setEnabled(True)
-        self.dlg.comboParcel.setEnabled(True)
-        self.dlg.comboIlles.setEnabled(True)
-        self.dlg.comboDistrictes.setEnabled(True)
-        self.dlg.comboBarris.setEnabled(True)
-        self.dlg.comboSeccions.setEnabled(True)
+        self.dlg.comboEntitat.setEnabled(True)
         self.dlg.groupChecks.setEnabled(True)
         self.dlg.pushInici.setEnabled(True)
 
@@ -404,28 +350,16 @@ class EficEnerg:
 
         layers = self.getLayers(schema1)
         self.populateComboBox(self.dlg.comboHabitatges, layers, "Selecciona els habitatges", True)
-        self.populateComboBox(self.dlg.comboParcel, layers, "Selecciona la parcel·la", True)
-        self.populateComboBox(self.dlg.comboIlles, layers, "Selecciona les illes", True)
-        self.populateComboBox(self.dlg.comboDistrictes, layers, "Selecciona els districtes", True)
-        self.populateComboBox(self.dlg.comboBarris, layers, "Selecciona els barris", True)
-        self.populateComboBox(self.dlg.comboSeccions, layers, "Selecciona les seccions", True)
+        self.populateComboBox(self.dlg.comboEntitat, layers, "Selecciona l'entitat", True)
     
-    def on_change_comboBarris(self):
+    def on_change_comboEntitat(self):
         global uri
-        global barris
-        global barrisLayer
-        barris = self.dlg.comboBarris.currentText()
-        uri.setDataSource(schema1, barris, 'geom')
-        barrisLayer = QgsVectorLayer(uri.uri(), barris, 'postgres')
-    
-    def on_change_comboDistrictes(self):
-        global uri
-        global districtes
-        global districtesLayer
-        districtes = self.dlg.comboDistrictes.currentText()
-        uri.setDataSource(schema1, districtes, 'geom')
-        districtesLayer = QgsVectorLayer(uri.uri(), districtes, 'postgres')
-    
+        global entitat
+        global entitatLayer
+        entitat = self.dlg.comboEntitat.currentText()
+        uri.setDataSource(schema1, entitat, 'geom')
+        entitatLayer = QgsVectorLayer(uri.uri(), entitat, 'postgres')
+
     def on_change_comboHabitatges(self):
         global habitatges
         global habitatgesLayer
@@ -433,85 +367,6 @@ class EficEnerg:
         habitatges = self.dlg.comboHabitatges.currentText()
         uri.setDataSource(schema1, habitatges, 'geom')
         habitatgesLayer = QgsVectorLayer(uri.uri(), habitatges, 'postgres')
-    
-    def on_change_comboParcel(self):
-        global uri
-        global parcel
-        global parcelLayer
-        parcel = self.dlg.comboParcel.currentText()
-        uri.setDataSource(schema1, parcel, 'geom')
-        parcelLayer = QgsVectorLayer(uri.uri(), parcel, 'postgres')
-        
-    def on_change_comboSeccions(self):
-        global uri
-        global seccions
-        global seccionsLayer
-        seccions = self.dlg.comboSeccions.currentText()
-        uri.setDataSource(schema1, seccions, 'geom')
-        seccionsLayer = QgsVectorLayer(uri.uri(), seccions, 'postgres')
-        
-    def on_change_comboIlles(self):
-        global uri
-        global illes
-        global illesLayer
-        illes = self.dlg.comboIlles.currentText()
-        uri.setDataSource(schema1, illes, 'geom')
-        illesLayer = QgsVectorLayer(uri.uri(), illes, 'postgres')
-
-    def on_change_checkParcel(self):
-        global numEntitats
-        if self.dlg.checkParcel.isChecked():
-            self.dlg.labelParcel.setVisible(True)
-            self.dlg.comboParcel.setVisible(True)
-            numEntitats += 1
-        else:
-            self.dlg.labelParcel.setVisible(False)
-            self.dlg.comboParcel.setVisible(False)
-            numEntitats -= 1
-    
-    def on_change_checkIlles(self):
-        global numEntitats
-        if self.dlg.checkIlles.isChecked():
-            self.dlg.labelIlles.setVisible(True)
-            self.dlg.comboIlles.setVisible(True)
-            numEntitats += 1
-        else:
-            self.dlg.labelIlles.setVisible(False)
-            self.dlg.comboIlles.setVisible(False)
-            numEntitats -= 1
-
-    def on_change_checkDistrictes(self):
-        global numEntitats
-        if self.dlg.checkDistrictes.isChecked():
-            self.dlg.labelDistrictes.setVisible(True)
-            self.dlg.comboDistrictes.setVisible(True)
-            numEntitats += 1
-        else:
-            self.dlg.labelDistrictes.setVisible(False)
-            self.dlg.comboDistrictes.setVisible(False)
-            numEntitats -= 1
-    
-    def on_change_checkBarris(self):
-        global numEntitats
-        if self.dlg.checkBarris.isChecked():
-            self.dlg.labelBarris.setVisible(True)
-            self.dlg.comboBarris.setVisible(True)
-            numEntitats += 1
-        else:
-            self.dlg.labelBarris.setVisible(False)
-            self.dlg.comboBarris.setVisible(False)
-            numEntitats -= 1
-    
-    def on_change_checkSeccions(self):
-        global numEntitats
-        if self.dlg.checkSeccions.isChecked():
-            self.dlg.labelSeccions.setVisible(True)
-            self.dlg.comboSeccions.setVisible(True)
-            numEntitats += 1
-        else:
-            self.dlg.labelSeccions.setVisible(False)
-            self.dlg.comboSeccions.setVisible(False)
-            numEntitats -= 1
 
     def on_change_entitatsIOperacions(self):
         if numEntitats > 1 or numOperacions > 2:
@@ -651,28 +506,15 @@ class EficEnerg:
         self.barraEstat_noConnectat()
         self.dlg.comboBD.setEnabled(True)
         self.dlg.comboSchema.setEnabled(False)
-        self.dlg.comboBarris.setEnabled(False)
-        self.dlg.comboDistrictes.setEnabled(False)
+        self.dlg.comboEntitat.setEnabled(False)
         self.dlg.comboHabitatges.setEnabled(False)
-        self.dlg.comboIlles.setEnabled(False)
-        self.dlg.comboParcel.setEnabled(False)
-        self.dlg.comboSeccions.setEnabled(False)
         self.dlg.checkNumHabit.setChecked(False)
         self.dlg.checkm2.setChecked(False)
         self.dlg.checkMitjana.setChecked(False)
         self.dlg.checkModa.setChecked(False)
         self.dlg.checkMediana.setChecked(False)
-        self.dlg.checkBarris.setChecked(False)
-        self.dlg.checkDistrictes.setChecked(False)
-        self.dlg.checkIlles.setChecked(False)
-        self.dlg.checkParcel.setChecked(False)
-        self.dlg.checkSeccions.setChecked(False)
-        self.dlg.comboBarris.clear()
-        self.dlg.comboDistrictes.clear()
+        self.dlg.comboEntitat.clear()
         self.dlg.comboHabitatges.clear()
-        self.dlg.comboIlles.clear()
-        self.dlg.comboParcel.clear()
-        self.dlg.comboSeccions.clear()
         self.dlg.textEstat.clear()
         self.dlg.versio.setText(Versio_modul)
         self.dlg.groupEntitats.setEnabled(False)
@@ -682,16 +524,8 @@ class EficEnerg:
         self.dlg.groupEntitats.setVisible(False)
         self.dlg.labelHabitatges.setVisible(False)
         self.dlg.comboHabitatges.setVisible(False)
-        self.dlg.labelParcel.setVisible(False)
-        self.dlg.comboParcel.setVisible(False)
-        self.dlg.labelIlles.setVisible(False)
-        self.dlg.comboIlles.setVisible(False)
-        self.dlg.labelDistrictes.setVisible(False)
-        self.dlg.comboDistrictes.setVisible(False)
-        self.dlg.labelBarris.setVisible(False)
-        self.dlg.comboBarris.setVisible(False)
-        self.dlg.labelSeccions.setVisible(False)
-        self.dlg.comboSeccions.setVisible(False)
+        self.dlg.labelEntitat.setVisible(False)
+        self.dlg.comboEntitat.setVisible(False)
         self.dlg.labelSchema.setVisible(False)
         self.dlg.comboSchema.setVisible(False)
         self.dlg.checkModa.setEnabled(False)
@@ -704,31 +538,23 @@ class EficEnerg:
         self.dlg.comboBD.setEnabled(False)
         self.dlg.comboSchema.setEnabled(False)
         self.dlg.comboHabitatges.setEnabled(False)
-        self.dlg.comboParcel.setEnabled(False)
-        self.dlg.comboIlles.setEnabled(False)
-        self.dlg.comboDistrictes.setEnabled(False)
-        self.dlg.comboBarris.setEnabled(False)
-        self.dlg.comboSeccions.setEnabled(False)
+        self.dlg.comboEntitat.setEnabled(False)
         self.dlg.groupChecks.setEnabled(False)
         self.dlg.pushInici.setEnabled(False)
         self.dlg.pushSortir.setEnabled(True)
         self.dlg.labelAvis.setVisible(False)
 
-    def crearCopiesCapesEntitats(self, entitat):
+    def crearCopiesCapesEntitats(self, entitatParam):
         global habitatgesLayer
-        global parcelLayer
-        global illesLayer
-        global districtesLayer
-        global barrisLayer
-        global seccionsLayer
+        global entitatLayer
         
         try:
-            copy_table_name = f"{entitat}_copy"
+            copy_table_name = f"{entitatParam}_copy"
             drop_table_query = f'DROP TABLE IF EXISTS "{schema1}"."{copy_table_name}"'
             cur.execute(drop_table_query)
-            create_table_query = f'CREATE TABLE "{schema1}"."{copy_table_name}" (LIKE "{schema1}"."{entitat}" INCLUDING CONSTRAINTS)'
+            create_table_query = f'CREATE TABLE "{schema1}"."{copy_table_name}" (LIKE "{schema1}"."{entitatParam}" INCLUDING CONSTRAINTS)'
             cur.execute(create_table_query)
-            insert_features_query = f'INSERT INTO "{schema1}"."{copy_table_name}" SELECT * FROM "{schema1}"."{entitat}"'
+            insert_features_query = f'INSERT INTO "{schema1}"."{copy_table_name}" SELECT * FROM "{schema1}"."{entitatParam}"'
             cur.execute(insert_features_query)
             conn.commit()
 
@@ -742,52 +568,26 @@ class EficEnerg:
             return
 
         uri.setDataSource(schema1, f"{copy_table_name}", 'geom')
-        if (entitat == habitatges):
+
+        if (entitatParam == habitatges):
             habitatgesLayer = QgsVectorLayer(uri.uri(), f'"{copy_table_name}"', 'postgres')
-        if (entitat == parcel):
-            parcelLayer = QgsVectorLayer(uri.uri(), f'"{copy_table_name}"', 'postgres')
-        if (entitat == illes):
-            illesLayer = QgsVectorLayer(uri.uri(), f'"{copy_table_name}"', 'postgres')
-        if (entitat == districtes):
-            districtesLayer = QgsVectorLayer(uri.uri(), f'"{copy_table_name}"', 'postgres')
-        if (entitat == barris):
-            barrisLayer = QgsVectorLayer(uri.uri(), f'"{copy_table_name}"', 'postgres')
-        if (entitat == seccions):
-            seccionsLayer = QgsVectorLayer(uri.uri(), f'"{copy_table_name}"', 'postgres')
+        if entitatParam == entitat:
+            entitatLayer = QgsVectorLayer(uri.uri(), f'"{copy_table_name}"', 'postgres')
         else:
             return
 
     def crearIDentitats(self):
         global habitatgesLayer
         '''Funcio per calcular els ID de les entitats que es combinaran amb els habitatges'''
-        sql = f'ALTER TABLE "{schema1}"."{habitatges}_copy" DROP COLUMN IF EXISTS "{illes}_id";\n'
-        sql += f'ALTER TABLE "{schema1}"."{habitatges}_copy" DROP COLUMN IF EXISTS "{seccions}_id";\n'
-        sql += f'ALTER TABLE "{schema1}"."{habitatges}_copy" DROP COLUMN IF EXISTS "{districtes}_id";\n'
-        sql += f'ALTER TABLE "{schema1}"."{habitatges}_copy" DROP COLUMN IF EXISTS "{barris}_id";'
+        sql = f'ALTER TABLE "{schema1}"."{habitatges}_copy" DROP COLUMN IF EXISTS "{entitat}_id";\n'
         cur.execute(sql)
         conn.commit()
 
         try:
-            if self.dlg.checkIlles.isChecked():
-                sql = f'ALTER TABLE "{schema1}"."{habitatges}_copy" ADD COLUMN "{illes}_id" INTEGER;\n'
-                sql += f'UPDATE "{schema1}"."{habitatges}_copy" SET "{illes}_id" = "{schema1}"."{illes}_copy".id_0 FROM "{schema1}"."{illes}_copy" WHERE ST_Intersects("{schema1}"."{habitatges}_copy".geom, "{schema1}"."{illes}_copy".geom);'
-                cur.execute(sql)
-                conn.commit()
-            if self.dlg.checkSeccions.isChecked():
-                sql = f'ALTER TABLE "{schema1}"."{habitatges}_copy" ADD COLUMN "{seccions}_id" INTEGER;\n'
-                sql += f'UPDATE "{schema1}"."{habitatges}_copy" SET "{seccions}_id" = "{schema1}"."{seccions}_copy".id_0 FROM "{schema1}"."{seccions}_copy" WHERE ST_Intersects("{schema1}"."{habitatges}_copy".geom, "{schema1}"."{seccions}_copy".geom);'
-                cur.execute(sql)
-                conn.commit()
-            if self.dlg.checkDistrictes.isChecked():
-                sql = f'ALTER TABLE "{schema1}"."{habitatges}_copy" ADD COLUMN "{districtes}_id" INTEGER;\n'
-                sql += f'UPDATE "{schema1}"."{habitatges}_copy" SET "{districtes}_id" = "{schema1}"."{districtes}_copy".id_0 FROM "{schema1}"."{districtes}_copy" WHERE ST_Intersects("{schema1}"."{habitatges}_copy".geom, "{schema1}"."{districtes}_copy".geom);'
-                cur.execute(sql)
-                conn.commit()
-            if self.dlg.checkBarris.isChecked():
-                sql = f'ALTER TABLE "{schema1}"."{habitatges}_copy" ADD COLUMN "{barris}_id" INTEGER;\n'
-                sql += f'UPDATE "{schema1}"."{habitatges}_copy" SET "{barris}_id" = "{schema1}"."{barris}_copy".id_0 FROM "{schema1}"."{barris}_copy" WHERE ST_Intersects("{schema1}"."{habitatges}_copy".geom, "{schema1}"."{barris}_copy".geom);'
-                cur.execute(sql)
-                conn.commit()  
+            sql = f'ALTER TABLE "{schema1}"."{habitatges}_copy" ADD COLUMN "{entitat}_id" INTEGER;\n'
+            sql += f'UPDATE "{schema1}"."{habitatges}_copy" SET "{entitat}_id" = "{schema1}"."{entitat}_copy".id_0 FROM "{schema1}"."{entitat}_copy" WHERE ST_Intersects("{schema1}"."{habitatges}_copy".geom, "{schema1}"."{entitat}_copy".geom);'
+            cur.execute(sql)
+            conn.commit()
 
             uri.setDataSource(schema1, f"{habitatges}_copy", 'geom')
             habitatgesLayer = QgsVectorLayer(uri.uri(), f'"{habitatges}_copy"', 'postgres')
@@ -805,17 +605,13 @@ class EficEnerg:
         global habitatges
         global habitatgesLayer
         
-        sql = f'ALTER TABLE "{schema1}"."{habitatges}_copy" DROP COLUMN IF EXISTS "UTM";\n'
-        sql += f'ALTER TABLE "{schema1}"."{habitatges}_copy" DROP COLUMN IF EXISTS "producte_con";\n'
+        sql = f'ALTER TABLE "{schema1}"."{habitatges}_copy" DROP COLUMN IF EXISTS "producte_con";\n'
         sql += f'ALTER TABLE "{schema1}"."{habitatges}_copy" DROP COLUMN IF EXISTS "producte_emi";'
         cur.execute(sql)
         conn.commit()
 
         try:
-            sql = f'ALTER TABLE "{schema1}"."{habitatges}_copy" ADD COLUMN "UTM" VARCHAR;\n'
-            sql += f'UPDATE "{schema1}"."{habitatges}_copy" SET "UTM" = LEFT("referencia cadastral", 7);\n'
-
-            sql += f'ALTER TABLE "{schema1}"."{habitatges}_copy" ADD COLUMN "producte_con" FLOAT;\n'
+            sql = f'ALTER TABLE "{schema1}"."{habitatges}_copy" ADD COLUMN "producte_con" FLOAT;\n'
             sql += f'UPDATE "{schema1}"."{habitatges}_copy" SET "producte_con" = CAST("energia primària no renovable" AS FLOAT) * CAST("metres_cadastre" AS FLOAT);\n'
             
             sql += f'ALTER TABLE "{schema1}"."{habitatges}_copy" ADD COLUMN "producte_emi" FLOAT;\n'
@@ -836,7 +632,7 @@ class EficEnerg:
             self.dlg.setEnabled(True)
             return
 
-    def calculNumX(self, entitat):
+    def calculNumX(self):
 
         ''' Drop de les columnes en cas d'existir '''
         try:
@@ -861,66 +657,37 @@ class EficEnerg:
             return
         
         '''Calcul de les diferents columnes NumA, NumB, ..., NumG i TotalEE'''
-        if entitat == parcel:
-            try:
-                sql = f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "NumA" integer;\n'
-                sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" SET "NumA" = subquery.sum_count FROM (SELECT "UTM", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'A' THEN 1 ELSE 0 END) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "UTM") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."UTM" = subquery."UTM";\n'''
-                sql += f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "NumB" integer;\n'
-                sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" SET "NumB" = subquery.sum_count FROM (SELECT "UTM", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'B' THEN 1 ELSE 0 END) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "UTM") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."UTM" = subquery."UTM";\n'''
-                sql += f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "NumC" integer;\n'
-                sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" SET "NumC" = subquery.sum_count FROM (SELECT "UTM", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'C' THEN 1 ELSE 0 END) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "UTM") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."UTM" = subquery."UTM";\n'''
-                sql += f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "NumD" integer;\n'
-                sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" SET "NumD" = subquery.sum_count FROM (SELECT "UTM", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'D' THEN 1 ELSE 0 END) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "UTM") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."UTM" = subquery."UTM";\n'''
-                sql += f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "NumE" integer;\n'
-                sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" SET "NumE" = subquery.sum_count FROM (SELECT "UTM", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'E' THEN 1 ELSE 0 END) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "UTM") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."UTM" = subquery."UTM";\n'''
-                sql += f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "NumF" integer;\n'
-                sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" SET "NumF" = subquery.sum_count FROM (SELECT "UTM", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'F' THEN 1 ELSE 0 END) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "UTM") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."UTM" = subquery."UTM";\n'''
-                sql += f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "NumG" integer;\n'
-                sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" SET "NumG" = subquery.sum_count FROM (SELECT "UTM", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'G' THEN 1 ELSE 0 END) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "UTM") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."UTM" = subquery."UTM";\n'''
-                sql += f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "TotalEE" integer;\n'
-                sql += f'UPDATE "{schema1}"."Capa unida {entitat}" SET "TotalEE" = "NumA" + "NumB" + "NumC" + "NumD" + "NumE" + "NumF" + "NumG";'
-                cur.execute(sql)
-                conn.commit()
-            except Exception as ex:
-                print ("Error calculating NumX columns")
-                template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-                message = template.format(type(ex).__name__, ex.args)
-                print (message)
-                QMessageBox.information(None, "Error", "Error calculating NumX columns")
-                conn.rollback()
-                self.dlg.setEnabled(True)
-                return
-        else:
-            try:
-                sql = f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "NumA" integer;\n'
-                sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" SET "NumA" = subquery.sum_count FROM (SELECT "id_0", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'A' THEN 1 ELSE 0 END) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "id_0") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."id_0" = subquery."id_0";\n'''
-                sql += f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "NumB" integer;\n'
-                sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" SET "NumB" = subquery.sum_count FROM (SELECT "id_0", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'B' THEN 1 ELSE 0 END) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "id_0") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."id_0" = subquery."id_0";\n'''
-                sql += f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "NumC" integer;\n'
-                sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" SET "NumC" = subquery.sum_count FROM (SELECT "id_0", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'C' THEN 1 ELSE 0 END) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "id_0") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."id_0" = subquery."id_0";\n'''
-                sql += f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "NumD" integer;\n'
-                sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" SET "NumD" = subquery.sum_count FROM (SELECT "id_0", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'D' THEN 1 ELSE 0 END) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "id_0") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."id_0" = subquery."id_0";\n'''
-                sql += f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "NumE" integer;\n'
-                sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" SET "NumE" = subquery.sum_count FROM (SELECT "id_0", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'E' THEN 1 ELSE 0 END) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "id_0") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."id_0" = subquery."id_0";\n'''
-                sql += f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "NumF" integer;\n'
-                sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" SET "NumF" = subquery.sum_count FROM (SELECT "id_0", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'F' THEN 1 ELSE 0 END) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "id_0") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."id_0" = subquery."id_0";\n'''
-                sql += f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "NumG" integer;\n'
-                sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" SET "NumG" = subquery.sum_count FROM (SELECT "id_0", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'G' THEN 1 ELSE 0 END) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "id_0") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."id_0" = subquery."id_0";\n'''
-                sql += f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "TotalEE" integer;\n'
-                sql += f'UPDATE "{schema1}"."Capa unida {entitat}" SET "TotalEE" = "NumA" + "NumB" + "NumC" + "NumD" + "NumE" + "NumF" + "NumG";'
-                cur.execute(sql)
-                conn.commit()
-            except Exception as ex:
-                print ("Error calculating NumX columns")
-                template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-                message = template.format(type(ex).__name__, ex.args)
-                print (message)
-                QMessageBox.information(None, "Error", "Error calculating NumX columns")
-                conn.rollback()
-                self.dlg.setEnabled(True)
-                return
         
-    def calculm2(self, entitat):
+        try:
+            sql = f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "NumA" integer;\n'
+            sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" SET "NumA" = subquery.sum_count FROM (SELECT "id_0", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'A' THEN 1 ELSE 0 END) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "id_0") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."id_0" = subquery."id_0";\n'''
+            sql += f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "NumB" integer;\n'
+            sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" SET "NumB" = subquery.sum_count FROM (SELECT "id_0", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'B' THEN 1 ELSE 0 END) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "id_0") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."id_0" = subquery."id_0";\n'''
+            sql += f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "NumC" integer;\n'
+            sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" SET "NumC" = subquery.sum_count FROM (SELECT "id_0", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'C' THEN 1 ELSE 0 END) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "id_0") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."id_0" = subquery."id_0";\n'''
+            sql += f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "NumD" integer;\n'
+            sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" SET "NumD" = subquery.sum_count FROM (SELECT "id_0", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'D' THEN 1 ELSE 0 END) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "id_0") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."id_0" = subquery."id_0";\n'''
+            sql += f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "NumE" integer;\n'
+            sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" SET "NumE" = subquery.sum_count FROM (SELECT "id_0", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'E' THEN 1 ELSE 0 END) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "id_0") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."id_0" = subquery."id_0";\n'''
+            sql += f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "NumF" integer;\n'
+            sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" SET "NumF" = subquery.sum_count FROM (SELECT "id_0", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'F' THEN 1 ELSE 0 END) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "id_0") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."id_0" = subquery."id_0";\n'''
+            sql += f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "NumG" integer;\n'
+            sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" SET "NumG" = subquery.sum_count FROM (SELECT "id_0", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'G' THEN 1 ELSE 0 END) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "id_0") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."id_0" = subquery."id_0";\n'''
+            sql += f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "TotalEE" integer;\n'
+            sql += f'UPDATE "{schema1}"."Capa unida {entitat}" SET "TotalEE" = "NumA" + "NumB" + "NumC" + "NumD" + "NumE" + "NumF" + "NumG";'
+            cur.execute(sql)
+            conn.commit()
+        except Exception as ex:
+            print ("Error calculating NumX columns")
+            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            message = template.format(type(ex).__name__, ex.args)
+            print (message)
+            QMessageBox.information(None, "Error", "Error calculating NumX columns")
+            conn.rollback()
+            self.dlg.setEnabled(True)
+            return
+    
+    def calculm2(self):
         '''Drop de les columnes en cas d'existir'''
         try:
             drop = f'ALTER TABLE "{schema1}"."Capa unida {entitat}" DROP COLUMN IF EXISTS "m2A";\n'
@@ -944,86 +711,47 @@ class EficEnerg:
             return
         
         '''Calcul m2A, m2B, ..., m2G, Totalm2'''
-        if entitat == parcel:
-            try:
-                sql = f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "m2A" float;\n'
-                sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" SET "m2A" = subquery.sum_count FROM (SELECT "UTM", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'A' THEN CAST(metres_cadastre AS float) ELSE 0 END) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "UTM") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."UTM" = subquery."UTM";\n'''
-                sql += f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "m2B" float;\n'
-                sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" SET "m2B" = subquery.sum_count FROM (SELECT "UTM", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'B' THEN CAST(metres_cadastre AS float) ELSE 0 END) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "UTM") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."UTM" = subquery."UTM";\n'''
-                sql += f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "m2C" float;\n'
-                sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" SET "m2C" = subquery.sum_count FROM (SELECT "UTM", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'C' THEN CAST(metres_cadastre AS float) ELSE 0 END) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "UTM") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."UTM" = subquery."UTM";\n'''
-                sql += f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "m2D" float;\n'
-                sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" SET "m2D" = subquery.sum_count FROM (SELECT "UTM", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'D' THEN CAST(metres_cadastre AS float) ELSE 0 END) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "UTM") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."UTM" = subquery."UTM";\n'''
-                sql += f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "m2E" float;\n'
-                sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" SET "m2E" = subquery.sum_count FROM (SELECT "UTM", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'E' THEN CAST(metres_cadastre AS float) ELSE 0 END) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "UTM") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."UTM" = subquery."UTM";\n'''
-                sql += f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "m2F" float;\n'
-                sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" SET "m2F" = subquery.sum_count FROM (SELECT "UTM", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'F' THEN CAST(metres_cadastre AS float) ELSE 0 END) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "UTM") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."UTM" = subquery."UTM";\n'''
-                sql += f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "m2G" float;\n'
-                sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" SET "m2G" = subquery.sum_count FROM (SELECT "UTM", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'G' THEN CAST(metres_cadastre AS float) ELSE 0 END) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "UTM") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."UTM" = subquery."UTM";\n'''
-                sql += f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "Totalm2" float;\n'
-                sql += f'UPDATE "{schema1}"."Capa unida {entitat}" SET "Totalm2" = "m2A" + "m2B" + "m2C" + "m2D" + "m2E" + "m2F" + "m2G";'
-                cur.execute(sql)
-                conn.commit()
-            except Exception as ex:
-                print ("Error calculating m2X columns")
-                template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-                message = template.format(type(ex).__name__, ex.args)
-                print (message)
-                QMessageBox.information(None, "Error", "Error calculating m2X columns")
-                conn.rollback()
-                self.dlg.setEnabled(True)
-                return
-        else:
-            try:
-                sql = f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "m2A" float;\n'
-                sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" SET "m2A" = subquery.sum_count FROM (SELECT "id_0", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'A' THEN CAST(metres_cadastre AS float) ELSE 0 END) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "id_0") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."id_0" = subquery."id_0";\n'''
-                sql += f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "m2B" float;\n'
-                sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" SET "m2B" = subquery.sum_count FROM (SELECT "id_0", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'B' THEN CAST(metres_cadastre AS float) ELSE 0 END) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "id_0") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."id_0" = subquery."id_0";\n'''
-                sql += f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "m2C" float;\n'
-                sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" SET "m2C" = subquery.sum_count FROM (SELECT "id_0", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'C' THEN CAST(metres_cadastre AS float) ELSE 0 END) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "id_0") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."id_0" = subquery."id_0";\n'''
-                sql += f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "m2D" float;\n'
-                sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" SET "m2D" = subquery.sum_count FROM (SELECT "id_0", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'D' THEN CAST(metres_cadastre AS float) ELSE 0 END) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "id_0") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."id_0" = subquery."id_0";\n'''
-                sql += f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "m2E" float;\n'
-                sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" SET "m2E" = subquery.sum_count FROM (SELECT "id_0", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'E' THEN CAST(metres_cadastre AS float) ELSE 0 END) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "id_0") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."id_0" = subquery."id_0";\n'''
-                sql += f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "m2F" float;\n'
-                sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" SET "m2F" = subquery.sum_count FROM (SELECT "id_0", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'F' THEN CAST(metres_cadastre AS float) ELSE 0 END) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "id_0") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."id_0" = subquery."id_0";\n'''
-                sql += f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "m2G" float;\n'
-                sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" SET "m2G" = subquery.sum_count FROM (SELECT "id_0", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'G' THEN CAST(metres_cadastre AS float) ELSE 0 END) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "id_0") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."id_0" = subquery."id_0";\n'''
-                sql += f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "Totalm2" float;\n'
-                sql += f'UPDATE "{schema1}"."Capa unida {entitat}" SET "Totalm2" = "m2A" + "m2B" + "m2C" + "m2D" + "m2E" + "m2F" + "m2G";'
-                cur.execute(sql)
-                conn.commit()
-            except Exception as ex:
-                print ("Error calculating m2X columns")
-                template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-                message = template.format(type(ex).__name__, ex.args)
-                print (message)
-                QMessageBox.information(None, "Error", "Error calculating m2X columns")
-                conn.rollback()
-                self.dlg.setEnabled(True)
-                return
+        
+        try:
+            sql = f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "m2A" float;\n'
+            sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" SET "m2A" = subquery.sum_count FROM (SELECT "id_0", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'A' THEN CAST(metres_cadastre AS float) ELSE 0 END) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "id_0") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."id_0" = subquery."id_0";\n'''
+            sql += f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "m2B" float;\n'
+            sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" SET "m2B" = subquery.sum_count FROM (SELECT "id_0", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'B' THEN CAST(metres_cadastre AS float) ELSE 0 END) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "id_0") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."id_0" = subquery."id_0";\n'''
+            sql += f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "m2C" float;\n'
+            sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" SET "m2C" = subquery.sum_count FROM (SELECT "id_0", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'C' THEN CAST(metres_cadastre AS float) ELSE 0 END) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "id_0") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."id_0" = subquery."id_0";\n'''
+            sql += f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "m2D" float;\n'
+            sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" SET "m2D" = subquery.sum_count FROM (SELECT "id_0", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'D' THEN CAST(metres_cadastre AS float) ELSE 0 END) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "id_0") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."id_0" = subquery."id_0";\n'''
+            sql += f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "m2E" float;\n'
+            sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" SET "m2E" = subquery.sum_count FROM (SELECT "id_0", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'E' THEN CAST(metres_cadastre AS float) ELSE 0 END) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "id_0") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."id_0" = subquery."id_0";\n'''
+            sql += f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "m2F" float;\n'
+            sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" SET "m2F" = subquery.sum_count FROM (SELECT "id_0", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'F' THEN CAST(metres_cadastre AS float) ELSE 0 END) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "id_0") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."id_0" = subquery."id_0";\n'''
+            sql += f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "m2G" float;\n'
+            sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" SET "m2G" = subquery.sum_count FROM (SELECT "id_0", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'G' THEN CAST(metres_cadastre AS float) ELSE 0 END) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "id_0") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."id_0" = subquery."id_0";\n'''
+            sql += f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "Totalm2" float;\n'
+            sql += f'UPDATE "{schema1}"."Capa unida {entitat}" SET "Totalm2" = "m2A" + "m2B" + "m2C" + "m2D" + "m2E" + "m2F" + "m2G";'
+            cur.execute(sql)
+            conn.commit()
+        except Exception as ex:
+            print ("Error calculating m2X columns")
+            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            message = template.format(type(ex).__name__, ex.args)
+            print (message)
+            QMessageBox.information(None, "Error", "Error calculating m2X columns")
+            conn.rollback()
+            self.dlg.setEnabled(True)
+            return
 
-    def calculMitjana(self, entitat):
+    def calculMitjana(self):
         try:
             ''' Sumatoris '''
-            if entitat == parcel:
-                sql = f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "sum_product_consums" FLOAT;\n'
-                sql += f'UPDATE "{schema1}"."Capa unida {entitat}" SET "sum_product_consums" = subquery.sum_count FROM (SELECT "UTM", SUM(CAST("producte_con" AS FLOAT)) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "UTM") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."UTM" = subquery."UTM";\n'
-                sql += f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "sum_product_emissions" FLOAT;\n'
-                sql += f'UPDATE "{schema1}"."Capa unida {entitat}" SET "sum_product_emissions" = subquery.sum_count FROM (SELECT "UTM", SUM(CAST("producte_emi" AS FLOAT)) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "UTM") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."UTM" = subquery."UTM";\n'
-                sql += f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "sum_m2" FLOAT;\n'
-                sql += f'UPDATE "{schema1}"."Capa unida {entitat}" SET "sum_m2" = subquery.sum_count FROM (SELECT "UTM", SUM(CAST("metres_cadastre" AS FLOAT)) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "UTM") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."UTM" = subquery."UTM";'
-                cur.execute(sql)
-                conn.commit()
-            else:
-                sql = f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "sum_product_consums" FLOAT;\n'
-                sql += f'UPDATE "{schema1}"."Capa unida {entitat}" SET "sum_product_consums" = subquery.sum_count FROM (SELECT "id_0", SUM(CAST("producte_con" AS FLOAT)) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "id_0") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."id_0" = subquery."id_0";\n'
-                sql += f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "sum_product_emissions" FLOAT;\n'
-                sql += f'UPDATE "{schema1}"."Capa unida {entitat}" SET "sum_product_emissions" = subquery.sum_count FROM (SELECT "id_0", SUM(CAST("producte_emi" AS FLOAT)) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "id_0") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."id_0" = subquery."id_0";\n'
-                sql += f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "sum_m2" FLOAT;\n'
-                sql += f'UPDATE "{schema1}"."Capa unida {entitat}" SET "sum_m2" = subquery.sum_count FROM (SELECT "id_0", SUM(CAST("metres_cadastre" AS FLOAT)) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "id_0") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."id_0" = subquery."id_0";'
-                cur.execute(sql)
-                conn.commit()
+            sql = f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "sum_product_consums" FLOAT;\n'
+            sql += f'UPDATE "{schema1}"."Capa unida {entitat}" SET "sum_product_consums" = subquery.sum_count FROM (SELECT "id_0", SUM(CAST("producte_con" AS FLOAT)) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "id_0") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."id_0" = subquery."id_0";\n'
+            sql += f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "sum_product_emissions" FLOAT;\n'
+            sql += f'UPDATE "{schema1}"."Capa unida {entitat}" SET "sum_product_emissions" = subquery.sum_count FROM (SELECT "id_0", SUM(CAST("producte_emi" AS FLOAT)) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "id_0") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."id_0" = subquery."id_0";\n'
+            sql += f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "sum_m2" FLOAT;\n'
+            sql += f'UPDATE "{schema1}"."Capa unida {entitat}" SET "sum_m2" = subquery.sum_count FROM (SELECT "id_0", SUM(CAST("metres_cadastre" AS FLOAT)) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "id_0") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."id_0" = subquery."id_0";'
+            cur.execute(sql)
+            conn.commit()
             ''' Crear indexs (que son camps nous a la taula unida) '''
             sql = f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "INDEX_consum" FLOAT;\n'
             sql += f'UPDATE "{schema1}"."Capa unida {entitat}" SET "INDEX_consum" = CASE WHEN "sum_m2" = 0 THEN 0 ELSE ("sum_product_consums"/"sum_m2") END;\n'
@@ -1042,7 +770,7 @@ class EficEnerg:
             self.dlg.setEnabled(True)
             return
 
-    def calculModa(self, entitat):
+    def calculModa(self):
         try:
             sql = f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "maxConsum" FLOAT;\n'
             sql += f'UPDATE "{schema1}"."Capa unida {entitat}" SET "maxConsum" = GREATEST("m2A", "m2B", "m2C", "m2D", "m2E", "m2F", "m2G");\n'
@@ -1061,121 +789,61 @@ class EficEnerg:
             cur.execute(sql)
             conn.commit()
 
-            if entitat==parcel:
-                sql = f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "indexMODAsup" FLOAT;\n'
-                sql += f'''
-                UPDATE "{schema1}"."Capa unida {entitat}" AS c
-                SET "indexMODAsup" = subquery.moda
-                FROM (
-                    SELECT "UTM",
-                        (
-                            SUM (
-                                CASE
-                                    WHEN "qualificació de consum energia primaria no renovable" = "QualifMaxSup"
-                                        THEN CAST("energia primària no renovable" AS FLOAT)
-                                    ELSE 0
-                                END
-                            ) / NULLIF(SUM (
-                                CASE
-                                    WHEN "qualificació de consum energia primaria no renovable" = "QualifMaxSup"
-                                        THEN 1
-                                    ELSE 0
-                                END), 0
-                            )
-                        ) AS moda
-                    FROM {schema1}."Capa unida {entitat}"
-                    GROUP BY "UTM"
-                ) AS subquery
-                WHERE c."UTM" = subquery."UTM"\n;
-                '''
+            sql = f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "indexMODAsup" FLOAT;\n'
+            sql += f'''
+            UPDATE "{schema1}"."Capa unida {entitat}" AS c
+            SET "indexMODAsup" = subquery.moda
+            FROM (
+                SELECT "id_0",
+                    (
+                        SUM (
+                            CASE
+                                WHEN "qualificació de consum energia primaria no renovable" = "QualifMaxSup"
+                                    THEN CAST("energia primària no renovable" AS FLOAT)
+                                ELSE 0
+                            END
+                        ) / NULLIF(SUM (
+                            CASE
+                                WHEN "qualificació de consum energia primaria no renovable" = "QualifMaxSup"
+                                    THEN 1
+                                ELSE 0
+                            END), 0
+                        )
+                    ) AS moda
+                FROM {schema1}."Capa unida {entitat}"
+                GROUP BY "id_0"
+            ) AS subquery
+            WHERE c."id_0" = subquery."id_0"\n;
+            '''
 
-                sql += f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "indexMODAsupPonderat" FLOAT;\n'
-
-                sql += f'''
-                UPDATE "{schema1}"."Capa unida {entitat}" AS c
-                SET "indexMODAsupPonderat" = subquery.moda
-                FROM (
-                    SELECT "UTM",
-                        (
-                            SUM (
-                                CASE
-                                    WHEN "qualificació de consum energia primaria no renovable" = "QualifMaxSup"
-                                        THEN CAST("energia primària no renovable" AS FLOAT) * CAST("metres_cadastre" AS FLOAT)
-                                    ELSE 0
-                                END
-                            ) / NULLIF(SUM (
-                                CASE
-                                    WHEN "qualificació de consum energia primaria no renovable" = "QualifMaxSup"
-                                        THEN CAST("metres_cadastre" AS FLOAT)
-                                    ELSE 0
-                                END), 0
-                            )
-                        ) AS moda   
-                    FROM {schema1}."Capa unida {entitat}"
-                    GROUP BY "UTM"
-                ) AS subquery
-                WHERE c."UTM" = subquery."UTM";   
-                '''
-                cur.execute(sql)
-                conn.commit()
-
-                
-            else:
-                sql = f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "indexMODAsup" FLOAT;\n'
-                sql += f'''
-                UPDATE "{schema1}"."Capa unida {entitat}" AS c
-                SET "indexMODAsup" = subquery.moda
-                FROM (
-                    SELECT "id_0",
-                        (
-                            SUM (
-                                CASE
-                                    WHEN "qualificació de consum energia primaria no renovable" = "QualifMaxSup"
-                                        THEN CAST("energia primària no renovable" AS FLOAT)
-                                    ELSE 0
-                                END
-                            ) / NULLIF(SUM (
-                                CASE
-                                    WHEN "qualificació de consum energia primaria no renovable" = "QualifMaxSup"
-                                        THEN 1
-                                    ELSE 0
-                                END), 0
-                            )
-                        ) AS moda
-                    FROM {schema1}."Capa unida {entitat}"
-                    GROUP BY "id_0"
-                ) AS subquery
-                WHERE c."id_0" = subquery."id_0"\n;
-                '''
-
-                sql += f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "indexMODAsupPonderat" FLOAT;\n'
-                sql += f'''
-                UPDATE "{schema1}"."Capa unida {entitat}" AS c
-                SET "indexMODAsupPonderat" = subquery.moda
-                FROM (
-                    SELECT "id_0",
-                        (
-                            SUM (
-                                CASE
-                                    WHEN "qualificació de consum energia primaria no renovable" = "QualifMaxSup"
-                                        THEN CAST("energia primària no renovable" AS FLOAT) * CAST("metres_cadastre" AS FLOAT)
-                                    ELSE 0
-                                END
-                            ) / NULLIF(SUM (
-                                CASE
-                                    WHEN "qualificació de consum energia primaria no renovable" = "QualifMaxSup"
-                                        THEN CAST("metres_cadastre" AS FLOAT)
-                                    ELSE 0
-                                END), 0
-                            )
-                        ) AS moda
-                    FROM {schema1}."Capa unida {entitat}"
-                    GROUP BY "id_0"
-                ) AS subquery
-                WHERE c."id_0" = subquery."id_0";
-                '''
-                cur.execute(sql)
-                conn.commit()
+            sql += f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "indexMODAsupPonderat" FLOAT;\n'
+            sql += f'''
+            UPDATE "{schema1}"."Capa unida {entitat}" AS c
+            SET "indexMODAsupPonderat" = subquery.moda
+            FROM (
+                SELECT "id_0",
+                    (
+                        SUM (
+                            CASE
+                                WHEN "qualificació de consum energia primaria no renovable" = "QualifMaxSup"
+                                    THEN CAST("energia primària no renovable" AS FLOAT) * CAST("metres_cadastre" AS FLOAT)
+                                ELSE 0
+                            END
+                        ) / NULLIF(SUM (
+                            CASE
+                                WHEN "qualificació de consum energia primaria no renovable" = "QualifMaxSup"
+                                    THEN CAST("metres_cadastre" AS FLOAT)
+                                ELSE 0
+                            END), 0
+                        )
+                    ) AS moda
+                FROM {schema1}."Capa unida {entitat}"
+                GROUP BY "id_0"
+            ) AS subquery
+            WHERE c."id_0" = subquery."id_0";
+            '''
+            cur.execute(sql)
+            conn.commit()
         except Exception as ex:
             print ("Error fent calcul moda")
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
@@ -1186,93 +854,53 @@ class EficEnerg:
             self.dlg.setEnabled(True)
             return
 
-    def calculMediana(self, entitat):
+    def calculMediana(self):
         try:
             ''' El primer que cal fer per a la mediana és desfer-se de totes les files que tenen valor 0 a producte_con i producte_emi '''
             sql = f'DELETE FROM "{schema1}"."Capa unida {entitat}" WHERE "producte_con" = 0 OR "producte_con" IS NULL;\n'
             sql += f'DELETE FROM "{schema1}"."Capa unida {entitat}" WHERE "producte_emi" = 0 OR "producte_emi" IS NULL;\n'
-            if entitat == parcel:
-                sql += f'DELETE FROM "{schema1}"."Capa unida {entitat}" WHERE "UTM" IS NULL;'
-            else:
-                sql += f'DELETE FROM "{schema1}"."Capa unida {entitat}" WHERE "id_0" IS NULL;'
+            sql += f'DELETE FROM "{schema1}"."Capa unida {entitat}" WHERE "id_0" IS NULL;'
             cur.execute(sql)
             conn.commit()
 
             ''' Ara cal calcular el index de la mediana '''
 
-            if entitat == parcel:
-                sql = f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "INDEX_mediana_consum" FLOAT;\n'
-                sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" 
-                    SET "INDEX_mediana_consum" = 
-                        CASE 
-                            WHEN CAST("energia primària no renovable" AS FLOAT) IS NULL OR CAST("energia primària no renovable" AS FLOAT) = 0 THEN NULL
-                            ELSE subquery.median
-                        END
-                    FROM (
-                        SELECT "UTM",
-                        PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY CAST("energia primària no renovable" AS FLOAT))
-                        AS median FROM "{schema1}"."Capa unida {entitat}"
-                        GROUP BY "UTM"
-                    ) 
-                    AS subquery
-                    WHERE "{schema1}"."Capa unida {entitat}"."UTM" = subquery."UTM";\n
-                '''
-                sql += f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "INDEX_mediana_emissions" FLOAT;\n'
-                sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" 
-                    SET "INDEX_mediana_emissions" = 
-                        CASE 
-                            WHEN CAST("emissions de co2" AS FLOAT) IS NULL OR CAST("emissions de co2" AS FLOAT) = 0 THEN NULL
-                            ELSE subquery.median
-                        END
-                    FROM (
-                        SELECT "UTM",
-                        PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY CAST("emissions de co2" AS FLOAT)) 
-                        AS median FROM "{schema1}"."Capa unida {entitat}"
-                        GROUP BY "UTM"
-                    ) 
-                    AS subquery
-                    WHERE "{schema1}"."Capa unida {entitat}"."UTM" = subquery."UTM";
-                '''
-
-                cur.execute(sql)
-                conn.commit()
             
-            else:
-                sql = f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "INDEX_mediana_consum" FLOAT;\n'
-                sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" 
-                            SET "INDEX_mediana_consum" = 
-                                CASE 
-                                    WHEN CAST("energia primària no renovable" AS FLOAT) IS NULL OR CAST("energia primària no renovable" AS FLOAT) = 0 THEN NULL
-                                    ELSE subquery.median
-                                END
-                                FROM (
-                                    SELECT "id_0",
-                                    PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY CAST("energia primària no renovable" AS FLOAT)) 
-                                    AS median FROM "{schema1}"."Capa unida {entitat}"
-                                    GROUP BY "id_0"
-                                ) 
-                            AS subquery
-                            WHERE "{schema1}"."Capa unida {entitat}"."id_0" = subquery."id_0";\n
-                        '''
-                sql += f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "INDEX_mediana_emissions" FLOAT;\n'
-                sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" 
-                            SET "INDEX_mediana_emissions" = 
-                                CASE 
-                                    WHEN CAST("emissions de co2" AS FLOAT) IS NULL OR CAST("emissions de co2" AS FLOAT) = 0 THEN NULL
-                                    ELSE subquery.median
-                                END
-                                FROM (
-                                    SELECT "id_0",
-                                    PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY CAST("emissions de co2" AS FLOAT)) 
-                                    AS median FROM "{schema1}"."Capa unida {entitat}"
-                                    GROUP BY "id_0"
-                                ) 
-                            AS subquery
-                            WHERE "{schema1}"."Capa unida {entitat}"."id_0" = subquery."id_0";
-                        '''
+            sql = f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "INDEX_mediana_consum" FLOAT;\n'
+            sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" 
+                        SET "INDEX_mediana_consum" = 
+                            CASE 
+                                WHEN CAST("energia primària no renovable" AS FLOAT) IS NULL OR CAST("energia primària no renovable" AS FLOAT) = 0 THEN NULL
+                                ELSE subquery.median
+                            END
+                            FROM (
+                                SELECT "id_0",
+                                PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY CAST("energia primària no renovable" AS FLOAT)) 
+                                AS median FROM "{schema1}"."Capa unida {entitat}"
+                                GROUP BY "id_0"
+                            ) 
+                        AS subquery
+                        WHERE "{schema1}"."Capa unida {entitat}"."id_0" = subquery."id_0";\n
+                    '''
+            sql += f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "INDEX_mediana_emissions" FLOAT;\n'
+            sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" 
+                        SET "INDEX_mediana_emissions" = 
+                            CASE 
+                                WHEN CAST("emissions de co2" AS FLOAT) IS NULL OR CAST("emissions de co2" AS FLOAT) = 0 THEN NULL
+                                ELSE subquery.median
+                            END
+                            FROM (
+                                SELECT "id_0",
+                                PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY CAST("emissions de co2" AS FLOAT)) 
+                                AS median FROM "{schema1}"."Capa unida {entitat}"
+                                GROUP BY "id_0"
+                            ) 
+                        AS subquery
+                        WHERE "{schema1}"."Capa unida {entitat}"."id_0" = subquery."id_0";
+                    '''
                 
-                cur.execute(sql)
-                conn.commit()
+            cur.execute(sql)
+            conn.commit()
             
         except Exception as ex:
             print ("Error fent mediana")
@@ -1284,7 +912,7 @@ class EficEnerg:
             self.dlg.setEnabled(True)
             return
         
-    def dropCapesUnides(self, entitat):
+    def dropCapesUnides(self):
         try:
             sql = f'DROP TABLE IF EXISTS "{schema1}"."Capa unida {entitat}";'
             cur.execute(sql)
@@ -1298,7 +926,7 @@ class EficEnerg:
             conn.rollback()
             return
     
-    def dropCapesReUnidesNumHabit(self, entitat):
+    def dropCapesReUnidesNumHabit(self):
         try:
             sql = f'DROP TABLE IF EXISTS "{schema1}"."Resum{entitat}RecompteNumHabit";'
             cur.execute(sql)
@@ -1312,7 +940,7 @@ class EficEnerg:
             conn.rollback()
             return
         
-    def dropCapesReUnidesm2(self, entitat):
+    def dropCapesReUnidesm2(self):
         try:
             sql = f'DROP TABLE IF EXISTS "{schema1}"."Resum{entitat}Recomptem2";'
             cur.execute(sql)
@@ -1326,7 +954,7 @@ class EficEnerg:
             conn.rollback()
             return
         
-    def dropCapesReUnidesMitjana(self, entitat):
+    def dropCapesReUnidesMitjana(self):
         try:
             sql = f'DROP TABLE IF EXISTS "{schema1}"."Resum{entitat}RecompteMitjana";'
             cur.execute(sql)
@@ -1340,7 +968,7 @@ class EficEnerg:
             conn.rollback()
             return
         
-    def dropCapesReUnidesModa(self, entitat):
+    def dropCapesReUnidesModa(self):
         try:
             sql = f'DROP TABLE IF EXISTS "{schema1}"."Resum{entitat}RecompteModa";'
             cur.execute(sql)
@@ -1354,7 +982,7 @@ class EficEnerg:
             conn.rollback()
             return
 
-    def dropCapesReUnidesMediana(self, entitat):
+    def dropCapesReUnidesMediana(self):
         try:
             sql = f'DROP TABLE IF EXISTS "{schema1}"."Resum{entitat}RecompteMediana";'
             cur.execute(sql)
@@ -1368,36 +996,19 @@ class EficEnerg:
             conn.rollback()
             return
 
-    def unirCapes(self, entitat, layer):
-        global parcel
+    def unirCapes(self):
         global uri
+        global entitatLayerJoined
 
-        global parcelLayerJoined
-        global illesLayerJoined
-        global districtesLayerJoined
-        global barrisLayerJoined
-        global seccionsLayerJoined
-
-        if entitat==parcel:
-            alg_params = {
-                "INPUT": layer,
-                "FIELD": "UTM",
-                "INPUT_2": habitatgesLayer,
-                "FIELD_2": "UTM",
-                "FIELDS_TO_COPY": ["referencia cadastral", "metres_cadastre", "qualificació de consum energia primaria no renovable", "energia primària no renovable", "qualificacio emissions de co2", "emissions de co2", "producte_con", "producte_emi"],
-                "METHOD": 0,
-                "OUTPUT": 'memory:'
-            }
-        else:
-            alg_params = {
-                "INPUT": layer,
-                "FIELD": "id_0",
-                "INPUT_2": habitatgesLayer,
-                "FIELD_2": f"{entitat}_id",
-                "FIELDS_TO_COPY": ["referencia cadastral", "metres_cadastre", "qualificació de consum energia primaria no renovable", "energia primària no renovable", "qualificacio emissions de co2", "emissions de co2", "producte_con", "producte_emi"],
-                "METHOD": 0,
-                "OUTPUT": 'memory:'
-            }
+        alg_params = {
+            "INPUT": entitatLayer,
+            "FIELD": "id_0",
+            "INPUT_2": habitatgesLayer,
+            "FIELD_2": f"{entitat}_id",
+            "FIELDS_TO_COPY": ["referencia cadastral", "metres_cadastre", "qualificació de consum energia primaria no renovable", "energia primària no renovable", "qualificacio emissions de co2", "emissions de co2", "producte_con", "producte_emi"],
+            "METHOD": 0,
+            "OUTPUT": 'memory:'
+        }
         result = processing.run("native:joinattributestable", alg_params)
 
         capa_unida = result["OUTPUT"]
@@ -1426,51 +1037,20 @@ class EficEnerg:
             conn.rollback()
             return
 
-    def carregarCapesMapa(self, entitat):
-        global parcelLayerJoined
-        global illesLayerJoined
-        global districtesLayerJoined
-        global barrisLayerJoined
-        global seccionsLayerJoined
+    def carregarCapesMapa(self):
+        global entitatLayerJoined
+
+        uri.setDataSource(schema1, f"Capa unida {entitat}", 'geom')
+        entitatLayerJoined = QgsVectorLayer(uri.uri(), f"Capa unida {entitat}", 'postgres')
         
-        if entitat==parcel:
-            uri.setDataSource(schema1, f"Capa unida {parcel}", 'geom')
-            parcelLayerJoined = QgsVectorLayer(uri.uri(), f"Capa unida {parcel}", 'postgres')
-        if entitat==illes:
-            uri.setDataSource(schema1, f"Capa unida {illes}", 'geom')
-            illesLayerJoined = QgsVectorLayer(uri.uri(), f"Capa unida {illes}", 'postgres')
-        if entitat==districtes:
-            uri.setDataSource(schema1, f"Capa unida {districtes}", 'geom')
-            districtesLayerJoined = QgsVectorLayer(uri.uri(), f"Capa unida {districtes}", 'postgres')
-        if entitat==barris:
-            uri.setDataSource(schema1, f"Capa unida {barris}", 'geom')
-            barrisLayerJoined = QgsVectorLayer(uri.uri(), f"Capa unida {barris}", 'postgres')
-        if entitat==seccions:
-            uri.setDataSource(schema1, f"Capa unida {seccions}", 'geom')
-            seccionsLayerJoined = QgsVectorLayer(uri.uri(), f"Capa unida {seccions}", 'postgres')
         QApplication.processEvents()
 
-    def reUnirCapesNumHabit(self, entitat):
-        global parcelLayerResumNumHabit
-        global illesLayerResumNumHabit
-        global districtesLayerResumNumHabit
-        global barrisLayerResumNumHabit
-        global seccionsLayerResumNumHabit
-        if entitat == parcel:
-            layer = parcelLayer
-            layerEntitat = parcelLayerJoined
-        if entitat == illes:
-            layer = illesLayer
-            layerEntitat = illesLayerJoined
-        if entitat == districtes:
-            layer = districtesLayer
-            layerEntitat = districtesLayerJoined
-        if entitat == barris:
-            layer = barrisLayer
-            layerEntitat = barrisLayerJoined
-        if entitat == seccions:
-            layer = seccionsLayer
-            layerEntitat = seccionsLayerJoined
+    def reUnirCapesNumHabit(self):
+        global entitatLayerResumNumHabit
+
+        layer = entitatLayer
+        layerEntitat = entitatLayerJoined
+
         global uri
         if self.dlg.checkNumHabit.isChecked():
             alg_params = {
@@ -1491,16 +1071,7 @@ class EficEnerg:
         layerResum.setName(f"Resum{entitat}RecompteNumHabit")
         layerResum.setCrs(QgsCoordinateReferenceSystem("EPSG:25831"))
 
-        if entitat == parcel:
-            parcelLayerResumNumHabit = layerResum
-        if entitat == illes:
-            illesLayerResumNumHabit = layerResum
-        if entitat == districtes:
-            districtesLayerResumNumHabit = layerResum
-        if entitat == barris:
-            barrisLayerResumNumHabit = layerResum
-        if entitat == seccions:
-            seccionsLayerResumNumHabit = layerResum
+        entitatLayerResumNumHabit = layerResum
 
         try:
             uristr=f"""
@@ -1518,27 +1089,12 @@ class EficEnerg:
             conn.rollback()
             return
 
-    def reUnirCapesm2(self, entitat):
-        global parcelLayerResumm2
-        global illesLayerResumm2
-        global districtesLayerResumm2
-        global barrisLayerResumm2
-        global seccionsLayerResumm2
-        if entitat == parcel:
-            layer = parcelLayer
-            layerEntitat = parcelLayerJoined
-        if entitat == illes:
-            layer = illesLayer
-            layerEntitat = illesLayerJoined
-        if entitat == districtes:
-            layer = districtesLayer
-            layerEntitat = districtesLayerJoined
-        if entitat == barris:
-            layer = barrisLayer
-            layerEntitat = barrisLayerJoined
-        if entitat == seccions:
-            layer = seccionsLayer
-            layerEntitat = seccionsLayerJoined
+    def reUnirCapesm2(self):
+        global entitatLayerResumm2
+
+        layer = entitatLayer
+        layerEntitat = entitatLayerJoined
+
         global uri
         if self.dlg.checkm2.isChecked():
             alg_params = {
@@ -1559,16 +1115,7 @@ class EficEnerg:
         layerResum.setName(f"Resum{entitat}Recomptem2")
         layerResum.setCrs(QgsCoordinateReferenceSystem("EPSG:25831"))
 
-        if entitat == parcel:
-            parcelLayerResumm2 = layerResum
-        if entitat == illes:
-            illesLayerResumm2 = layerResum
-        if entitat == districtes:
-            districtesLayerResumm2 = layerResum
-        if entitat == barris:
-            barrisLayerResumm2 = layerResum
-        if entitat == seccions:
-            seccionsLayerResumm2 = layerResum
+        entitatLayerResumm2 = layerResum
 
         try:
             uristr=f"""
@@ -1586,27 +1133,12 @@ class EficEnerg:
             conn.rollback()
             return
 
-    def reUnirCapesMitjana(self, entitat):
-        global parcelLayerResumMitjana
-        global illesLayerResumMitjana
-        global districtesLayerResumMitjana
-        global barrisLayerResumMitjana
-        global seccionsLayerResumMitjana
-        if entitat == parcel:
-            layer = parcelLayer
-            layerEntitat = parcelLayerJoined
-        if entitat == illes:
-            layer = illesLayer
-            layerEntitat = illesLayerJoined
-        if entitat == districtes:
-            layer = districtesLayer
-            layerEntitat = districtesLayerJoined
-        if entitat == barris:
-            layer = barrisLayer
-            layerEntitat = barrisLayerJoined
-        if entitat == seccions:
-            layer = seccionsLayer
-            layerEntitat = seccionsLayerJoined
+    def reUnirCapesMitjana(self):
+        global entitatLayerResumMitjana
+
+        layer = entitatLayer
+        layerEntitat = entitatLayerJoined
+
         global uri
         if self.dlg.checkMitjana.isChecked():
             alg_params = {
@@ -1627,16 +1159,7 @@ class EficEnerg:
         layerResum.setName(f"Resum{entitat}RecompteMitjana")
         layerResum.setCrs(QgsCoordinateReferenceSystem("EPSG:25831"))
 
-        if entitat == parcel:
-            parcelLayerResumMitjana = layerResum
-        if entitat == illes:
-            illesLayerResumMitjana = layerResum
-        if entitat == districtes:
-            districtesLayerResumMitjana = layerResum
-        if entitat == barris:
-            barrisLayerResumMitjana = layerResum
-        if entitat == seccions:
-            seccionsLayerResumMitjana = layerResum
+        entitatLayerResumMitjana = layerResum
 
         try:
             uristr=f"""
@@ -1654,28 +1177,12 @@ class EficEnerg:
             conn.rollback()
             return
         
-    def reUnirCapesModa(self, entitat):
-        global parcelLayerResumModa
-        global illesLayerResumModa
-        global districtesLayerResumModa
-        global barrisLayerResumModa
-        global seccionsLayerResumModa
+    def reUnirCapesModa(self):
+        global entitatLayerResumModa
 
-        if entitat == parcel:
-            layer = parcelLayer
-            layerEntitat = parcelLayerJoined
-        if entitat == illes:
-            layer = illesLayer
-            layerEntitat = illesLayerJoined
-        if entitat == districtes:
-            layer = districtesLayer
-            layerEntitat = districtesLayerJoined
-        if entitat == barris:
-            layer = barrisLayer
-            layerEntitat = barrisLayerJoined
-        if entitat == seccions:
-            layer = seccionsLayer
-            layerEntitat = seccionsLayerJoined
+        layer = entitatLayer
+        layerEntitat = entitatLayerJoined
+
         global uri
         if self.dlg.checkModa.isChecked():
             alg_params = {
@@ -1696,16 +1203,7 @@ class EficEnerg:
         layerResum.setName(f"Resum{entitat}RecompteModa")
         layerResum.setCrs(QgsCoordinateReferenceSystem("EPSG:25831"))
 
-        if entitat == parcel:
-            parcelLayerResumModa = layerResum
-        if entitat == illes:
-            illesLayerResumModa = layerResum
-        if entitat == districtes:
-            districtesLayerResumModa = layerResum
-        if entitat == barris:
-            barrisLayerResumModa = layerResum
-        if entitat == seccions:
-            seccionsLayerResumModa = layerResum
+        entitatLayerResumModa = layerResum
 
         try:
             uristr=f"""
@@ -1723,28 +1221,11 @@ class EficEnerg:
             conn.rollback()
             return
 
-    def reUnirCapesMediana(self, entitat):
-        global parcelLayerResumMediana
-        global illesLayerResumMediana
-        global districtesLayerResumMediana
-        global barrisLayerResumMediana
-        global seccionsLayerResumMediana
+    def reUnirCapesMediana(self):
+        global entitatLayerResumMediana
 
-        if entitat == parcel:
-            layer = parcelLayer
-            layerEntitat = parcelLayerJoined
-        if entitat == illes:
-            layer = illesLayer
-            layerEntitat = illesLayerJoined
-        if entitat == districtes:
-            layer = districtesLayer
-            layerEntitat = districtesLayerJoined
-        if entitat == barris:
-            layer = barrisLayer
-            layerEntitat = barrisLayerJoined
-        if entitat == seccions:
-            layer = seccionsLayer
-            layerEntitat = seccionsLayerJoined
+        layer = entitatLayer
+        layerEntitat = entitatLayerJoined
 
         global uri
         if self.dlg.checkMediana.isChecked():
@@ -1766,16 +1247,7 @@ class EficEnerg:
         layerResum.setName(f"Resum{entitat}RecompteMediana")
         layerResum.setCrs(QgsCoordinateReferenceSystem("EPSG:25831"))
 
-        if entitat == parcel:
-            parcelLayerResumMediana = layerResum
-        if entitat == illes:
-            illesLayerResumMediana = layerResum
-        if entitat == districtes:
-            districtesLayerResumMediana = layerResum
-        if entitat == barris:
-            barrisLayerResumMediana = layerResum
-        if entitat == seccions:
-            seccionsLayerResumMediana = layerResum
+        entitatLayerResumMediana = layerResum
 
         try:
             uristr=f"""
@@ -1796,41 +1268,13 @@ class EficEnerg:
     def dropFinalCapesIColumnes(self):
         try:
             sql = f'DROP TABLE IF EXISTS "{schema1}"."{habitatges}_copy";\n'
-            sql += f'DROP TABLE IF EXISTS "{schema1}"."{parcel}_copy";\n'
-            sql += f'DROP TABLE IF EXISTS "{schema1}"."{illes}_copy";\n'
-            sql += f'DROP TABLE IF EXISTS "{schema1}"."{districtes}_copy";\n'
-            sql += f'DROP TABLE IF EXISTS "{schema1}"."{barris}_copy";\n'
-            sql += f'DROP TABLE IF EXISTS "{schema1}"."{seccions}_copy";\n'
-            sql += f'DROP TABLE IF EXISTS "{schema1}"."Capa unida {parcel}";\n'
-            sql += f'DROP TABLE IF EXISTS "{schema1}"."Resum{parcel}RecompteNumHabit";\n'
-            sql += f'DROP TABLE IF EXISTS "{schema1}"."Resum{parcel}Recomptem2";\n'
-            sql += f'DROP TABLE IF EXISTS "{schema1}"."Resum{parcel}RecompteMitjana";\n'
-            sql += f'DROP TABLE IF EXISTS "{schema1}"."Resum{parcel}RecompteModa";\n'
-            sql += f'DROP TABLE IF EXISTS "{schema1}"."Resum{parcel}RecompteMediana";\n'
-            sql += f'DROP TABLE IF EXISTS "{schema1}"."Capa unida {illes}";\n'
-            sql += f'DROP TABLE IF EXISTS "{schema1}"."Resum{illes}RecompteNumHabit";\n'
-            sql += f'DROP TABLE IF EXISTS "{schema1}"."Resum{illes}Recomptem2";\n'
-            sql += f'DROP TABLE IF EXISTS "{schema1}"."Resum{illes}RecompteMitjana";\n'
-            sql += f'DROP TABLE IF EXISTS "{schema1}"."Resum{illes}RecompteModa";\n'
-            sql += f'DROP TABLE IF EXISTS "{schema1}"."Resum{illes}RecompteMediana";\n'
-            sql += f'DROP TABLE IF EXISTS "{schema1}"."Capa unida {barris}";\n'
-            sql += f'DROP TABLE IF EXISTS "{schema1}"."Resum{barris}RecompteNumHabit";\n'
-            sql += f'DROP TABLE IF EXISTS "{schema1}"."Resum{barris}Recomptem2";\n'
-            sql += f'DROP TABLE IF EXISTS "{schema1}"."Resum{barris}RecompteMitjana";\n'
-            sql += f'DROP TABLE IF EXISTS "{schema1}"."Resum{barris}RecompteModa";\n'
-            sql += f'DROP TABLE IF EXISTS "{schema1}"."Resum{barris}RecompteMediana";\n'
-            sql += f'DROP TABLE IF EXISTS "{schema1}"."Capa unida {districtes}";\n'
-            sql += f'DROP TABLE IF EXISTS "{schema1}"."Resum{districtes}RecompteNumHabit";\n'
-            sql += f'DROP TABLE IF EXISTS "{schema1}"."Resum{districtes}Recomptem2";\n'
-            sql += f'DROP TABLE IF EXISTS "{schema1}"."Resum{districtes}RecompteMitjana";\n'
-            sql += f'DROP TABLE IF EXISTS "{schema1}"."Resum{districtes}RecompteModa";\n'
-            sql += f'DROP TABLE IF EXISTS "{schema1}"."Resum{districtes}RecompteMediana";\n'
-            sql += f'DROP TABLE IF EXISTS "{schema1}"."Capa unida {seccions}";\n'
-            sql += f'DROP TABLE IF EXISTS "{schema1}"."Resum{seccions}RecompteNumHabit";\n'
-            sql += f'DROP TABLE IF EXISTS "{schema1}"."Resum{seccions}Recomptem2";\n'
-            sql += f'DROP TABLE IF EXISTS "{schema1}"."Resum{seccions}RecompteMitjana";\n'
-            sql += f'DROP TABLE IF EXISTS "{schema1}"."Resum{seccions}RecompteModa";\n'
-            sql += f'DROP TABLE IF EXISTS "{schema1}"."Resum{seccions}RecompteMediana";\n'
+            sql += f'DROP TABLE IF EXISTS "{schema1}"."{entitat}_copy";\n'
+            sql += f'DROP TABLE IF EXISTS "{schema1}"."Capa unida {entitat}";\n'
+            sql += f'DROP TABLE IF EXISTS "{schema1}"."Resum{entitat}RecompteNumHabit";\n'
+            sql += f'DROP TABLE IF EXISTS "{schema1}"."Resum{entitat}Recomptem2";\n'
+            sql += f'DROP TABLE IF EXISTS "{schema1}"."Resum{entitat}RecompteMitjana";\n'
+            sql += f'DROP TABLE IF EXISTS "{schema1}"."Resum{entitat}RecompteModa";\n'
+            sql += f'DROP TABLE IF EXISTS "{schema1}"."Resum{entitat}RecompteMediana";\n'
             cur.execute(sql)
             conn.commit()
         except Exception as ex:
@@ -1867,14 +1311,14 @@ class EficEnerg:
         self.dlg.lblEstatConn.setText('Connectant...')
         QApplication.processEvents()
 
-    def maxTotalEE(self, entitat):
+    def maxTotalEE(self):
         global conn
         global cur
         sql = f'''SELECT MAX("TotalEE") FROM "{schema1}"."Capa unida {entitat}";'''
         cur.execute(sql)
         return cur.fetchone()[0]
 
-    def maxTotalm2(self, entitat):
+    def maxTotalm2(self):
         global conn
         global cur
         sql = f'''SELECT MAX("Totalm2"::float) FROM "{schema1}"."Capa unida {entitat}";'''
@@ -1905,31 +1349,14 @@ class EficEnerg:
 
         global habitatges
         global habitatgesLayer
-        global parcel
-        global parcelLayer
-        global parcelLayerJoined
-        global parcelLayerResumNumHabit
-        global parcelLayerResumm2
-        global illes
-        global illesLayer
-        global illesLayerJoined
-        global illesLayerResumNumHabit
-        global illesLayerResumm2
-        global districtes
-        global districtesLayer
-        global districtesLayerJoined
-        global districtesLayerResumNumHabit
-        global districtesLayerResumm2
-        global barris
-        global barrisLayer
-        global barrisLayerJoined
-        global barrisLayerResumNumHabit
-        global barrisLayerResumm2
-        global seccions 
-        global seccionsLayer
-        global seccionsLayerJoined
-        global seccionsLayerResumNumHabit
-        global seccionsLayerResumm2
+        global entitat
+        global entitatLayer
+        global entitatLayerJoined
+        global entitatLayerResumNumHabit
+        global entitatLayerResumm2
+        global entitatLayerResumMitjana
+        global entitatLayerResumModa
+        global entitatLayerResumMediana
 
         uri = QgsDataSourceUri()
         try:
@@ -1975,30 +1402,11 @@ class EficEnerg:
             conn.rollback()
             self.dlg.setEnabled(True)
             return
-        if (not self.dlg.checkBarris.isChecked() and not self.dlg.checkDistrictes.isChecked() and not self.dlg.checkIlles.isChecked() and not self.dlg.checkParcel.isChecked() and not self.dlg.checkSeccions.isChecked()):
-            self.dlg.setEnabled(True)
-            print ("No s'ha seleccionat cap entitat amb la que treballar")
-            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-            message = template.format(type(ex).__name__, ex.args)
-            print (message)
-            QMessageBox.information(None, "Error", "No s'ha seleccionat cap entitat amb la que treballar")
-            conn.rollback()
-            self.dlg.setEnabled(True)
-            return
         
         print("No hi ha excepcions")
         ''' Crear copies capes originals '''
         self.crearCopiesCapesEntitats(habitatges)
-        if (self.dlg.checkParcel.isChecked()):
-            self.crearCopiesCapesEntitats(parcel)
-        if (self.dlg.checkIlles.isChecked()):
-            self.crearCopiesCapesEntitats(illes)
-        if (self.dlg.checkDistrictes.isChecked()):
-            self.crearCopiesCapesEntitats(districtes)
-        if (self.dlg.checkBarris.isChecked()):
-            self.crearCopiesCapesEntitats(barris)
-        if (self.dlg.checkSeccions.isChecked()):
-            self.crearCopiesCapesEntitats(seccions)
+        self.crearCopiesCapesEntitats(entitat)
         QApplication.processEvents()
         print("Fetes copies de les capes originals")
 
@@ -2015,26 +1423,8 @@ class EficEnerg:
 
         textBox += f"Unint capes seleccionades...\n"
         self.dlg.textEstat.setText(textBox)
-        if(self.dlg.checkParcel.isChecked()):
-            self.dropCapesUnides(parcel)
-            self.unirCapes(parcel, parcelLayer)
-            print("Drop i unio parcel")
-        if(self.dlg.checkIlles.isChecked()):
-            self.dropCapesUnides(illes)
-            self.unirCapes(illes, illesLayer)
-            print("Drop i unio illes")
-        if(self.dlg.checkDistrictes.isChecked()):
-            self.dropCapesUnides(districtes)
-            self.unirCapes(districtes, districtesLayer)
-            print("Drop i unio districtes")
-        if(self.dlg.checkBarris.isChecked()):
-            self.dropCapesUnides(barris)
-            self.unirCapes(barris, barrisLayer)
-            print("Drop i unio barris")
-        if(self.dlg.checkSeccions.isChecked()):
-            self.dropCapesUnides(seccions)
-            self.unirCapes(seccions, seccionsLayer)
-            print("Drop i unio seccions")
+        self.dropCapesUnides(entitat)
+        self.unirCapes()
         QApplication.processEvents()
         
         ''' Processament càlculs '''
@@ -2044,21 +1434,7 @@ class EficEnerg:
         if(self.dlg.checkNumHabit.isChecked()):
             textBox += f"Calculant NumX d'habitatges...\n"
             self.dlg.textEstat.setText(textBox)
-            if(self.dlg.checkParcel.isChecked()):
-                self.calculNumX(parcel)
-                print("Calcul NumX parcel")
-            if(self.dlg.checkIlles.isChecked()):
-                self.calculNumX(illes)
-                print("Calcul NumX illes")
-            if(self.dlg.checkDistrictes.isChecked()):
-                self.calculNumX(districtes)
-                print("Calcul NumX districtes")
-            if(self.dlg.checkBarris.isChecked()):
-                self.calculNumX(barris)
-                print("Calcul NumX barris")
-            if(self.dlg.checkSeccions.isChecked()):
-                self.calculNumX(seccions)
-                print("Calcul NumX seccions")
+            self.calculNumX()
             QApplication.processEvents()
         
         'm2 habitatges per entitats'
@@ -2066,21 +1442,7 @@ class EficEnerg:
         if(self.dlg.checkm2.isChecked()):
             textBox += f"Calculant m2 d'habitatges...\n"
             self.dlg.textEstat.setText(textBox)
-            if(self.dlg.checkParcel.isChecked()):
-                self.calculm2(parcel)
-                print("Calcul m2 parcel")
-            if(self.dlg.checkIlles.isChecked()):
-                self.calculm2(illes)
-                print("Calcul m2 illes")
-            if(self.dlg.checkDistrictes.isChecked()):
-                self.calculm2(districtes)
-                print("Calcul m2 districtes")
-            if(self.dlg.checkBarris.isChecked()):
-                self.calculm2(barris)
-                print("Calcul m2 barris")
-            if(self.dlg.checkSeccions.isChecked()):
-                self.calculm2(seccions)
-                print("Calcul m2 seccions")
+            self.calculm2()
             QApplication.processEvents()    
         
         'Mitjana habitatges per entitats'
@@ -2088,21 +1450,7 @@ class EficEnerg:
         if self.dlg.checkMitjana.isChecked():
             textBox += f"Calculant mitjana de consum i emissions d'habitatges per entitats...\n"
             self.dlg.textEstat.setText(textBox)
-            if self.dlg.checkParcel.isChecked():
-                self.calculMitjana(parcel)
-                print("Calcul mitjana parcel")
-            if self.dlg.checkIlles.isChecked():
-                self.calculMitjana(illes)
-                print("Calcul mitjana illes")
-            if self.dlg.checkDistrictes.isChecked():
-                self.calculMitjana(districtes)
-                print("Calcul mitjana districtes")
-            if self.dlg.checkBarris.isChecked():
-                self.calculMitjana(barris)
-                print("Calcul mitjana barris")
-            if self.dlg.checkSeccions.isChecked():
-                self.calculMitjana(seccions)
-                print("Calcul mitjana seccions")
+            self.calculMitjana()
             QApplication.processEvents()
 
         'Moda habitatges per entitats'
@@ -2110,21 +1458,7 @@ class EficEnerg:
         if self.dlg.checkModa.isChecked():
             textBox += f"Calculant moda de consum i emissions d'habitatges per entitats...\n"
             self.dlg.textEstat.setText(textBox)
-            if self.dlg.checkParcel.isChecked():
-                self.calculModa(parcel)
-                print("Calcul moda parcel")
-            if self.dlg.checkIlles.isChecked():
-                self.calculModa(illes)
-                print("Calcul moda illes")
-            if self.dlg.checkDistrictes.isChecked():
-                self.calculModa(districtes)
-                print("Calcul moda districtes")
-            if self.dlg.checkBarris.isChecked():
-                self.calculModa(barris)
-                print("Calcul moda barris")
-            if self.dlg.checkSeccions.isChecked():
-                self.calculModa(seccions)
-                print("Calcul moda seccions")
+            self.calculModa()
             QApplication.processEvents()
 
         'Mediana habitatges per entitats'
@@ -2132,21 +1466,7 @@ class EficEnerg:
         if self.dlg.checkMediana.isChecked():
             textBox += f"Calculant mediana de consum i emissions d'habitatges per entitats...\n"
             self.dlg.textEstat.setText(textBox)
-            if self.dlg.checkParcel.isChecked():
-                self.calculMediana(parcel)
-                print("Calcul mediana parcel")
-            if self.dlg.checkIlles.isChecked():
-                self.calculMediana(illes)
-                print("Calcul mediana illes")
-            if self.dlg.checkDistrictes.isChecked():
-                self.calculMediana(districtes)
-                print("Calcul mediana districtes")
-            if self.dlg.checkBarris.isChecked():
-                self.calculMediana(barris)
-                print("Calcul mediana barris")
-            if self.dlg.checkSeccions.isChecked():
-                self.calculMediana(seccions)
-                print("Calcul mediana seccions")
+            self.calculMediana()
             QApplication.processEvents()
 
 
@@ -2154,156 +1474,41 @@ class EficEnerg:
         'per NumHabit'
 
         if self.dlg.checkNumHabit.isChecked():
-            if self.dlg.checkParcel.isChecked():
-                self.carregarCapesMapa(parcel)
-                print("Carregada al mapa la capa parcel")
-                self.dropCapesReUnidesNumHabit(parcel)
-                print("Fet el drop per si de cas de capes re unides num habit parcel")
-                self.reUnirCapesNumHabit(parcel)
-                print("Re unides num habit parcel")
-            if self.dlg.checkIlles.isChecked():
-                self.carregarCapesMapa(illes)
-                print("Carregada al mapa la capa illes")
-                self.dropCapesReUnidesNumHabit(illes)
-                print("Fet el drop per si de cas de capes re unides num habit illes")
-                self.reUnirCapesNumHabit(illes)
-                print("Re unides num habit illes")
-            if self.dlg.checkDistrictes.isChecked():
-                self.carregarCapesMapa(districtes)
-                print("Carregada al mapa la capa districtes")
-                self.dropCapesReUnidesNumHabit(districtes)
-                print("Fet el drop per si de cas de capes re unides num habit districtes")
-                self.reUnirCapesNumHabit(districtes)
-                print("Re unides num habit districtes")
-            if self.dlg.checkBarris.isChecked():
-                self.carregarCapesMapa(barris)
-                print("Carregada al mapa la capa barris")
-                self.dropCapesReUnidesNumHabit(barris)
-                print("Fet el drop per si de cas de capes re unides num habit barris")
-                self.reUnirCapesNumHabit(barris)
-                print("Re unides num habit barris")
-            if self.dlg.checkSeccions.isChecked():
-                self.carregarCapesMapa(seccions)
-                print("Carregada al mapa la capa seccions")
-                self.dropCapesReUnidesNumHabit(seccions)
-                print("Fet el drop per si de cas de capes re unides num habit seccions")
-                self.reUnirCapesNumHabit(seccions)
-                print("Re unides num habit seccions")
+            self.carregarCapesMapa()
+            self.dropCapesReUnidesNumHabit()
+            self.reUnirCapesNumHabit()
             QApplication.processEvents()      
         
         'per m2'
 
         if self.dlg.checkm2.isChecked():
-            if self.dlg.checkParcel.isChecked():
-                self.carregarCapesMapa(parcel)
-                print("Carregada al mapa la capa parcel")
-                self.dropCapesReUnidesm2(parcel)
-                print("Fet el drop per si de cas de capes re unides m2 parcel")
-                self.reUnirCapesm2(parcel)
-                print("Re unides m2 parcel")
-            if self.dlg.checkIlles.isChecked():
-                self.carregarCapesMapa(illes)
-                print("Carregada al mapa la capa illes")
-                self.dropCapesReUnidesm2(illes)
-                print("Fet el drop per si de cas de capes re unides m2 illes")
-                self.reUnirCapesm2(illes)
-                print("Re unides m2 illes")
-            if self.dlg.checkDistrictes.isChecked():
-                self.carregarCapesMapa(districtes)
-                print("Carregada al mapa la capa districtes")
-                self.dropCapesReUnidesm2(districtes)
-                print("Fet el drop per si de cas de capes re unides m2 districtes")
-                self.reUnirCapesm2(districtes)
-                print("Re unides m2 districtes")
-            if self.dlg.checkBarris.isChecked():
-                self.carregarCapesMapa(barris)
-                print("Carregada al mapa la capa barris")
-                self.dropCapesReUnidesm2(barris)
-                print("Fet el drop per si de cas de capes re unides m2 barris")
-                self.reUnirCapesm2(barris)
-                print("Re unides m2 barris")
-            if self.dlg.checkSeccions.isChecked():
-                self.carregarCapesMapa(seccions)
-                print("Carregada al mapa la capa seccions")
-                self.dropCapesReUnidesm2(seccions)
-                print("Fet el drop per si de cas de capes re unides m2 seccions")
-                self.reUnirCapesm2(seccions)
-                print("Re unides m2 seccions")
-        QApplication.processEvents()
+            self.carregarCapesMapa()
+            self.dropCapesReUnidesm2()
+            self.reUnirCapesm2()
+            QApplication.processEvents()
 
         'per mitjana'
         if self.dlg.checkMitjana.isChecked():
-            if self.dlg.checkParcel.isChecked():
-                self.carregarCapesMapa(parcel)
-                self.dropCapesReUnidesMitjana(parcel)
-                self.reUnirCapesMitjana(parcel)
-            if self.dlg.checkIlles.isChecked():
-                self.carregarCapesMapa(illes)
-                self.dropCapesReUnidesMitjana(illes)
-                self.reUnirCapesMitjana(illes)
-            if self.dlg.checkDistrictes.isChecked():
-                self.carregarCapesMapa(districtes)
-                self.dropCapesReUnidesMitjana(districtes)
-                self.reUnirCapesMitjana(districtes)
-            if self.dlg.checkBarris.isChecked():
-                self.carregarCapesMapa(barris)
-                self.dropCapesReUnidesMitjana(barris)
-                self.reUnirCapesMitjana(barris)
-            if self.dlg.checkSeccions.isChecked():
-                self.carregarCapesMapa(seccions)
-                self.dropCapesReUnidesMitjana(seccions)
-                self.reUnirCapesMitjana(seccions)
-        QApplication.processEvents()
+            self.carregarCapesMapa()
+            self.dropCapesReUnidesMitjana()
+            self.reUnirCapesMitjana()
+            QApplication.processEvents()
 
         'per moda'
 
         if self.dlg.checkModa.isChecked():
-            if self.dlg.checkParcel.isChecked():
-                self.carregarCapesMapa(parcel)
-                self.dropCapesReUnidesModa(parcel)
-                self.reUnirCapesModa(parcel)
-            if self.dlg.checkIlles.isChecked():
-                self.carregarCapesMapa(illes)
-                self.dropCapesReUnidesModa(illes)
-                self.reUnirCapesModa(illes)
-            if self.dlg.checkDistrictes.isChecked():
-                self.carregarCapesMapa(districtes)
-                self.dropCapesReUnidesModa(districtes)
-                self.reUnirCapesModa(districtes)
-            if self.dlg.checkBarris.isChecked():
-                self.carregarCapesMapa(barris)
-                self.dropCapesReUnidesModa(barris)
-                self.reUnirCapesModa(barris)
-            if self.dlg.checkSeccions.isChecked():
-                self.carregarCapesMapa(seccions)
-                self.dropCapesReUnidesModa(seccions)
-                self.reUnirCapesModa(seccions)
-        QApplication.processEvents()
+            self.carregarCapesMapa()
+            self.dropCapesReUnidesModa()
+            self.reUnirCapesModa()
+            QApplication.processEvents()
 
         'per mediana'
 
         if self.dlg.checkMediana.isChecked():
-            if self.dlg.checkParcel.isChecked():
-                self.carregarCapesMapa(parcel)
-                self.dropCapesReUnidesMediana(parcel)
-                self.reUnirCapesMediana(parcel)
-            if self.dlg.checkIlles.isChecked():
-                self.carregarCapesMapa(illes)
-                self.dropCapesReUnidesMediana(illes)
-                self.reUnirCapesMediana(illes)
-            if self.dlg.checkDistrictes.isChecked():
-                self.carregarCapesMapa(districtes)
-                self.dropCapesReUnidesMediana(districtes)
-                self.reUnirCapesMediana(districtes)
-            if self.dlg.checkBarris.isChecked():
-                self.carregarCapesMapa(barris)
-                self.dropCapesReUnidesMediana(barris)
-                self.reUnirCapesMediana(barris)
-            if self.dlg.checkSeccions.isChecked():
-                self.carregarCapesMapa(seccions)
-                self.dropCapesReUnidesMediana(seccions)
-                self.reUnirCapesMediana(seccions)
-        QApplication.processEvents()
+            self.carregarCapesMapa()
+            self.dropCapesReUnidesMediana()
+            self.reUnirCapesMediana()
+            QApplication.processEvents()
 
         ''' Diagrames de pie chart '''
 
@@ -2327,461 +1532,125 @@ class EficEnerg:
             'm2G': QColor.fromCmykF(0.05, 0.95, 0.95, 0.00)
         }
 
-        if self.dlg.checkParcel.isChecked():
-            if self.dlg.checkNumHabit.isChecked():
-                uri.setDataSource(schema1, f"Resum{parcel}RecompteNumHabit", 'geom')
-                capaUnidaParcelNumHabit = QgsVectorLayer(uri.uri(), f"Resum{parcel}RecompteNumHabit", 'postgres')
-                capaUnidaParcelNumHabit_temp_features = [feat for feat in capaUnidaParcelNumHabit.getFeatures()]
-                capaUnidaParcelNumHabit_temp = QgsVectorLayer("Polygon?crs=epsg:25831", f"Resum{parcel}RecompteNumHabit", "memory")
-                capaUnidaParcelNumHabit_temp_data = capaUnidaParcelNumHabit_temp.dataProvider()
-                attributes = capaUnidaParcelNumHabit.dataProvider().fields().toList()
-                capaUnidaParcelNumHabit_temp_data.addAttributes(attributes)
-                capaUnidaParcelNumHabit_temp.updateFields()
-                capaUnidaParcelNumHabit_temp_data.addFeatures(capaUnidaParcelNumHabit_temp_features)
-                if capaUnidaParcelNumHabit_temp.isValid():
-                    QgsProject.instance().addMapLayer(capaUnidaParcelNumHabit_temp)
-                    QApplication.processEvents()
-                else:
-                    print("No s'ha pogut afegir el layer de parcel de numhabit")
-                
-                parcelDiagramNumHabit = QgsPieDiagram()
-                parcelDiagramNumHabitSettings = QgsDiagramSettings()
-                parcelDiagramNumHabitSettings.categoryColors = NumDiagramColors.values()
-                parcelDiagramNumHabitSettings.categoryAttributes = NumDiagramColors.keys()
-                parcelDiagramNumHabitSettings.scaleByArea = True
-                parcelDiagramNumHabitSettings.categoryLabels = parcelDiagramNumHabitSettings.categoryAttributes
-                parcelDiagramNumHabitSettings.enabled = True
-
-
-                parcelDiagramNumHabitRenderer = QgsLinearlyInterpolatedDiagramRenderer()
-                parcelDiagramNumHabitRenderer.setLowerValue(0)
-                parcelDiagramNumHabitRenderer.setLowerSize(QSizeF(0, 0))
-                parcelDiagramNumHabitRenderer.setUpperValue(self.maxTotalEE(parcel))
-                parcelDiagramNumHabitRenderer.setUpperSize(QSizeF(30, 30))
-                parcelDiagramNumHabitRenderer.setClassificationField("TotalEE")
-                parcelDiagramNumHabitRenderer.setDiagram(parcelDiagramNumHabit)
-                parcelDiagramNumHabitRenderer.setDiagramSettings(parcelDiagramNumHabitSettings)
-
-                '''
-                datadefinedsizelegend = QgsDataDefinedSizeLegend()
-                datadefinedsizelegend.setSizeScaleField("TotalEE")
-                datadefinedsizelegend.setSizeScaleFieldUnits(QgsUnitTypes.RenderMapUnits)
-                datadefinedsizelegend.setClassifyEnabled(True)
-                datadefinedsizelegend.setClassifyMode(QgsDataDefinedSizeLegend.Fractile)
-                datadefinedsizelegend.setMinimumSize(QSizeF(0, 0))
-                datadefinedsizelegend.setMaximumSize(QSizeF(30, 30))
-                datadefinedsizelegend.setClassificationMethod(QgsDataDefinedSizeLegend.SizeLegendJenks)
-                parcelDiagramNumHabitRenderer.setDataDefinedSizeLegend(datadefinedsizelegend)
-                '''
-
-                capaUnidaParcelNumHabit_temp.setDiagramRenderer(parcelDiagramNumHabitRenderer)
-                parcelDiagramNumHabitLayerSettings = QgsDiagramLayerSettings()
-                capaUnidaParcelNumHabit_temp.setDiagramLayerSettings(parcelDiagramNumHabitLayerSettings)
-
-                capaUnidaParcelNumHabit_temp.triggerRepaint()
+        if self.dlg.checkNumHabit.isChecked():
+            uri.setDataSource(schema1, f"Resum{entitat}RecompteNumHabit", 'geom')
+            capaUnidaNumHabit = QgsVectorLayer(uri.uri(), f"Resum{entitat}RecompteNumHabit", 'postgres')
+            capaUnidaNumHabit_temp_features = [feat for feat in capaUnidaNumHabit.getFeatures()]
+            capaUnidaNumHabit_temp = QgsVectorLayer("Polygon?crs=epsg:25831", f"Resum{entitat}RecompteNumHabit", "memory")
+            capaUnidaNumHabit_temp_data = capaUnidaNumHabit_temp.dataProvider()
+            attributes = capaUnidaNumHabit.dataProvider().fields().toList()
+            capaUnidaNumHabit_temp_data.addAttributes(attributes)
+            capaUnidaNumHabit_temp.updateFields()
+            capaUnidaNumHabit_temp_data.addFeatures(capaUnidaNumHabit_temp_features)
+            if capaUnidaNumHabit_temp.isValid():
+                QgsProject.instance().addMapLayer(capaUnidaNumHabit_temp)
                 QApplication.processEvents()
+            else:
+                print("No s'ha pogut afegir el layer de numhabit")
 
-                print(f"Aplicat renderer del diagrama, renderer: {capaUnidaParcelNumHabit_temp.renderer()}")
+            diagramNumHabit = QgsPieDiagram()
+            diagramNumHabitSettings = QgsDiagramSettings()
+            diagramNumHabitSettings.categoryColors = NumDiagramColors.values()
+            diagramNumHabitSettings.categoryAttributes = NumDiagramColors.keys()
+            diagramNumHabitSettings.scaleByArea = True
+            diagramNumHabitSettings.categoryLabels = diagramNumHabitSettings.categoryAttributes
+            diagramNumHabitSettings.enabled = True
 
+            diagramNumHabitRenderer = QgsLinearlyInterpolatedDiagramRenderer()
+            diagramNumHabitRenderer.setLowerValue(0)
+            diagramNumHabitRenderer.setLowerSize(QSizeF(0, 0))
+            diagramNumHabitRenderer.setUpperValue(self.maxTotalEE())
+            diagramNumHabitRenderer.setUpperSize(QSizeF(30, 30))
+            diagramNumHabitRenderer.setClassificationField("TotalEE")
+            diagramNumHabitRenderer.setDiagram(diagramNumHabit)
+            diagramNumHabitRenderer.setDiagramSettings(diagramNumHabitSettings)
 
-                '''
-                symbol = QgsSymbol.defaultSymbol(capaUnidaParcelNumHabit_temp.geometryType())
-                singlesymbolrenderer = QgsSingleSymbolRenderer(symbol)
-                #singlesymbolrenderer.convertFromRenderer(parcelDiagramNumHabitRenderer)
-                #singlesymbolrenderer.setDiagram(parcelDiagramNumHabit)
-                #singlesymbolrenderer.setDiagramSettings(parcelDiagramNumHabitSettings)
-                datadefinedsizelegend = QgsDataDefinedSizeLegend()
-                'datadefinedsizelegend.AlignBottom=1'
-                'datadefinedsizelegend.AlignCenter=0'
-                'datadefinedsizelegend.LegendCollapse=1'
-                'datadefinedsizelegend.LegendSeparated=0'
-                datadefinedsizelegend.setLegendType(QgsDataDefinedSizeLegend.LegendCollapsed)
-                datadefinedsizelegend.setVerticalAlignment(QgsDataDefinedSizeLegend.AlignBottom)
-                datadefinedsizelegend.setClasses([
-                    QgsDataDefinedSizeLegend.SizeClass(92.0, '92'),
-                    QgsDataDefinedSizeLegend.SizeClass(80.0, '80'),
-                    QgsDataDefinedSizeLegend.SizeClass(60.0, '60'),
-                    QgsDataDefinedSizeLegend.SizeClass(40.0, '40'),
-                    QgsDataDefinedSizeLegend.SizeClass(20.0, '20')
-                ])
-                print(datadefinedsizelegend.verticalAlignment())
-                print(datadefinedsizelegend.legendType())
-                print(datadefinedsizelegend.classes())
-                singlesymbolrenderer.setDataDefinedSizeLegend(datadefinedsizelegend)
+            '''
+            datadefinedsizelegend = QgsDataDefinedSizeLegend()
+            datadefinedsizelegend.setSizeScaleField("TotalEE")
+            datadefinedsizelegend.setSizeScaleFieldUnits(QgsUnitTypes.RenderMapUnits)
+            datadefinedsizelegend.setClassifyEnabled(True)
+            datadefinedsizelegend.setClassifyMode(QgsDataDefinedSizeLegend.Fractile)
+            datadefinedsizelegend.setMinimumSize(QSizeF(0, 0))
+            datadefinedsizelegend.setMaximumSize(QSizeF(30, 30))
+            datadefinedsizelegend.setClassificationMethod(QgsDataDefinedSizeLegend.SizeLegendJenks)
+            diagramNumHabitRenderer.setDataDefinedSizeLegend(datadefinedsizelegend)
+            '''
 
+            capaUnidaNumHabit_temp.setDiagramRenderer(diagramNumHabitRenderer)
+            diagramNumHabitLayerSettings = QgsDiagramLayerSettings()
+            capaUnidaNumHabit_temp.setDiagramLayerSettings(diagramNumHabitLayerSettings)
 
-                #iface.layerTreeView().refreshLayerSymbology(capaUnidaParcelNumHabit_temp.id())
+            capaUnidaNumHabit_temp.triggerRepaint()
+            QApplication.processEvents()
 
-                
+            print(f"Aplicat renderer del diagrama, renderer: {capaUnidaNumHabit_temp.renderer()}")
 
-                capaUnidaParcelNumHabit_temp.setRenderer(singlesymbolrenderer)
-                capaUnidaParcelNumHabit_temp.triggerRepaint()
+            '''
+            symbol = QgsSymbol.defaultSymbol(capaUnidaNumHabit_temp.geometryType())
+            singlesymbolrenderer = QgsSingleSymbolRenderer(symbol)
+            #singlesymbolrenderer.convertFromRenderer(diagramNumHabitRenderer)
+            #singlesymbolrenderer.setDiagram(diagramNumHabit)
+            #singlesymbolrenderer.setDiagramSettings(diagramNumHabitSettings)
+            datadefinedsizelegend = QgsDataDefinedSizeLegend()
+            'datadefinedsizelegend.AlignBottom=1'
+            'datadefinedsizelegend.AlignCenter=0'
+            'datadefinedsizelegend.LegendCollapsed=1'
+            'datadefinedsizelegend.LegendSeparated=0'
+            datadefinedsizelegend.setLegendType(QgsDataDefinedSizeLegend.LegendCollapsed)  
+            datadefinedsizelegend.setVerticalAlignment(QgsDataDefinedSizeLegend.AlignBottom)
+            datadefinedsizelegend.setClasses([
+                QgsDataDefinedSizeLegend.SizeClass(92.0, '92'),
+                QgsDataDefinedSizeLegend.SizeClass(80.0, '80'),
+                QgsDataDefinedSizeLegend.SizeClass(60.0, '60'),
+                QgsDataDefinedSizeLegend.SizeClass(40.0, '40'),
+                QgsDataDefinedSizeLegend.SizeClass(20.0, '20')
+            ])
+
+            singlesymbolrenderer.setDataDefinedSizeLegend(datadefinedsizelegend)
+            capaUnidaNumHabit_temp.setRenderer(singlesymbolrenderer)
+            capaUnidaNumHabit_temp.triggerRepaint()
+            '''
+
+        if self.dlg.checkm2.isChecked():
+            uri.setDataSource(schema1, f"Resum{entitat}Recomptem2", 'geom')
+            capaUnidam2 = QgsVectorLayer(uri.uri(), f"Resum{entitat}Recomptem2", 'postgres')
+            capaUnidam2_temp_features = [feat for feat in capaUnidam2.getFeatures()]
+            capaUnidam2_temp = QgsVectorLayer("Polygon?crs=epsg:25831", f"Resum{entitat}Recomptem2", "memory")
+            capaUnidam2_temp_data = capaUnidam2_temp.dataProvider()
+            attributes = capaUnidam2.dataProvider().fields().toList()
+            capaUnidam2_temp_data.addAttributes(attributes)
+            capaUnidam2_temp.updateFields()
+            capaUnidam2_temp_data.addFeatures(capaUnidam2_temp_features)
+            if capaUnidam2_temp.isValid():
+                QgsProject.instance().addMapLayer(capaUnidam2_temp)
                 QApplication.processEvents()
+            else:
+                print("No s'ha pogut afegir el layer de m2")
 
-                print(f"Aplicat renderer de la llegenda, renderer: {capaUnidaParcelNumHabit_temp.renderer()}")
-                '''
+            diagramm2 = QgsPieDiagram()
+            diagramm2Settings = QgsDiagramSettings()
+            diagramm2Settings.categoryColors = m2DiagramColors.values()
+            diagramm2Settings.categoryAttributes = m2DiagramColors.keys()
+            diagramm2Settings.scaleByArea = True
+            diagramm2Settings.categoryLabels = diagramm2Settings.categoryAttributes
+            diagramm2Settings.enabled = True
 
+            diagramm2Renderer = QgsLinearlyInterpolatedDiagramRenderer()
+            diagramm2Renderer.setLowerValue(0)
+            diagramm2Renderer.setLowerSize(QSizeF(0, 0))
+            diagramm2Renderer.setUpperValue(self.maxTotalm2())
+            diagramm2Renderer.setUpperSize(QSizeF(100, 100))
+            diagramm2Renderer.setClassificationField("Totalm2")
+            diagramm2Renderer.setDiagram(diagramm2)
+            diagramm2Renderer.setDiagramSettings(diagramm2Settings)
 
+            capaUnidam2_temp.setDiagramRenderer(diagramm2Renderer)
+            diagramm2LayerSettings = QgsDiagramLayerSettings()
 
-            if self.dlg.checkm2.isChecked():
-                uri.setDataSource(schema1, f"Resum{parcel}Recomptem2", 'geom')
-                capaUnidaParcelm2 = QgsVectorLayer(uri.uri(), f"Resum{parcel}Recomptem2", 'postgres')
-                capaUnidaParcelm2_temp_features = [feat for feat in capaUnidaParcelm2.getFeatures()]
-                capaUnidaParcelm2_temp = QgsVectorLayer("Polygon?crs=epsg:25831", f"Resum{parcel}Recomptem2", "memory")
-                capaUnidaParcelm2_temp_data = capaUnidaParcelm2_temp.dataProvider()
-                attributes = capaUnidaParcelm2.dataProvider().fields().toList()
-                capaUnidaParcelm2_temp_data.addAttributes(attributes)
-                capaUnidaParcelm2_temp.updateFields()
-                capaUnidaParcelm2_temp_data.addFeatures(capaUnidaParcelm2_temp_features)
-                if capaUnidaParcelm2_temp.isValid():
-                    QgsProject.instance().addMapLayer(capaUnidaParcelm2_temp)
-                    QApplication.processEvents()
-                else:
-                    print("No s'ha pogut afegir el layer de parcel de m2")
-
-                parcelDiagramm2 = QgsPieDiagram()
-                parcelDiagramm2Settings = QgsDiagramSettings()
-                parcelDiagramm2Settings.categoryColors = m2DiagramColors.values()
-                parcelDiagramm2Settings.categoryAttributes = m2DiagramColors.keys()
-                parcelDiagramm2Settings.scaleByArea = True
-                parcelDiagramm2Settings.categoryLabels = parcelDiagramm2Settings.categoryAttributes
-
-                parcelDiagramm2Renderer = QgsLinearlyInterpolatedDiagramRenderer()
-                parcelDiagramm2Renderer.setLowerValue(0)
-                parcelDiagramm2Renderer.setLowerSize(QSizeF(0, 0))
-                maxm2 = self.maxTotalm2(parcel)
-                parcelDiagramm2Renderer.setUpperValue(maxm2)
-                parcelDiagramm2Renderer.setUpperSize(QSizeF(100, 100))
-                parcelDiagramm2Renderer.setClassificationField("Totalm2")
-                parcelDiagramm2Renderer.setDiagram(parcelDiagramm2)
-                parcelDiagramm2Renderer.setDiagramSettings(parcelDiagramm2Settings)
-                
-                capaUnidaParcelm2_temp.setDiagramRenderer(parcelDiagramm2Renderer)
-                parcelDiagramm2LayerSettings = QgsDiagramLayerSettings()
-
-                capaUnidaParcelm2_temp.setDiagramLayerSettings(parcelDiagramm2LayerSettings)
-                capaUnidaParcelm2_temp.triggerRepaint()
-                QApplication.processEvents()
-
-        if(self.dlg.checkIlles.isChecked()):
-            if self.dlg.checkNumHabit.isChecked():
-                uri.setDataSource(schema1, f"Resum{illes}RecompteNumHabit", 'geom')
-                capaUnidaillesNumHabit = QgsVectorLayer(uri.uri(), f"Resum{illes}RecompteNumHabit", 'postgres')
-                capaUnidaillesNumHabit_temp_features = [feat for feat in capaUnidaillesNumHabit.getFeatures()]
-                capaUnidaillesNumHabit_temp = QgsVectorLayer("Polygon?crs=epsg:25831", f"Resum{illes}RecompteNumHabit", "memory")
-                capaUnidaillesNumHabit_temp_data = capaUnidaillesNumHabit_temp.dataProvider()
-                attributes = capaUnidaillesNumHabit.dataProvider().fields().toList()
-                capaUnidaillesNumHabit_temp_data.addAttributes(attributes)
-                capaUnidaillesNumHabit_temp.updateFields()
-                capaUnidaillesNumHabit_temp_data.addFeatures(capaUnidaillesNumHabit_temp_features)
-                if capaUnidaillesNumHabit_temp.isValid():
-                    QgsProject.instance().addMapLayer(capaUnidaillesNumHabit_temp)
-                    QApplication.processEvents()
-                else:
-                    print("No s'ha pogut afegir el layer de illes de numhabit")
-
-                illesDiagramNumHabit = QgsPieDiagram()
-                illesDiagramNumHabitSettings = QgsDiagramSettings()
-                illesDiagramNumHabitSettings.categoryColors = NumDiagramColors.values()
-                illesDiagramNumHabitSettings.categoryAttributes = NumDiagramColors.keys()
-                illesDiagramNumHabitSettings.scaleByArea = True
-                illesDiagramNumHabitSettings.categoryLabels = illesDiagramNumHabitSettings.categoryAttributes
-
-                illesDiagramNumHabitRenderer = QgsLinearlyInterpolatedDiagramRenderer()
-                illesDiagramNumHabitRenderer.setLowerValue(0)
-                illesDiagramNumHabitRenderer.setLowerSize(QSizeF(0, 0))
-                illesDiagramNumHabitRenderer.setUpperValue(self.maxTotalEE(illes))
-                illesDiagramNumHabitRenderer.setUpperSize(QSizeF(50, 50))
-                illesDiagramNumHabitRenderer.setClassificationField("TotalEE")
-                illesDiagramNumHabitRenderer.setDiagram(illesDiagramNumHabit)
-                illesDiagramNumHabitRenderer.setDiagramSettings(illesDiagramNumHabitSettings)
-                
-                capaUnidaillesNumHabit_temp.setDiagramRenderer(illesDiagramNumHabitRenderer)
-                illesDiagramNumHabitLayerSettings = QgsDiagramLayerSettings()
-
-                capaUnidaillesNumHabit_temp.setDiagramLayerSettings(illesDiagramNumHabitLayerSettings)
-                capaUnidaillesNumHabit_temp.triggerRepaint()
-                QApplication.processEvents()
-
-            if self.dlg.checkm2.isChecked():
-                uri.setDataSource(schema1, f"Resum{illes}Recomptem2", 'geom')
-                capaUnidaillesm2 = QgsVectorLayer(uri.uri(), f"Resum{illes}Recomptem2", 'postgres')
-                capaUnidaillesm2_temp_features = [feat for feat in capaUnidaillesm2.getFeatures()]
-                capaUnidaillesm2_temp = QgsVectorLayer("Polygon?crs=epsg:25831", f"Resum{illes}Recomptem2", "memory")
-                capaUnidaillesm2_temp_data = capaUnidaillesm2_temp.dataProvider()
-                attributes = capaUnidaillesm2.dataProvider().fields().toList()
-                capaUnidaillesm2_temp_data.addAttributes(attributes)
-                capaUnidaillesm2_temp.updateFields()
-                capaUnidaillesm2_temp_data.addFeatures(capaUnidaillesm2_temp_features)
-                if capaUnidaillesm2_temp.isValid():
-                    QgsProject.instance().addMapLayer(capaUnidaillesm2_temp)
-                    QApplication.processEvents()
-                else:
-                    print("No s'ha pogut afegir el layer de illes de m2")
-
-                illesDiagramm2 = QgsPieDiagram()
-                illesDiagramm2Settings = QgsDiagramSettings()
-                illesDiagramm2Settings.categoryColors = m2DiagramColors.values()
-                illesDiagramm2Settings.categoryAttributes = m2DiagramColors.keys()
-                illesDiagramm2Settings.scaleByArea = True
-                illesDiagramm2Settings.categoryLabels = illesDiagramm2Settings.categoryAttributes
-
-                illesDiagramm2Renderer = QgsLinearlyInterpolatedDiagramRenderer()
-                illesDiagramm2Renderer.setLowerValue(0)
-                illesDiagramm2Renderer.setLowerSize(QSizeF(0, 0))
-                maxm2 = self.maxTotalm2(illes)
-                illesDiagramm2Renderer.setUpperValue(maxm2)
-                illesDiagramm2Renderer.setUpperSize(QSizeF(50, 50))
-                illesDiagramm2Renderer.setClassificationField("Totalm2")
-                illesDiagramm2Renderer.setDiagram(illesDiagramm2)
-                illesDiagramm2Renderer.setDiagramSettings(illesDiagramm2Settings)
-                
-                capaUnidaillesm2_temp.setDiagramRenderer(illesDiagramm2Renderer)
-                illesDiagramm2LayerSettings = QgsDiagramLayerSettings()
-
-                capaUnidaillesm2_temp.setDiagramLayerSettings(illesDiagramm2LayerSettings)
-                capaUnidaillesm2_temp.triggerRepaint()
-                QApplication.processEvents()
-
-        if self.dlg.checkDistrictes.isChecked():
-            if self.dlg.checkNumHabit.isChecked():
-                uri.setDataSource(schema1, f"Resum{districtes}RecompteNumHabit", 'geom')
-                capaUnidadistrictesNumHabit = QgsVectorLayer(uri.uri(), f"Resum{districtes}RecompteNumHabit", 'postgres')
-                capaUnidadistrictesNumHabit_temp_features = [feat for feat in capaUnidadistrictesNumHabit.getFeatures()]
-                capaUnidadistrictesNumHabit_temp = QgsVectorLayer("Polygon?crs=epsg:25831", f"Resum{districtes}RecompteNumHabit", "memory")
-                capaUnidadistrictesNumHabit_temp_data = capaUnidadistrictesNumHabit_temp.dataProvider()
-                attributes = capaUnidadistrictesNumHabit.dataProvider().fields().toList()
-                capaUnidadistrictesNumHabit_temp_data.addAttributes(attributes)
-                capaUnidadistrictesNumHabit_temp.updateFields()
-                capaUnidadistrictesNumHabit_temp_data.addFeatures(capaUnidadistrictesNumHabit_temp_features)
-                if capaUnidadistrictesNumHabit_temp.isValid():
-                    QgsProject.instance().addMapLayer(capaUnidadistrictesNumHabit_temp)
-                    QApplication.processEvents()
-                else:
-                    print("No s'ha pogut afegir el layer de districtes de numhabit")
-
-                districtesDiagramNumHabit = QgsPieDiagram()
-                districtesDiagramNumHabitSettings = QgsDiagramSettings()
-                districtesDiagramNumHabitSettings.categoryColors = NumDiagramColors.values()
-                districtesDiagramNumHabitSettings.categoryAttributes = NumDiagramColors.keys()
-                districtesDiagramNumHabitSettings.scaleByArea = True
-                districtesDiagramNumHabitSettings.categoryLabels = districtesDiagramNumHabitSettings.categoryAttributes
-
-                districtesDiagramNumHabitRenderer = QgsLinearlyInterpolatedDiagramRenderer()
-                districtesDiagramNumHabitRenderer.setLowerValue(0)
-                districtesDiagramNumHabitRenderer.setLowerSize(QSizeF(0, 0))
-                districtesDiagramNumHabitRenderer.setUpperValue(self.maxTotalEE(districtes))
-                districtesDiagramNumHabitRenderer.setUpperSize(QSizeF(30, 30))
-                districtesDiagramNumHabitRenderer.setClassificationField("TotalEE")
-                districtesDiagramNumHabitRenderer.setDiagram(districtesDiagramNumHabit)
-                districtesDiagramNumHabitRenderer.setDiagramSettings(districtesDiagramNumHabitSettings)
-                
-                capaUnidadistrictesNumHabit_temp.setDiagramRenderer(districtesDiagramNumHabitRenderer)
-                districtesDiagramNumHabitLayerSettings = QgsDiagramLayerSettings()
-
-                capaUnidadistrictesNumHabit_temp.setDiagramLayerSettings(districtesDiagramNumHabitLayerSettings)
-                capaUnidadistrictesNumHabit_temp.triggerRepaint()
-                QApplication.processEvents()
-
-            if self.dlg.checkm2.isChecked():
-                uri.setDataSource(schema1, f"Resum{districtes}Recomptem2", 'geom')
-                capaUnidadistrictesm2 = QgsVectorLayer(uri.uri(), f"Resum{districtes}Recomptem2", 'postgres')
-                capaUnidadistrictesm2_temp_features = [feat for feat in capaUnidadistrictesm2.getFeatures()]
-                capaUnidadistrictesm2_temp = QgsVectorLayer("Polygon?crs=epsg:25831", f"Resum{districtes}Recomptem2", "memory")
-                capaUnidadistrictesm2_temp_data = capaUnidadistrictesm2_temp.dataProvider()
-                attributes = capaUnidadistrictesm2.dataProvider().fields().toList()
-                capaUnidadistrictesm2_temp_data.addAttributes(attributes)
-                capaUnidadistrictesm2_temp.updateFields()
-                capaUnidadistrictesm2_temp_data.addFeatures(capaUnidadistrictesm2_temp_features)
-                if capaUnidadistrictesm2_temp.isValid():
-                    QgsProject.instance().addMapLayer(capaUnidadistrictesm2_temp)
-                    QApplication.processEvents()
-                else:
-                    print("No s'ha pogut afegir el layer de districtes de numhabit")
-
-                districtesDiagramm2 = QgsPieDiagram()
-                districtesDiagramm2Settings = QgsDiagramSettings()
-                districtesDiagramm2Settings.categoryColors = m2DiagramColors.values()
-                districtesDiagramm2Settings.categoryAttributes = m2DiagramColors.keys()
-                districtesDiagramm2Settings.scaleByArea = True
-                districtesDiagramm2Settings.categoryLabels = districtesDiagramm2Settings.categoryAttributes
-
-                districtesDiagramm2Renderer = QgsLinearlyInterpolatedDiagramRenderer()
-                districtesDiagramm2Renderer.setLowerValue(0)
-                districtesDiagramm2Renderer.setLowerSize(QSizeF(0, 0))
-                maxm2 = self.maxTotalm2(districtes)
-                districtesDiagramm2Renderer.setUpperValue(maxm2)
-                districtesDiagramm2Renderer.setUpperSize(QSizeF(30, 30))
-                districtesDiagramm2Renderer.setClassificationField("Totalm2")
-                districtesDiagramm2Renderer.setDiagram(districtesDiagramm2)
-                districtesDiagramm2Renderer.setDiagramSettings(districtesDiagramm2Settings)
-                
-                capaUnidadistrictesm2_temp.setDiagramRenderer(districtesDiagramm2Renderer)
-                districtesDiagramm2LayerSettings = QgsDiagramLayerSettings()
-
-                capaUnidadistrictesm2_temp.setDiagramLayerSettings(districtesDiagramm2LayerSettings)
-                capaUnidadistrictesm2_temp.triggerRepaint()
-                QApplication.processEvents()
-
-        if self.dlg.checkBarris.isChecked():
-            if self.dlg.checkNumHabit.isChecked():
-                uri.setDataSource(schema1, f"Resum{barris}RecompteNumHabit", 'geom')
-                capaUnidabarrisNumHabit = QgsVectorLayer(uri.uri(), f"Resum{barris}RecompteNumHabit", 'postgres')
-                capaUnidabarrisNumHabit_temp_features = [feat for feat in capaUnidabarrisNumHabit.getFeatures()]
-                capaUnidabarrisNumHabit_temp = QgsVectorLayer("Polygon?crs=epsg:25831", f"Resum{barris}RecompteNumHabit", "memory")
-                capaUnidabarrisNumHabit_temp_data = capaUnidabarrisNumHabit_temp.dataProvider()
-                attributes = capaUnidabarrisNumHabit.dataProvider().fields().toList()
-                capaUnidabarrisNumHabit_temp_data.addAttributes(attributes)
-                capaUnidabarrisNumHabit_temp.updateFields()
-                capaUnidabarrisNumHabit_temp_data.addFeatures(capaUnidabarrisNumHabit_temp_features)
-                if capaUnidabarrisNumHabit_temp.isValid():
-                    QgsProject.instance().addMapLayer(capaUnidabarrisNumHabit_temp)
-                    QApplication.processEvents()
-                else:
-                    print("No s'ha pogut afegir el layer de districtes de numhabit")
-
-                barrisDiagramNumHabit = QgsPieDiagram()
-                barrisDiagramNumHabitSettings = QgsDiagramSettings()
-                barrisDiagramNumHabitSettings.categoryColors = NumDiagramColors.values()
-                barrisDiagramNumHabitSettings.categoryAttributes = NumDiagramColors.keys()
-                barrisDiagramNumHabitSettings.scaleByArea = True
-                barrisDiagramNumHabitSettings.categoryLabels = barrisDiagramNumHabitSettings.categoryAttributes
-
-                barrisDiagramNumHabitRenderer = QgsLinearlyInterpolatedDiagramRenderer()
-                barrisDiagramNumHabitRenderer.setLowerValue(0)
-                barrisDiagramNumHabitRenderer.setLowerSize(QSizeF(0, 0))
-                barrisDiagramNumHabitRenderer.setUpperValue(self.maxTotalEE(barris))
-                barrisDiagramNumHabitRenderer.setUpperSize(QSizeF(30, 30))
-                barrisDiagramNumHabitRenderer.setClassificationField("TotalEE")
-                barrisDiagramNumHabitRenderer.setDiagram(barrisDiagramNumHabit)
-                barrisDiagramNumHabitRenderer.setDiagramSettings(barrisDiagramNumHabitSettings)
-                
-                capaUnidabarrisNumHabit_temp.setDiagramRenderer(barrisDiagramNumHabitRenderer)
-                barrisDiagramNumHabitLayerSettings = QgsDiagramLayerSettings()
-
-                capaUnidabarrisNumHabit_temp.setDiagramLayerSettings(barrisDiagramNumHabitLayerSettings)
-                capaUnidabarrisNumHabit_temp.triggerRepaint()
-                QApplication.processEvents()
-
-            if self.dlg.checkm2.isChecked():
-                uri.setDataSource(schema1, f"Resum{barris}Recomptem2", 'geom')
-                capaUnidabarrism2 = QgsVectorLayer(uri.uri(), f"Resum{barris}Recomptem2", 'postgres')
-                capaUnidabarrism2_temp_features = [feat for feat in capaUnidabarrism2.getFeatures()]
-                capaUnidabarrism2_temp = QgsVectorLayer("Polygon?crs=epsg:25831", f"Resum{barris}Recomptem2", "memory")
-                capaUnidabarrism2_temp_data = capaUnidabarrism2_temp.dataProvider()
-                attributes = capaUnidabarrism2.dataProvider().fields().toList()
-                capaUnidabarrism2_temp_data.addAttributes(attributes)
-                capaUnidabarrism2_temp.updateFields()
-                capaUnidabarrism2_temp_data.addFeatures(capaUnidabarrism2_temp_features)
-                if capaUnidabarrism2_temp.isValid():
-                    QgsProject.instance().addMapLayer(capaUnidabarrism2_temp)
-                    QApplication.processEvents()
-                else:
-                    print("No s'ha pogut afegir el layer de districtes de numhabit")
-
-                barrisDiagramm2 = QgsPieDiagram()
-                barrisDiagramm2Settings = QgsDiagramSettings()
-                barrisDiagramm2Settings.categoryColors = m2DiagramColors.values()
-                barrisDiagramm2Settings.categoryAttributes = m2DiagramColors.keys()
-                barrisDiagramm2Settings.scaleByArea = True
-                barrisDiagramm2Settings.categoryLabels = barrisDiagramm2Settings.categoryAttributes
-
-                barrisDiagramm2Renderer = QgsLinearlyInterpolatedDiagramRenderer()
-                barrisDiagramm2Renderer.setLowerValue(0)
-                barrisDiagramm2Renderer.setLowerSize(QSizeF(0, 0))
-                maxm2 = self.maxTotalm2(barris)
-                barrisDiagramm2Renderer.setUpperValue(maxm2)
-                barrisDiagramm2Renderer.setUpperSize(QSizeF(30, 30))
-                barrisDiagramm2Renderer.setClassificationField("Totalm2")
-                barrisDiagramm2Renderer.setDiagram(barrisDiagramm2)
-                barrisDiagramm2Renderer.setDiagramSettings(barrisDiagramm2Settings)
-                
-                capaUnidabarrism2_temp.setDiagramRenderer(barrisDiagramm2Renderer)
-                barrisDiagramm2LayerSettings = QgsDiagramLayerSettings()
-
-                capaUnidabarrism2_temp.setDiagramLayerSettings(barrisDiagramm2LayerSettings)
-                capaUnidabarrism2_temp.triggerRepaint()
-                QApplication.processEvents()
-
-        if self.dlg.checkSeccions.isChecked():
-            if self.dlg.checkNumHabit.isChecked():
-                uri.setDataSource(schema1, f"Resum{seccions}RecompteNumHabit", 'geom')
-                capaUnidaSeccionsNumHabit = QgsVectorLayer(uri.uri(), f"Resum{seccions}RecompteNumHabit", 'postgres')
-                capaUnidaSeccionsNumHabit_temp_features = [feat for feat in capaUnidaSeccionsNumHabit.getFeatures()]
-                capaUnidaSeccionsNumHabit_temp = QgsVectorLayer("Polygon?crs=epsg:25831", f"Resum{seccions}RecompteNumHabit", "memory")
-                capaUnidaSeccionsNumHabit_temp_data = capaUnidaSeccionsNumHabit_temp.dataProvider()
-                attributes = capaUnidaSeccionsNumHabit.dataProvider().fields().toList()
-                capaUnidaSeccionsNumHabit_temp_data.addAttributes(attributes)
-                capaUnidaSeccionsNumHabit_temp.updateFields()
-                capaUnidaSeccionsNumHabit_temp_data.addFeatures(capaUnidaSeccionsNumHabit_temp_features)
-                if capaUnidaSeccionsNumHabit_temp.isValid():
-                    QgsProject.instance().addMapLayer(capaUnidaSeccionsNumHabit_temp)
-                    QApplication.processEvents()
-                else:
-                    print("No s'ha pogut afegir el layer de parcel de numhabit")
-
-                seccionsDiagramNumHabit = QgsPieDiagram()
-                seccionsDiagramNumHabitSettings = QgsDiagramSettings()
-                seccionsDiagramNumHabitSettings.categoryColors = NumDiagramColors.values()
-                seccionsDiagramNumHabitSettings.categoryAttributes = NumDiagramColors.keys()
-                seccionsDiagramNumHabitSettings.scaleByArea = True
-                seccionsDiagramNumHabitSettings.categoryLabels = seccionsDiagramNumHabitSettings.categoryAttributes
-
-                seccionsDiagramNumHabitRenderer = QgsLinearlyInterpolatedDiagramRenderer()
-                seccionsDiagramNumHabitRenderer.setLowerValue(0)
-                seccionsDiagramNumHabitRenderer.setLowerSize(QSizeF(0, 0))
-                seccionsDiagramNumHabitRenderer.setUpperValue(self.maxTotalEE(seccions))
-                seccionsDiagramNumHabitRenderer.setUpperSize(QSizeF(30, 30))
-                seccionsDiagramNumHabitRenderer.setClassificationField("TotalEE")
-                seccionsDiagramNumHabitRenderer.setDiagram(seccionsDiagramNumHabit)
-                seccionsDiagramNumHabitRenderer.setDiagramSettings(seccionsDiagramNumHabitSettings)
-                
-                capaUnidaSeccionsNumHabit_temp.setDiagramRenderer(seccionsDiagramNumHabitRenderer)
-                seccionsDiagramNumHabitLayerSettings = QgsDiagramLayerSettings()
-
-                capaUnidaSeccionsNumHabit_temp.setDiagramLayerSettings(seccionsDiagramNumHabitLayerSettings)
-                capaUnidaSeccionsNumHabit_temp.triggerRepaint()
-                QApplication.processEvents()
-
-            if self.dlg.checkm2.isChecked():
-                uri.setDataSource(schema1, f"Resum{seccions}Recomptem2", 'geom')
-                capaUnidaSeccionsm2 = QgsVectorLayer(uri.uri(), f"Resum{seccions}Recomptem2", 'postgres')
-                capaUnidaSeccionsm2_temp_features = [feat for feat in capaUnidaSeccionsm2.getFeatures()]
-                capaUnidaSeccionsm2_temp = QgsVectorLayer("Polygon?crs=epsg:25831", f"Resum{seccions}Recomptem2", "memory")
-                capaUnidaSeccionsm2_temp_data = capaUnidaSeccionsm2_temp.dataProvider()
-                attributes = capaUnidaSeccionsm2.dataProvider().fields().toList()
-                capaUnidaSeccionsm2_temp_data.addAttributes(attributes)
-                capaUnidaSeccionsm2_temp.updateFields()
-                capaUnidaSeccionsm2_temp_data.addFeatures(capaUnidaSeccionsm2_temp_features)
-                if capaUnidaSeccionsm2_temp.isValid():
-                    QgsProject.instance().addMapLayer(capaUnidaSeccionsm2_temp)
-                    QApplication.processEvents()
-                else:
-                    print("No s'ha pogut afegir el layer de parcel de m2")
-
-                seccionsDiagramm2 = QgsPieDiagram()
-                seccionsDiagramm2Settings = QgsDiagramSettings()
-                seccionsDiagramm2Settings.categoryColors = m2DiagramColors.values()
-                seccionsDiagramm2Settings.categoryAttributes = m2DiagramColors.keys()
-                seccionsDiagramm2Settings.scaleByArea = True
-                seccionsDiagramm2Settings.categoryLabels = seccionsDiagramm2Settings.categoryAttributes
-
-                seccionsDiagramm2Renderer = QgsLinearlyInterpolatedDiagramRenderer()
-                seccionsDiagramm2Renderer.setLowerValue(0)
-                seccionsDiagramm2Renderer.setLowerSize(QSizeF(0, 0))
-                maxm2 = self.maxTotalm2(seccions)
-                seccionsDiagramm2Renderer.setUpperValue(maxm2)
-                seccionsDiagramm2Renderer.setUpperSize(QSizeF(30, 30))
-                seccionsDiagramm2Renderer.setClassificationField("Totalm2")
-                seccionsDiagramm2Renderer.setDiagram(seccionsDiagramm2)
-                seccionsDiagramm2Renderer.setDiagramSettings(seccionsDiagramm2Settings)
-                
-                capaUnidaSeccionsm2_temp.setDiagramRenderer(seccionsDiagramm2Renderer)
-                seccionsDiagramm2LayerSettings = QgsDiagramLayerSettings()
-
-                capaUnidaSeccionsm2_temp.setDiagramLayerSettings(seccionsDiagramm2LayerSettings)
-                capaUnidaSeccionsm2_temp.triggerRepaint()
-                QApplication.processEvents()
+            capaUnidam2_temp.setDiagramLayerSettings(diagramm2LayerSettings)
+            capaUnidam2_temp.triggerRepaint()
+            QApplication.processEvents()
 
         ''' Etiquetes de mitjana, mediana i moda '''
 
@@ -2799,40 +1668,11 @@ class EficEnerg:
         label.placement = QgsPalLayerSettings.AroundPoint
 
         if self.dlg.checkMitjana.isChecked():
-            if self.dlg.checkParcel.isChecked():
-                parcelLayerResumMitjana.setLabeling(QgsVectorLayerSimpleLabeling(label))
-                parcelLayerResumMitjana.setLabelsEnabled(True)
-                parcelLayerResumMitjana.triggerRepaint()
-                QgsProject.instance().addMapLayer(parcelLayerResumMitjana)
-                QApplication.processEvents()
-
-            if self.dlg.checkIlles.isChecked():
-                illesLayerResumMitjana.setLabeling(QgsVectorLayerSimpleLabeling(label))
-                illesLayerResumMitjana.setLabelsEnabled(True)
-                illesLayerResumMitjana.triggerRepaint()
-                QgsProject.instance().addMapLayer(illesLayerResumMitjana)
-                QApplication.processEvents()
-
-            if self.dlg.checkDistrictes.isChecked():
-                districtesLayerResumMitjana.setLabeling(QgsVectorLayerSimpleLabeling(label))
-                districtesLayerResumMitjana.setLabelsEnabled(True)
-                districtesLayerResumMitjana.triggerRepaint()
-                QgsProject.instance().addMapLayer(districtesLayerResumMitjana)
-                QApplication.processEvents()
-            
-            if self.dlg.checkBarris.isChecked():
-                barrisLayerResumMitjana.setLabeling(QgsVectorLayerSimpleLabeling(label))
-                barrisLayerResumMitjana.setLabelsEnabled(True)
-                barrisLayerResumMitjana.triggerRepaint()
-                QgsProject.instance().addMapLayer(barrisLayerResumMitjana)
-                QApplication.processEvents()
-            
-            if self.dlg.checkSeccions.isChecked():
-                seccionsLayerResumMitjana.setLabeling(QgsVectorLayerSimpleLabeling(label))
-                seccionsLayerResumMitjana.setLabelsEnabled(True)
-                seccionsLayerResumMitjana.triggerRepaint()
-                QgsProject.instance().addMapLayer(seccionsLayerResumMitjana)
-                QApplication.processEvents()
+            entitatLayerResumMitjana.setLabeling(QgsVectorLayerSimpleLabeling(label))
+            entitatLayerResumMitjana.setLabelsEnabled(True)
+            entitatLayerResumMitjana.triggerRepaint()
+            QgsProject.instance().addMapLayer(entitatLayerResumMitjana)
+            QApplication.processEvents()
         
         labelModa = QgsPalLayerSettings()
         labelModa.enabled = True
@@ -2854,36 +1694,11 @@ class EficEnerg:
         labelModa.placement = QgsPalLayerSettings.AroundPoint
         
         if self.dlg.checkModa.isChecked():
-            if self.dlg.checkParcel.isChecked():
-                parcelLayerResumModa.setLabeling(QgsVectorLayerSimpleLabeling(labelModa))
-                parcelLayerResumModa.setLabelsEnabled(True)
-                parcelLayerResumModa.triggerRepaint()
-                QgsProject.instance().addMapLayer(parcelLayerResumModa)
-                QApplication.processEvents()
-            if self.dlg.checkIlles.isChecked():
-                illesLayerResumModa.setLabeling(QgsVectorLayerSimpleLabeling(labelModa))
-                illesLayerResumModa.setLabelsEnabled(True)
-                illesLayerResumModa.triggerRepaint()
-                QgsProject.instance().addMapLayer(illesLayerResumModa)
-                QApplication.processEvents()
-            if self.dlg.checkBarris.isChecked():
-                barrisLayerResumModa.setLabeling(QgsVectorLayerSimpleLabeling(labelModa))
-                barrisLayerResumModa.setLabelsEnabled(True)
-                barrisLayerResumModa.triggerRepaint()
-                QgsProject.instance().addMapLayer(barrisLayerResumModa)
-                QApplication.processEvents()
-            if self.dlg.checkDistrictes.isChecked():
-                districtesLayerResumModa.setLabeling(QgsVectorLayerSimpleLabeling(labelModa))
-                districtesLayerResumModa.setLabelsEnabled(True)
-                districtesLayerResumModa.triggerRepaint()
-                QgsProject.instance().addMapLayer(districtesLayerResumModa)
-                QApplication.processEvents()
-            if self.dlg.checkSeccions.isChecked():
-                seccionsLayerResumModa.setLabeling(QgsVectorLayerSimpleLabeling(labelModa))
-                seccionsLayerResumModa.setLabelsEnabled(True)
-                seccionsLayerResumModa.triggerRepaint()
-                QgsProject.instance().addMapLayer(seccionsLayerResumModa)
-                QApplication.processEvents()
+            entitatLayerResumModa.setLabeling(QgsVectorLayerSimpleLabeling(labelModa))
+            entitatLayerResumModa.setLabelsEnabled(True)
+            entitatLayerResumModa.triggerRepaint()
+            QgsProject.instance().addMapLayer(entitatLayerResumModa)
+            QApplication.processEvents()
             
         labelMediana = QgsPalLayerSettings()
         labelMediana.enabled = True
@@ -2899,36 +1714,11 @@ class EficEnerg:
         labelMediana.placement = QgsPalLayerSettings.AroundPoint
 
         if self.dlg.checkMediana.isChecked():
-            if self.dlg.checkParcel.isChecked():
-                parcelLayerResumMediana.setLabeling(QgsVectorLayerSimpleLabeling(labelMediana))
-                parcelLayerResumMediana.setLabelsEnabled(True)
-                parcelLayerResumMediana.triggerRepaint()
-                QgsProject.instance().addMapLayer(parcelLayerResumMediana)
-                QApplication.processEvents()
-            if self.dlg.checkIlles.isChecked():
-                illesLayerResumMediana.setLabeling(QgsVectorLayerSimpleLabeling(labelMediana))
-                illesLayerResumMediana.setLabelsEnabled(True)
-                illesLayerResumMediana.triggerRepaint()
-                QgsProject.instance().addMapLayer(illesLayerResumMediana)
-                QApplication.processEvents()
-            if self.dlg.checkBarris.isChecked():
-                barrisLayerResumMediana.setLabeling(QgsVectorLayerSimpleLabeling(labelMediana))
-                barrisLayerResumMediana.setLabelsEnabled(True)
-                barrisLayerResumMediana.triggerRepaint()
-                QgsProject.instance().addMapLayer(barrisLayerResumMediana)
-                QApplication.processEvents()
-            if self.dlg.checkDistrictes.isChecked():
-                districtesLayerResumMediana.setLabeling(QgsVectorLayerSimpleLabeling(labelMediana))
-                districtesLayerResumMediana.setLabelsEnabled(True)
-                districtesLayerResumMediana.triggerRepaint()
-                QgsProject.instance().addMapLayer(districtesLayerResumMediana)
-                QApplication.processEvents()
-            if self.dlg.checkSeccions.isChecked():
-                seccionsLayerResumMediana.setLabeling(QgsVectorLayerSimpleLabeling(labelMediana))
-                seccionsLayerResumMediana.setLabelsEnabled(True)
-                seccionsLayerResumMediana.triggerRepaint()
-                QgsProject.instance().addMapLayer(seccionsLayerResumMediana)
-                QApplication.processEvents()
+            entitatLayerResumMediana.setLabeling(QgsVectorLayerSimpleLabeling(labelMediana))
+            entitatLayerResumMediana.setLabelsEnabled(True)
+            entitatLayerResumMediana.triggerRepaint()
+            QgsProject.instance().addMapLayer(entitatLayerResumMediana)
+            QApplication.processEvents()
 
         self.dropFinalCapesIColumnes()
         textBox += f"PROCÉS FINALITZAT!\n"
