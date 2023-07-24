@@ -346,6 +346,8 @@ class EficEnerg:
         self.dlg.groupEntitats.setVisible(True)
         self.dlg.labelHabitatges.setVisible(True)
         self.dlg.comboHabitatges.setVisible(True)
+        self.dlg.labelEntitat.setVisible(True)
+        self.dlg.comboEntitat.setVisible(True)
         self.dlg.groupChecks.setVisible(True)
 
         layers = self.getLayers(schema1)
@@ -544,19 +546,34 @@ class EficEnerg:
         self.dlg.pushSortir.setEnabled(True)
         self.dlg.labelAvis.setVisible(False)
 
-    def crearCopiesCapesEntitats(self, entitatParam):
+    def crearCopiesCapesEntitats(self):
         global habitatgesLayer
         global entitatLayer
         
         try:
-            copy_table_name = f"{entitatParam}_copy"
+            copy_table_name = f"{habitatges}_copy"
             drop_table_query = f'DROP TABLE IF EXISTS "{schema1}"."{copy_table_name}"'
             cur.execute(drop_table_query)
-            create_table_query = f'CREATE TABLE "{schema1}"."{copy_table_name}" (LIKE "{schema1}"."{entitatParam}" INCLUDING CONSTRAINTS)'
+            create_table_query = f'CREATE TABLE "{schema1}"."{copy_table_name}" (LIKE "{schema1}"."{habitatges}" INCLUDING CONSTRAINTS)'
             cur.execute(create_table_query)
-            insert_features_query = f'INSERT INTO "{schema1}"."{copy_table_name}" SELECT * FROM "{schema1}"."{entitatParam}"'
+            insert_features_query = f'INSERT INTO "{schema1}"."{copy_table_name}" SELECT * FROM "{schema1}"."{habitatges}"'
             cur.execute(insert_features_query)
             conn.commit()
+
+            uri.setDataSource(schema1, f"{copy_table_name}", 'geom')
+            habitatgesLayer = QgsVectorLayer(uri.uri(), f'"{copy_table_name}"', 'postgres')
+
+            copy_table_name = f"{entitat}_copy"
+            drop_table_query = f'DROP TABLE IF EXISTS "{schema1}"."{copy_table_name}"'
+            cur.execute(drop_table_query)
+            create_table_query = f'CREATE TABLE "{schema1}"."{copy_table_name}" (LIKE "{schema1}"."{entitat}" INCLUDING CONSTRAINTS)'
+            cur.execute(create_table_query)
+            insert_features_query = f'INSERT INTO "{schema1}"."{copy_table_name}" SELECT * FROM "{schema1}"."{entitat}"'
+            cur.execute(insert_features_query)
+            conn.commit()
+
+            uri.setDataSource(schema1, f"{copy_table_name}", 'geom')
+            entitatLayer = QgsVectorLayer(uri.uri(), f'"{copy_table_name}"', 'postgres')
 
         except Exception as ex:
             print ("Error a creació de capes copia")
@@ -565,15 +582,6 @@ class EficEnerg:
             print (message)
             QMessageBox.information(None, "Error", "Error a creació de capes copia")
             conn.rollback()
-            return
-
-        uri.setDataSource(schema1, f"{copy_table_name}", 'geom')
-
-        if (entitatParam == habitatges):
-            habitatgesLayer = QgsVectorLayer(uri.uri(), f'"{copy_table_name}"', 'postgres')
-        if entitatParam == entitat:
-            entitatLayer = QgsVectorLayer(uri.uri(), f'"{copy_table_name}"', 'postgres')
-        else:
             return
 
     def crearIDentitats(self):
@@ -1405,8 +1413,7 @@ class EficEnerg:
         
         print("No hi ha excepcions")
         ''' Crear copies capes originals '''
-        self.crearCopiesCapesEntitats(habitatges)
-        self.crearCopiesCapesEntitats(entitat)
+        self.crearCopiesCapesEntitats()
         QApplication.processEvents()
         print("Fetes copies de les capes originals")
 
@@ -1423,7 +1430,7 @@ class EficEnerg:
 
         textBox += f"Unint capes seleccionades...\n"
         self.dlg.textEstat.setText(textBox)
-        self.dropCapesUnides(entitat)
+        self.dropCapesUnides()
         self.unirCapes()
         QApplication.processEvents()
         
