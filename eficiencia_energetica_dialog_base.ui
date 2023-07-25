@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>586</width>
-    <height>468</height>
+    <width>584</width>
+    <height>384</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -19,7 +19,7 @@
      <x>10</x>
      <y>20</y>
      <width>261</width>
-     <height>131</height>
+     <height>81</height>
     </rect>
    </property>
    <property name="title">
@@ -76,89 +76,24 @@
      <set>Qt::LinksAccessibleByMouse|Qt::TextEditable</set>
     </property>
    </widget>
-   <widget class="QLabel" name="labelSchema">
-    <property name="geometry">
-     <rect>
-      <x>10</x>
-      <y>80</y>
-      <width>55</width>
-      <height>16</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Schema</string>
-    </property>
-   </widget>
-   <widget class="QComboBox" name="comboSchema">
-    <property name="geometry">
-     <rect>
-      <x>10</x>
-      <y>100</y>
-      <width>241</width>
-      <height>22</height>
-     </rect>
-    </property>
-    <property name="toolTip">
-     <string>Selecciona l'esquema de la base de dades d'on carregaràs les capes</string>
-    </property>
-   </widget>
   </widget>
   <widget class="QGroupBox" name="groupEntitats">
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>150</y>
+     <y>110</y>
      <width>261</width>
-     <height>141</height>
+     <height>71</height>
     </rect>
    </property>
    <property name="title">
-    <string>Entitats</string>
+    <string>Entitat</string>
    </property>
-   <widget class="QLabel" name="labelHabitatges">
-    <property name="geometry">
-     <rect>
-      <x>10</x>
-      <y>30</y>
-      <width>61</width>
-      <height>16</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Habitatges</string>
-    </property>
-   </widget>
-   <widget class="QLabel" name="labelEntitat">
-    <property name="geometry">
-     <rect>
-      <x>10</x>
-      <y>80</y>
-      <width>47</width>
-      <height>13</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Entitat</string>
-    </property>
-   </widget>
-   <widget class="QComboBox" name="comboHabitatges">
-    <property name="geometry">
-     <rect>
-      <x>10</x>
-      <y>50</y>
-      <width>241</width>
-      <height>22</height>
-     </rect>
-    </property>
-    <property name="toolTip">
-     <string>Selecciona la capa d'edificis del teu municipi</string>
-    </property>
-   </widget>
    <widget class="QComboBox" name="comboEntitat">
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>100</y>
+      <y>30</y>
       <width>241</width>
       <height>22</height>
      </rect>
@@ -166,6 +101,41 @@
     <property name="toolTip">
      <string>Selecciona la capa de parcel·les del teu municipi</string>
     </property>
+    <item>
+     <property name="text">
+      <string>Selecciona l'entitat</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>Parcel·les</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>Illes</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>Seccions</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>Barris</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>Districtes Postals</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>Districtes</string>
+     </property>
+    </item>
    </widget>
   </widget>
   <widget class="QGroupBox" name="groupChecks">
@@ -256,7 +226,7 @@
    <property name="geometry">
     <rect>
      <x>330</x>
-     <y>390</y>
+     <y>260</y>
      <width>81</width>
      <height>31</height>
     </rect>
@@ -694,7 +664,7 @@
    <property name="geometry">
     <rect>
      <x>470</x>
-     <y>390</y>
+     <y>260</y>
      <width>81</width>
      <height>31</height>
     </rect>
@@ -1131,8 +1101,8 @@
   <widget class="QTextEdit" name="textEstat">
    <property name="geometry">
     <rect>
-     <x>310</x>
-     <y>240</y>
+     <x>10</x>
+     <y>200</y>
      <width>261</width>
      <height>131</height>
     </rect>
@@ -1142,7 +1112,7 @@
    <property name="geometry">
     <rect>
      <x>290</x>
-     <y>430</y>
+     <y>340</y>
      <width>281</width>
      <height>31</height>
     </rect>
@@ -1161,7 +1131,7 @@
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>440</y>
+     <y>350</y>
      <width>91</width>
      <height>16</height>
     </rect>
