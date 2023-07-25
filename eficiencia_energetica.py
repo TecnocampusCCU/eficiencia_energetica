@@ -525,7 +525,7 @@ class EficEnerg:
 
             try:
                 sql = f'ALTER TABLE "{schema1}"."{habitatges}_copy" ADD COLUMN "{entitat}_id" INTEGER;\n'
-                sql += f'UPDATE "{schema1}"."{habitatges}_copy" SET "{entitat}_id" = "{schema1}"."{entitat}_copy".id_0 FROM "{schema1}"."{entitat}_copy" WHERE ST_Intersects("{schema1}"."{habitatges}_copy".geom, "{schema1}"."{entitat}_copy".geom);'
+                sql += f'UPDATE "{schema1}"."{habitatges}_copy" SET "{entitat}_id" = "{schema1}"."{entitat}_copy".id FROM "{schema1}"."{entitat}_copy" WHERE ST_Intersects("{schema1}"."{habitatges}_copy".geom, "{schema1}"."{entitat}_copy".geom);'
                 cur.execute(sql)
                 conn.commit()
 
@@ -637,19 +637,19 @@ class EficEnerg:
         else:
             try:
                 sql = f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "NumA" integer;\n'
-                sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" SET "NumA" = subquery.sum_count FROM (SELECT "id_0", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'A' THEN 1 ELSE 0 END) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "id_0") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."id_0" = subquery."id_0";\n'''
+                sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" SET "NumA" = subquery.sum_count FROM (SELECT "id", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'A' THEN 1 ELSE 0 END) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "id") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."id" = subquery."id";\n'''
                 sql += f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "NumB" integer;\n'
-                sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" SET "NumB" = subquery.sum_count FROM (SELECT "id_0", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'B' THEN 1 ELSE 0 END) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "id_0") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."id_0" = subquery."id_0";\n'''
+                sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" SET "NumB" = subquery.sum_count FROM (SELECT "id", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'B' THEN 1 ELSE 0 END) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "id") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."id" = subquery."id";\n'''
                 sql += f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "NumC" integer;\n'
-                sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" SET "NumC" = subquery.sum_count FROM (SELECT "id_0", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'C' THEN 1 ELSE 0 END) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "id_0") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."id_0" = subquery."id_0";\n'''
+                sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" SET "NumC" = subquery.sum_count FROM (SELECT "id", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'C' THEN 1 ELSE 0 END) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "id") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."id" = subquery."id";\n'''
                 sql += f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "NumD" integer;\n'
-                sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" SET "NumD" = subquery.sum_count FROM (SELECT "id_0", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'D' THEN 1 ELSE 0 END) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "id_0") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."id_0" = subquery."id_0";\n'''
+                sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" SET "NumD" = subquery.sum_count FROM (SELECT "id", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'D' THEN 1 ELSE 0 END) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "id") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."id" = subquery."id";\n'''
                 sql += f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "NumE" integer;\n'
-                sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" SET "NumE" = subquery.sum_count FROM (SELECT "id_0", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'E' THEN 1 ELSE 0 END) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "id_0") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."id_0" = subquery."id_0";\n'''
+                sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" SET "NumE" = subquery.sum_count FROM (SELECT "id", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'E' THEN 1 ELSE 0 END) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "id") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."id" = subquery."id";\n'''
                 sql += f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "NumF" integer;\n'
-                sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" SET "NumF" = subquery.sum_count FROM (SELECT "id_0", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'F' THEN 1 ELSE 0 END) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "id_0") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."id_0" = subquery."id_0";\n'''
+                sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" SET "NumF" = subquery.sum_count FROM (SELECT "id", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'F' THEN 1 ELSE 0 END) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "id") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."id" = subquery."id";\n'''
                 sql += f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "NumG" integer;\n'
-                sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" SET "NumG" = subquery.sum_count FROM (SELECT "id_0", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'G' THEN 1 ELSE 0 END) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "id_0") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."id_0" = subquery."id_0";\n'''
+                sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" SET "NumG" = subquery.sum_count FROM (SELECT "id", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'G' THEN 1 ELSE 0 END) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "id") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."id" = subquery."id";\n'''
                 sql += f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "TotalEE" integer;\n'
                 sql += f'UPDATE "{schema1}"."Capa unida {entitat}" SET "TotalEE" = "NumA" + "NumB" + "NumC" + "NumD" + "NumE" + "NumF" + "NumG";'
                 cur.execute(sql)
@@ -721,19 +721,19 @@ class EficEnerg:
         else:
             try:
                 sql = f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "m2A" float;\n'
-                sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" SET "m2A" = subquery.sum_count FROM (SELECT "id_0", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'A' THEN CAST(metres_cadastre AS float) ELSE 0 END) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "id_0") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."id_0" = subquery."id_0";\n'''
+                sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" SET "m2A" = subquery.sum_count FROM (SELECT "id", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'A' THEN CAST(metres_cadastre AS float) ELSE 0 END) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "id") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."id" = subquery."id";\n'''
                 sql += f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "m2B" float;\n'
-                sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" SET "m2B" = subquery.sum_count FROM (SELECT "id_0", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'B' THEN CAST(metres_cadastre AS float) ELSE 0 END) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "id_0") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."id_0" = subquery."id_0";\n'''
+                sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" SET "m2B" = subquery.sum_count FROM (SELECT "id", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'B' THEN CAST(metres_cadastre AS float) ELSE 0 END) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "id") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."id" = subquery."id";\n'''
                 sql += f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "m2C" float;\n'
-                sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" SET "m2C" = subquery.sum_count FROM (SELECT "id_0", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'C' THEN CAST(metres_cadastre AS float) ELSE 0 END) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "id_0") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."id_0" = subquery."id_0";\n'''
+                sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" SET "m2C" = subquery.sum_count FROM (SELECT "id", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'C' THEN CAST(metres_cadastre AS float) ELSE 0 END) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "id") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."id" = subquery."id";\n'''
                 sql += f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "m2D" float;\n'
-                sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" SET "m2D" = subquery.sum_count FROM (SELECT "id_0", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'D' THEN CAST(metres_cadastre AS float) ELSE 0 END) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "id_0") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."id_0" = subquery."id_0";\n'''
+                sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" SET "m2D" = subquery.sum_count FROM (SELECT "id", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'D' THEN CAST(metres_cadastre AS float) ELSE 0 END) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "id") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."id" = subquery."id";\n'''
                 sql += f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "m2E" float;\n'
-                sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" SET "m2E" = subquery.sum_count FROM (SELECT "id_0", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'E' THEN CAST(metres_cadastre AS float) ELSE 0 END) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "id_0") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."id_0" = subquery."id_0";\n'''
+                sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" SET "m2E" = subquery.sum_count FROM (SELECT "id", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'E' THEN CAST(metres_cadastre AS float) ELSE 0 END) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "id") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."id" = subquery."id";\n'''
                 sql += f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "m2F" float;\n'
-                sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" SET "m2F" = subquery.sum_count FROM (SELECT "id_0", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'F' THEN CAST(metres_cadastre AS float) ELSE 0 END) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "id_0") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."id_0" = subquery."id_0";\n'''
+                sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" SET "m2F" = subquery.sum_count FROM (SELECT "id", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'F' THEN CAST(metres_cadastre AS float) ELSE 0 END) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "id") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."id" = subquery."id";\n'''
                 sql += f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "m2G" float;\n'
-                sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" SET "m2G" = subquery.sum_count FROM (SELECT "id_0", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'G' THEN CAST(metres_cadastre AS float) ELSE 0 END) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "id_0") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."id_0" = subquery."id_0";\n'''
+                sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" SET "m2G" = subquery.sum_count FROM (SELECT "id", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'G' THEN CAST(metres_cadastre AS float) ELSE 0 END) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "id") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."id" = subquery."id";\n'''
                 sql += f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "Totalm2" float;\n'
                 sql += f'UPDATE "{schema1}"."Capa unida {entitat}" SET "Totalm2" = "m2A" + "m2B" + "m2C" + "m2D" + "m2E" + "m2F" + "m2G";'
                 cur.execute(sql)
@@ -762,11 +762,11 @@ class EficEnerg:
                 conn.commit()
             else:
                 sql = f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "sum_product_consums" FLOAT;\n'
-                sql += f'UPDATE "{schema1}"."Capa unida {entitat}" SET "sum_product_consums" = subquery.sum_count FROM (SELECT "id_0", SUM(CAST("producte_con" AS FLOAT)) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "id_0") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."id_0" = subquery."id_0";\n'
+                sql += f'UPDATE "{schema1}"."Capa unida {entitat}" SET "sum_product_consums" = subquery.sum_count FROM (SELECT "id", SUM(CAST("producte_con" AS FLOAT)) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "id") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."id" = subquery."id";\n'
                 sql += f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "sum_product_emissions" FLOAT;\n'
-                sql += f'UPDATE "{schema1}"."Capa unida {entitat}" SET "sum_product_emissions" = subquery.sum_count FROM (SELECT "id_0", SUM(CAST("producte_emi" AS FLOAT)) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "id_0") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."id_0" = subquery."id_0";\n'
+                sql += f'UPDATE "{schema1}"."Capa unida {entitat}" SET "sum_product_emissions" = subquery.sum_count FROM (SELECT "id", SUM(CAST("producte_emi" AS FLOAT)) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "id") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."id" = subquery."id";\n'
                 sql += f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "sum_m2" FLOAT;\n'
-                sql += f'UPDATE "{schema1}"."Capa unida {entitat}" SET "sum_m2" = subquery.sum_count FROM (SELECT "id_0", SUM(CAST("metres_cadastre" AS FLOAT)) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "id_0") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."id_0" = subquery."id_0";'
+                sql += f'UPDATE "{schema1}"."Capa unida {entitat}" SET "sum_m2" = subquery.sum_count FROM (SELECT "id", SUM(CAST("metres_cadastre" AS FLOAT)) AS sum_count FROM "{schema1}"."Capa unida {entitat}" GROUP BY "id") AS subquery WHERE "{schema1}"."Capa unida {entitat}"."id" = subquery."id";'
                 cur.execute(sql)
                 conn.commit()
             ''' Crear indexs (que son camps nous a la taula unida) '''
@@ -867,7 +867,7 @@ class EficEnerg:
                 UPDATE "{schema1}"."Capa unida {entitat}" AS c
                 SET "indexMODAsup" = subquery.moda
                 FROM (
-                    SELECT "id_0",
+                    SELECT "id",
                         (
                             SUM (
                                 CASE
@@ -884,9 +884,9 @@ class EficEnerg:
                             )
                         ) AS moda
                     FROM {schema1}."Capa unida {entitat}"
-                    GROUP BY "id_0"
+                    GROUP BY "id"
                 ) AS subquery
-                WHERE c."id_0" = subquery."id_0"\n;
+                WHERE c."id" = subquery."id"\n;
                 '''
 
                 sql += f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "indexMODAsupPonderat" FLOAT;\n'
@@ -894,7 +894,7 @@ class EficEnerg:
                 UPDATE "{schema1}"."Capa unida {entitat}" AS c
                 SET "indexMODAsupPonderat" = subquery.moda
                 FROM (
-                    SELECT "id_0",
+                    SELECT "id",
                         (
                             SUM (
                                 CASE
@@ -911,9 +911,9 @@ class EficEnerg:
                             )
                         ) AS moda
                     FROM {schema1}."Capa unida {entitat}"
-                    GROUP BY "id_0"
+                    GROUP BY "id"
                 ) AS subquery
-                WHERE c."id_0" = subquery."id_0";
+                WHERE c."id" = subquery."id";
                 '''
             cur.execute(sql)
             conn.commit()
@@ -935,7 +935,7 @@ class EficEnerg:
             if entitat==llistaEntitats[1]:
                 sql += f'DELETE FROM "{schema1}"."Capa unida {entitat}" WHERE "UTM" IS NULL;'
             else:
-                sql += f'DELETE FROM "{schema1}"."Capa unida {entitat}" WHERE "id_0" IS NULL;'
+                sql += f'DELETE FROM "{schema1}"."Capa unida {entitat}" WHERE "id" IS NULL;'
             cur.execute(sql)
             conn.commit()
 
@@ -983,13 +983,13 @@ class EficEnerg:
                                     ELSE subquery.median
                                 END
                                 FROM (
-                                    SELECT "id_0",
+                                    SELECT "id",
                                     PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY CAST("energia primària no renovable" AS FLOAT)) 
                                     AS median FROM "{schema1}"."Capa unida {entitat}"
-                                    GROUP BY "id_0"
+                                    GROUP BY "id"
                                 ) 
                             AS subquery
-                            WHERE "{schema1}"."Capa unida {entitat}"."id_0" = subquery."id_0";\n
+                            WHERE "{schema1}"."Capa unida {entitat}"."id" = subquery."id";\n
                         '''
                 sql += f'ALTER TABLE "{schema1}"."Capa unida {entitat}" ADD COLUMN "INDEX_mediana_emissions" FLOAT;\n'
                 sql += f'''UPDATE "{schema1}"."Capa unida {entitat}" 
@@ -999,13 +999,13 @@ class EficEnerg:
                                     ELSE subquery.median
                                 END
                                 FROM (
-                                    SELECT "id_0",
+                                    SELECT "id",
                                     PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY CAST("emissions de co2" AS FLOAT)) 
                                     AS median FROM "{schema1}"."Capa unida {entitat}"
-                                    GROUP BY "id_0"
+                                    GROUP BY "id"
                                 ) 
                             AS subquery
-                            WHERE "{schema1}"."Capa unida {entitat}"."id_0" = subquery."id_0";
+                            WHERE "{schema1}"."Capa unida {entitat}"."id" = subquery."id";
                         '''
                 
             cur.execute(sql)
@@ -1122,7 +1122,7 @@ class EficEnerg:
         else:
             alg_params = {
                 "INPUT": entitatLayer,
-                "FIELD": "id_0",
+                "FIELD": "id",
                 "INPUT_2": habitatgesLayer,
                 "FIELD_2": f"{entitat}_id",
                 "FIELDS_TO_COPY": ["referencia cadastral", "metres_cadastre", "qualificació de consum energia primaria no renovable", "energia primària no renovable", "qualificacio emissions de co2", "emissions de co2", "producte_con", "producte_emi"],
@@ -1175,9 +1175,9 @@ class EficEnerg:
         if self.dlg.checkNumHabit.isChecked():
             alg_params = {
                 "INPUT": layer,
-                "FIELD": "id_0",
+                "FIELD": "id",
                 "INPUT_2": layerEntitat,
-                "FIELD_2": "id_0",
+                "FIELD_2": "id",
                 "FIELDS_TO_COPY": ['NumA', 'NumB', 'NumC', 'NumD', 'NumE', 'NumF', 'NumG', 'TotalEE'],
                 "METHOD": 1,
                 "OUTPUT": 'memory:'
@@ -1219,9 +1219,9 @@ class EficEnerg:
         if self.dlg.checkm2.isChecked():
             alg_params = {
                 "INPUT": layer,
-                "FIELD": "id_0",
+                "FIELD": "id",
                 "INPUT_2": layerEntitat,
-                "FIELD_2": "id_0",
+                "FIELD_2": "id",
                 "FIELDS_TO_COPY": ['m2A', 'm2B', 'm2C', 'm2D', 'm2E', 'm2F', 'm2G', 'Totalm2'],
                 "METHOD": 1,
                 "OUTPUT": 'memory:'
@@ -1263,9 +1263,9 @@ class EficEnerg:
         if self.dlg.checkMitjana.isChecked():
             alg_params = {
                 "INPUT": layer,
-                "FIELD": "id_0",
+                "FIELD": "id",
                 "INPUT_2": layerEntitat,
-                "FIELD_2": "id_0",
+                "FIELD_2": "id",
                 "FIELDS_TO_COPY": ['INDEX_consum', 'INDEX_emissions'],
                 "METHOD": 1,
                 "OUTPUT": 'memory:'
@@ -1307,9 +1307,9 @@ class EficEnerg:
         if self.dlg.checkModa.isChecked():
             alg_params = {
                 "INPUT": layer,
-                "FIELD": "id_0",
+                "FIELD": "id",
                 "INPUT_2": layerEntitat,
-                "FIELD_2": "id_0",
+                "FIELD_2": "id",
                 "FIELDS_TO_COPY": ['QualifMaxSup', 'indexMODAsup', 'indexMODAsupPonderat'],
                 "METHOD": 1,
                 "OUTPUT": 'memory:'
@@ -1351,9 +1351,9 @@ class EficEnerg:
         if self.dlg.checkMediana.isChecked():
             alg_params = {
                 "INPUT": layer,
-                "FIELD": "id_0",
+                "FIELD": "id",
                 "INPUT_2": layerEntitat,
-                "FIELD_2": "id_0",
+                "FIELD_2": "id",
                 "FIELDS_TO_COPY": ['INDEX_mediana_consum', 'INDEX_mediana_emissions'],
                 "METHOD": 1,
                 "OUTPUT": 'memory:'
