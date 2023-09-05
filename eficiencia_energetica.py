@@ -1971,7 +1971,7 @@ class EficEnerg:
 
             symbol2 = QgsSymbol.defaultSymbol(entitatLayerResumMitjana.geometryType())
             symbol2.changeSymbolLayer(0, QgsSimpleFillSymbolLayer(QColor("#707070")))
-            symbology.addCategory(QgsRendererCategory("xxx", symbol2, "Consum ponderat (KgCO₂/m²any)"))
+            symbology.addCategory(QgsRendererCategory("xxx", symbol2, "Emissions (kgCO₂/m²any)"))
 
             symbol3 = QgsSymbol.defaultSymbol(entitatLayerResumMitjana.geometryType())
             symbol3.changeSymbolLayer(0, QgsSimpleFillSymbolLayer(NumDiagramColors['NumA']))
@@ -2145,7 +2145,7 @@ class EficEnerg:
 
             symbol2 = QgsSymbol.defaultSymbol(entitatLayerResumMediana.geometryType())
             symbol2.changeSymbolLayer(0, QgsSimpleFillSymbolLayer(QColor("#707070")))
-            symbology.addCategory(QgsRendererCategory("xxx", symbol2, "Emissions (KgCO₂/m²any)"))
+            symbology.addCategory(QgsRendererCategory("xxx", symbol2, "Emissions (kgCO₂/m²any)"))
 
             symbol3 = QgsSymbol.defaultSymbol(entitatLayerResumMediana.geometryType())
             symbol3.changeSymbolLayer(0, QgsSimpleFillSymbolLayer(NumDiagramColors['NumA']))
