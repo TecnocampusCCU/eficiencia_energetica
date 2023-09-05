@@ -31,11 +31,7 @@
  *     i mirarà public igualment (no s'ha canviat per anar ràpid)          *
  *   - Canviar els tamanys dels diagrames, s'ha de trobat una manera de    *
  *     que els diagrames no es moguin intentant ocupar l'àrea visible      *
- *     del polígon i no tinguin escalats absurdament grans o petits.       *
- *   - S'ha de canviar les etiquetes de mitjana, moda i mediana per a      *
- *     mostrar els diferents valors sense el nom, amb un color diferent    *
- *     i el nom i les unitats (amb el color que els representa) a la       *
- *     llegenda.                                                           *
+ *     del polígon i no tinguin escalats absurdament grans o petits.       *          
  *   - Fer una barra de progrés, potser seria millor fins i tot treure     *
  *     el requadre d'informació ja que tampoc sembla gaire útil.           *
  *   - Al finalitzar tot, escriure un manual d'usuari del plugin.          *
