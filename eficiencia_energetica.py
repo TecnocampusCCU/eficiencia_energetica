@@ -26,9 +26,6 @@
  *   Per implementar encara [TODO] :                                       *
  *   - Canviar la moda perquè es calculi també per al nombre d'habitatges, *
  *     no només per als metres quadrats.                                   *
- *   - Canviar les consultes amb esquemes perquè no es miri l'esquema      *
- *     ja que és absurd mirar que l'esquema sigui public si pots no mirar  *
- *     i mirarà public igualment (no s'ha canviat per anar ràpid)          *
  *   - Canviar els tamanys dels diagrames, s'ha de trobat una manera de    *
  *     que els diagrames no es moguin intentant ocupar l'àrea visible      *
  *     del polígon i no tinguin escalats absurdament grans o petits.       *          
@@ -87,7 +84,7 @@ from .eficiencia_energetica_dialog import EficEnergDialog
 from .resources import *
 
 '''Varibles globals'''
-Versio_modul = "V_Q3.230905"
+Versio_modul = "V_Q3.230906"
 nomBD1 = ""
 password1 = ""
 host1 = ""
@@ -365,19 +362,13 @@ class EficEnerg:
         entitatLayer = QgsVectorLayer(uri.uri(), entitat, 'postgres')
 
     def on_change_entitatsIOperacions(self):
-        if numEntitats > 1 or numOperacions > 2:
+        if numOperacions > 2:
             self.dlg.labelAvis.setVisible(True)
         else:
             self.dlg.labelAvis.setVisible(False)
 
     def on_change_checkNumHabit(self):
         global numOperacions
-        if self.dlg.checkNumHabit.isChecked() or self.dlg.checkm2.isChecked():
-            self.dlg.checkModa.setEnabled(True)
-        if not self.dlg.checkNumHabit.isChecked() and not self.dlg.checkm2.isChecked():
-            self.dlg.checkModa.setEnabled(False)
-            self.dlg.checkModa.setChecked(False)
-
         if self.dlg.checkNumHabit.isChecked():
             numOperacions += 1
         if not self.dlg.checkNumHabit.isChecked():
@@ -385,11 +376,11 @@ class EficEnerg:
 
     def on_change_checkm2(self):
         global numOperacions
-        if self.dlg.checkNumHabit.isChecked() or self.dlg.checkm2.isChecked():
+        if self.dlg.checkm2.isChecked():
             self.dlg.checkModa.setEnabled(True)
             self.dlg.checkMitjana.setEnabled(True)
             self.dlg.checkMediana.setEnabled(True)
-        if not self.dlg.checkNumHabit.isChecked() and not self.dlg.checkm2.isChecked():
+        if not self.dlg.checkm2.isChecked():
             self.dlg.checkModa.setEnabled(False)
             self.dlg.checkModa.setChecked(False)
             self.dlg.checkMitjana.setEnabled(False)
@@ -768,6 +759,27 @@ class EficEnerg:
 
     def calculMitjana(self):
         try:
+            ' Calcul de maxConsum i QualifMaxSup per tal de tenir una qualificació energètica amb la que representar amb un color la entitat al mapa '
+
+            if self.dlg.checkm2.isChecked():
+
+                sql = f'ALTER TABLE "Capa unida {entitat}" ADD COLUMN "maxConsum" FLOAT;\n'
+                sql += f'UPDATE "Capa unida {entitat}" SET "maxConsum" = GREATEST("m2A", "m2B", "m2C", "m2D", "m2E", "m2F", "m2G");\n'
+                sql += f'ALTER TABLE "Capa unida {entitat}" ADD COLUMN "QualifMaxSup" VARCHAR;\n'
+                sql += f'''UPDATE "Capa unida {entitat}" SET "QualifMaxSup" =  
+                    CASE 
+                        WHEN "maxConsum" = "m2A" THEN 'A' 
+                        WHEN "maxConsum" = "m2B" THEN 'B' 
+                        WHEN "maxConsum" = "m2C" THEN 'C' 
+                        WHEN "maxConsum" = "m2D" THEN 'D' 
+                        WHEN "maxConsum" = "m2E" THEN 'E' 
+                        WHEN "maxConsum" = "m2F" THEN 'F' 
+                        ELSE 'G' 
+                    END;
+                '''
+                cur.execute(sql)
+                conn.commit()
+
             ''' Sumatoris '''
             if entitat == llistaEntitats[1]:
                 sql = f'ALTER TABLE "Capa unida {entitat}" ADD COLUMN "sum_product_consums" FLOAT;\n'
@@ -811,9 +823,9 @@ class EficEnerg:
 
             if self.dlg.checkm2.isChecked():
 
-                sql = f'ALTER TABLE "Capa unida {entitat}" ADD COLUMN "maxConsum" FLOAT;\n'
+                sql = f'ALTER TABLE "Capa unida {entitat}" ADD COLUMN IF NOT EXISTS "maxConsum" FLOAT;\n'
                 sql += f'UPDATE "Capa unida {entitat}" SET "maxConsum" = GREATEST("m2A", "m2B", "m2C", "m2D", "m2E", "m2F", "m2G");\n'
-                sql += f'ALTER TABLE "Capa unida {entitat}" ADD COLUMN "QualifMaxSup" VARCHAR;\n'
+                sql += f'ALTER TABLE "Capa unida {entitat}" ADD COLUMN IF NOT EXISTS "QualifMaxSup" VARCHAR;\n'
                 sql += f'''UPDATE "Capa unida {entitat}" SET "QualifMaxSup" =  
                     CASE 
                         WHEN "maxConsum" = "m2A" THEN 'A' 
@@ -949,9 +961,9 @@ class EficEnerg:
                 cur.execute(sql)
                 conn.commit()
 
-                sql = f'ALTER TABLE "Capa unida {entitat}" ADD COLUMN "maxConsum" FLOAT;\n'
+                sql = f'ALTER TABLE "Capa unida {entitat}" ADD COLUMN IF NOT EXISTS "maxConsum" FLOAT;\n'
                 sql += f'UPDATE "Capa unida {entitat}" SET "maxConsum" = GREATEST("NumA", "NumB", "NumC", "NumD", "NumE", "NumF", "NumG");\n'
-                sql += f'ALTER TABLE "Capa unida {entitat}" ADD COLUMN "QualifMaxSup" VARCHAR;\n'
+                sql += f'ALTER TABLE "Capa unida {entitat}" ADD COLUMN IF NOT EXISTS "QualifMaxSup" VARCHAR;\n'
                 sql += f'''UPDATE "Capa unida {entitat}" SET "QualifMaxSup" =
                     CASE
                         WHEN "maxConsum" = "NumA" THEN 'A'
@@ -1091,6 +1103,27 @@ class EficEnerg:
 
     def calculMediana(self):
         try:
+            ' Calcul de maxConsum i QualifMaxSup per tal de tenir una qualificació energètica amb la que representar amb un color la entitat al mapa '
+
+            if self.dlg.checkm2.isChecked():
+
+                sql = f'ALTER TABLE "Capa unida {entitat}" ADD COLUMN IF NOT EXISTS "maxConsum" FLOAT;\n'
+                sql += f'UPDATE "Capa unida {entitat}" SET "maxConsum" = GREATEST("m2A", "m2B", "m2C", "m2D", "m2E", "m2F", "m2G");\n'
+                sql += f'ALTER TABLE "Capa unida {entitat}" ADD COLUMN IF NOT EXISTS "QualifMaxSup" VARCHAR;\n'
+                sql += f'''UPDATE "Capa unida {entitat}" SET "QualifMaxSup" =  
+                    CASE 
+                        WHEN "maxConsum" = "m2A" THEN 'A' 
+                        WHEN "maxConsum" = "m2B" THEN 'B' 
+                        WHEN "maxConsum" = "m2C" THEN 'C' 
+                        WHEN "maxConsum" = "m2D" THEN 'D' 
+                        WHEN "maxConsum" = "m2E" THEN 'E' 
+                        WHEN "maxConsum" = "m2F" THEN 'F' 
+                        ELSE 'G' 
+                    END;
+                '''
+                cur.execute(sql)
+                conn.commit()
+
             ''' El primer que cal fer per a la mediana és desfer-se de totes les files que tenen valor 0 a producte_con i producte_emi '''
             sql = f'DELETE FROM "Capa unida {entitat}" WHERE "producte_con" = 0 OR "producte_con" IS NULL;\n'
             sql += f'DELETE FROM "Capa unida {entitat}" WHERE "producte_emi" = 0 OR "producte_emi" IS NULL;\n'
@@ -1429,7 +1462,7 @@ class EficEnerg:
                 "FIELD": "id",
                 "INPUT_2": layerEntitat,
                 "FIELD_2": "id",
-                "FIELDS_TO_COPY": ['INDEX_consum', 'INDEX_emissions', 'QualifMaxSup'],
+                "FIELDS_TO_COPY": ['QualifMaxSup', 'INDEX_consum', 'INDEX_emissions'],
                 "METHOD": 1,
                 "OUTPUT": 'memory:'
             }
@@ -1473,8 +1506,7 @@ class EficEnerg:
                 "FIELD": "id",
                 "INPUT_2": layerEntitat,
                 "FIELD_2": "id",
-                #"FIELDS_TO_COPY": ['QualifMaxSup', 'indexMODAsup', 'indexMODAsupPonderat'],
-                "FIELDS_TO_COPY": ['indexMODAsup', 'indexMODAsupPonderat', 'QualifMaxSup'],
+                "FIELDS_TO_COPY": ['QualifMaxSup', 'indexMODAsup', 'indexMODAsupPonderat'],
                 "METHOD": 1,
                 "OUTPUT": 'memory:'
             }
@@ -1780,7 +1812,10 @@ class EficEnerg:
         if self.dlg.checkMitjana.isChecked():
             self.carregarCapesMapa()
             self.dropCapesReUnidesMitjana()
+            print("es crida reunir capes mitjana")
             self.reUnirCapesMitjana()
+            print("capa reunida mitjana:")
+            print(entitatLayerResumMitjana.fields().names())
             QApplication.processEvents()
 
         'per moda'
