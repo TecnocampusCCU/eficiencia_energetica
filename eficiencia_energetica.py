@@ -475,6 +475,7 @@ class EficEnerg:
         self.dlg.checkModa.setEnabled(False)
         self.dlg.checkMediana.setEnabled(False)
         self.dlg.labelAvis.setVisible(False)
+        self.dlg.progressBar.setValue(0)
         textBox = "Selecciona una base de dades...\n"
         self.dlg.textEstat.setText(textBox)
         self.dlg.setEnabled(True)
@@ -762,7 +763,32 @@ class EficEnerg:
         try:
             ' Calcul de maxConsum i QualifMaxSup per tal de tenir una qualificació energètica amb la que representar amb un color la entitat al mapa '
 
+            if self.dlg.checkNumHabit.isChecked():
+
+                sql = f'ALTER TABLE "Capa unida {entitat}" ADD COLUMN "maxConsum" FLOAT;\n'
+                sql += f'UPDATE "Capa unida {entitat}" SET "maxConsum" = GREATEST("NumA", "NumB", "NumC", "NumD", "NumE", "NumF", "NumG");\n'
+                sql += f'ALTER TABLE "Capa unida {entitat}" ADD COLUMN "QualifMaxSup" VARCHAR;\n'
+                sql += f'''UPDATE "Capa unida {entitat}" SET "QualifMaxSup" =  
+                    CASE 
+                        WHEN "maxConsum" = "NumA" THEN 'A' 
+                        WHEN "maxConsum" = "NumB" THEN 'B' 
+                        WHEN "maxConsum" = "NumC" THEN 'C' 
+                        WHEN "maxConsum" = "NumD" THEN 'D' 
+                        WHEN "maxConsum" = "NumE" THEN 'E' 
+                        WHEN "maxConsum" = "NumF" THEN 'F' 
+                        ELSE 'G' 
+                    END;
+                '''
+                cur.execute(sql)
+                conn.commit()
+
             if self.dlg.checkm2.isChecked():
+
+                sql = f'ALTER TABLE "Capa unida {entitat}" DROP COLUMN IF EXISTS "maxConsum";\n'
+                sql += f'ALTER TABLE "Capa unida {entitat}" DROP COLUMN IF EXISTS "QualifMaxSup";\n'
+
+                cur.execute(sql)
+                conn.commit()
 
                 sql = f'ALTER TABLE "Capa unida {entitat}" ADD COLUMN "maxConsum" FLOAT;\n'
                 sql += f'UPDATE "Capa unida {entitat}" SET "maxConsum" = GREATEST("m2A", "m2B", "m2C", "m2D", "m2E", "m2F", "m2G");\n'
@@ -821,137 +847,6 @@ class EficEnerg:
     def calculModa(self):
         try:
             ''' Moda per metres quadrats de superficie '''
-
-            if self.dlg.checkm2.isChecked():
-
-                sql = f'ALTER TABLE "Capa unida {entitat}" ADD COLUMN IF NOT EXISTS "maxConsum" FLOAT;\n'
-                sql += f'UPDATE "Capa unida {entitat}" SET "maxConsum" = GREATEST("m2A", "m2B", "m2C", "m2D", "m2E", "m2F", "m2G");\n'
-                sql += f'ALTER TABLE "Capa unida {entitat}" ADD COLUMN IF NOT EXISTS "QualifMaxSup" VARCHAR;\n'
-                sql += f'''UPDATE "Capa unida {entitat}" SET "QualifMaxSup" =  
-                    CASE 
-                        WHEN "maxConsum" = "m2A" THEN 'A' 
-                        WHEN "maxConsum" = "m2B" THEN 'B' 
-                        WHEN "maxConsum" = "m2C" THEN 'C' 
-                        WHEN "maxConsum" = "m2D" THEN 'D' 
-                        WHEN "maxConsum" = "m2E" THEN 'E' 
-                        WHEN "maxConsum" = "m2F" THEN 'F' 
-                        ELSE 'G' 
-                    END;
-                '''
-                cur.execute(sql)
-                conn.commit()
-
-                if entitat==llistaEntitats[1]:
-                    sql = f'ALTER TABLE "Capa unida {entitat}" ADD COLUMN "indexMODAsup" FLOAT;\n'
-                    sql += f'''
-                    UPDATE "Capa unida {entitat}" AS c
-                    SET "indexMODAsup" = subquery.moda
-                    FROM (
-                        SELECT "UTM",
-                            (
-                                SUM (
-                                    CASE
-                                        WHEN "qualificació de consum energia primaria no renovable" = "QualifMaxSup"
-                                            THEN CAST("energia primària no renovable" AS FLOAT)
-                                        ELSE 0
-                                    END
-                                ) / NULLIF(SUM (
-                                    CASE
-                                        WHEN "qualificació de consum energia primaria no renovable" = "QualifMaxSup"
-                                            THEN 1
-                                        ELSE 0
-                                    END), 0
-                                )
-                            ) AS moda
-                        FROM {schema1}."Capa unida {entitat}"
-                        GROUP BY "UTM"
-                    ) AS subquery
-                    WHERE c."UTM" = subquery."UTM"\n;
-                    '''
-
-                    sql += f'ALTER TABLE "Capa unida {entitat}" ADD COLUMN "indexMODAsupPonderat" FLOAT;\n'
-
-                    sql += f'''
-                    UPDATE "Capa unida {entitat}" AS c
-                    SET "indexMODAsupPonderat" = subquery.moda
-                    FROM (
-                        SELECT "UTM",
-                            (
-                                SUM (
-                                    CASE
-                                        WHEN "qualificació de consum energia primaria no renovable" = "QualifMaxSup"
-                                            THEN CAST("energia primària no renovable" AS FLOAT) * CAST("metres_cadastre" AS FLOAT)
-                                        ELSE 0
-                                    END
-                                ) / NULLIF(SUM (
-                                    CASE
-                                        WHEN "qualificació de consum energia primaria no renovable" = "QualifMaxSup"
-                                            THEN CAST("metres_cadastre" AS FLOAT)
-                                        ELSE 0
-                                    END), 0
-                                )
-                            ) AS moda   
-                        FROM {schema1}."Capa unida {entitat}"
-                        GROUP BY "UTM"
-                    ) AS subquery
-                    WHERE c."UTM" = subquery."UTM";   
-                    '''
-                else:
-                    sql = f'ALTER TABLE "Capa unida {entitat}" ADD COLUMN "indexMODAsup" FLOAT;\n'
-                    sql += f'''
-                    UPDATE "Capa unida {entitat}" AS c
-                    SET "indexMODAsup" = subquery.moda
-                    FROM (
-                        SELECT "id",
-                            (
-                                SUM (
-                                    CASE
-                                        WHEN "qualificació de consum energia primaria no renovable" = "QualifMaxSup"
-                                            THEN CAST("energia primària no renovable" AS FLOAT)
-                                        ELSE 0
-                                    END
-                                ) / NULLIF(SUM (
-                                    CASE
-                                        WHEN "qualificació de consum energia primaria no renovable" = "QualifMaxSup"
-                                            THEN 1
-                                        ELSE 0
-                                    END), 0
-                                )
-                            ) AS moda
-                        FROM {schema1}."Capa unida {entitat}"
-                        GROUP BY "id"
-                    ) AS subquery
-                    WHERE c."id" = subquery."id"\n;
-                    '''
-
-                    sql += f'ALTER TABLE "Capa unida {entitat}" ADD COLUMN "indexMODAsupPonderat" FLOAT;\n'
-                    sql += f'''
-                    UPDATE "Capa unida {entitat}" AS c
-                    SET "indexMODAsupPonderat" = subquery.moda
-                    FROM (
-                        SELECT "id",
-                            (
-                                SUM (
-                                    CASE
-                                        WHEN "qualificació de consum energia primaria no renovable" = "QualifMaxSup"
-                                            THEN CAST("energia primària no renovable" AS FLOAT) * CAST("metres_cadastre" AS FLOAT)
-                                        ELSE 0
-                                    END
-                                ) / NULLIF(SUM (
-                                    CASE
-                                        WHEN "qualificació de consum energia primaria no renovable" = "QualifMaxSup"
-                                            THEN CAST("metres_cadastre" AS FLOAT)
-                                        ELSE 0
-                                    END), 0
-                                )
-                            ) AS moda
-                        FROM {schema1}."Capa unida {entitat}"
-                        GROUP BY "id"
-                    ) AS subquery
-                    WHERE c."id" = subquery."id";
-                    '''
-                cur.execute(sql)
-                conn.commit()
 
             if self.dlg.checkNumHabit.isChecked():
             
@@ -1092,6 +987,137 @@ class EficEnerg:
                     cur.execute(sql)    
                     conn.commit()
 
+            if self.dlg.checkm2.isChecked():
+
+                sql = f'ALTER TABLE "Capa unida {entitat}" ADD COLUMN IF NOT EXISTS "maxConsum" FLOAT;\n'
+                sql += f'UPDATE "Capa unida {entitat}" SET "maxConsum" = GREATEST("m2A", "m2B", "m2C", "m2D", "m2E", "m2F", "m2G");\n'
+                sql += f'ALTER TABLE "Capa unida {entitat}" ADD COLUMN IF NOT EXISTS "QualifMaxSup" VARCHAR;\n'
+                sql += f'''UPDATE "Capa unida {entitat}" SET "QualifMaxSup" =  
+                    CASE 
+                        WHEN "maxConsum" = "m2A" THEN 'A' 
+                        WHEN "maxConsum" = "m2B" THEN 'B' 
+                        WHEN "maxConsum" = "m2C" THEN 'C' 
+                        WHEN "maxConsum" = "m2D" THEN 'D' 
+                        WHEN "maxConsum" = "m2E" THEN 'E' 
+                        WHEN "maxConsum" = "m2F" THEN 'F' 
+                        ELSE 'G' 
+                    END;
+                '''
+                cur.execute(sql)
+                conn.commit()
+
+                if entitat==llistaEntitats[1]:
+                    sql = f'ALTER TABLE "Capa unida {entitat}" ADD COLUMN "indexMODAsup" FLOAT;\n'
+                    sql += f'''
+                    UPDATE "Capa unida {entitat}" AS c
+                    SET "indexMODAsup" = subquery.moda
+                    FROM (
+                        SELECT "UTM",
+                            (
+                                SUM (
+                                    CASE
+                                        WHEN "qualificació de consum energia primaria no renovable" = "QualifMaxSup"
+                                            THEN CAST("energia primària no renovable" AS FLOAT)
+                                        ELSE 0
+                                    END
+                                ) / NULLIF(SUM (
+                                    CASE
+                                        WHEN "qualificació de consum energia primaria no renovable" = "QualifMaxSup"
+                                            THEN 1
+                                        ELSE 0
+                                    END), 0
+                                )
+                            ) AS moda
+                        FROM {schema1}."Capa unida {entitat}"
+                        GROUP BY "UTM"
+                    ) AS subquery
+                    WHERE c."UTM" = subquery."UTM"\n;
+                    '''
+
+                    sql += f'ALTER TABLE "Capa unida {entitat}" ADD COLUMN "indexMODAsupPonderat" FLOAT;\n'
+
+                    sql += f'''
+                    UPDATE "Capa unida {entitat}" AS c
+                    SET "indexMODAsupPonderat" = subquery.moda
+                    FROM (
+                        SELECT "UTM",
+                            (
+                                SUM (
+                                    CASE
+                                        WHEN "qualificació de consum energia primaria no renovable" = "QualifMaxSup"
+                                            THEN CAST("energia primària no renovable" AS FLOAT) * CAST("metres_cadastre" AS FLOAT)
+                                        ELSE 0
+                                    END
+                                ) / NULLIF(SUM (
+                                    CASE
+                                        WHEN "qualificació de consum energia primaria no renovable" = "QualifMaxSup"
+                                            THEN CAST("metres_cadastre" AS FLOAT)
+                                        ELSE 0
+                                    END), 0
+                                )
+                            ) AS moda   
+                        FROM {schema1}."Capa unida {entitat}"
+                        GROUP BY "UTM"
+                    ) AS subquery
+                    WHERE c."UTM" = subquery."UTM";   
+                    '''
+                else:
+                    sql = f'ALTER TABLE "Capa unida {entitat}" ADD COLUMN "indexMODAsup" FLOAT;\n'
+                    sql += f'''
+                    UPDATE "Capa unida {entitat}" AS c
+                    SET "indexMODAsup" = subquery.moda
+                    FROM (
+                        SELECT "id",
+                            (
+                                SUM (
+                                    CASE
+                                        WHEN "qualificació de consum energia primaria no renovable" = "QualifMaxSup"
+                                            THEN CAST("energia primària no renovable" AS FLOAT)
+                                        ELSE 0
+                                    END
+                                ) / NULLIF(SUM (
+                                    CASE
+                                        WHEN "qualificació de consum energia primaria no renovable" = "QualifMaxSup"
+                                            THEN 1
+                                        ELSE 0
+                                    END), 0
+                                )
+                            ) AS moda
+                        FROM {schema1}."Capa unida {entitat}"
+                        GROUP BY "id"
+                    ) AS subquery
+                    WHERE c."id" = subquery."id"\n;
+                    '''
+
+                    sql += f'ALTER TABLE "Capa unida {entitat}" ADD COLUMN "indexMODAsupPonderat" FLOAT;\n'
+                    sql += f'''
+                    UPDATE "Capa unida {entitat}" AS c
+                    SET "indexMODAsupPonderat" = subquery.moda
+                    FROM (
+                        SELECT "id",
+                            (
+                                SUM (
+                                    CASE
+                                        WHEN "qualificació de consum energia primaria no renovable" = "QualifMaxSup"
+                                            THEN CAST("energia primària no renovable" AS FLOAT) * CAST("metres_cadastre" AS FLOAT)
+                                        ELSE 0
+                                    END
+                                ) / NULLIF(SUM (
+                                    CASE
+                                        WHEN "qualificació de consum energia primaria no renovable" = "QualifMaxSup"
+                                            THEN CAST("metres_cadastre" AS FLOAT)
+                                        ELSE 0
+                                    END), 0
+                                )
+                            ) AS moda
+                        FROM {schema1}."Capa unida {entitat}"
+                        GROUP BY "id"
+                    ) AS subquery
+                    WHERE c."id" = subquery."id";
+                    '''
+                cur.execute(sql)
+                conn.commit()
+
         except Exception as ex:
             print ("Error fent calcul moda")
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
@@ -1106,7 +1132,32 @@ class EficEnerg:
         try:
             ' Calcul de maxConsum i QualifMaxSup per tal de tenir una qualificació energètica amb la que representar amb un color la entitat al mapa '
 
+            if self.dlg.checkNumHabit.isChecked():
+                    
+                    sql = f'ALTER TABLE "Capa unida {entitat}" ADD COLUMN IF NOT EXISTS "maxConsum" FLOAT;\n'
+                    sql += f'UPDATE "Capa unida {entitat}" SET "maxConsum" = GREATEST("NumA", "NumB", "NumC", "NumD", "NumE", "NumF", "NumG");\n'
+                    sql += f'ALTER TABLE "Capa unida {entitat}" ADD COLUMN IF NOT EXISTS "QualifMaxSup" VARCHAR;\n'
+                    sql += f'''UPDATE "Capa unida {entitat}" SET "QualifMaxSup" =  
+                        CASE 
+                            WHEN "maxConsum" = "NumA" THEN 'A' 
+                            WHEN "maxConsum" = "NumB" THEN 'B' 
+                            WHEN "maxConsum" = "NumC" THEN 'C' 
+                            WHEN "maxConsum" = "NumD" THEN 'D' 
+                            WHEN "maxConsum" = "NumE" THEN 'E' 
+                            WHEN "maxConsum" = "NumF" THEN 'F' 
+                            ELSE 'G' 
+                        END;
+                    '''
+                    cur.execute(sql)
+                    conn.commit()
+            
             if self.dlg.checkm2.isChecked():
+
+                sql = f'ALTER TABLE "Capa unida {entitat}" DROP COLUMN IF EXISTS "maxConsum";\n'
+                sql += f'ALTER TABLE "Capa unida {entitat}" DROP COLUMN IF EXISTS "QualifMaxSup";\n'
+
+                cur.execute(sql)
+                conn.commit()
 
                 sql = f'ALTER TABLE "Capa unida {entitat}" ADD COLUMN IF NOT EXISTS "maxConsum" FLOAT;\n'
                 sql += f'UPDATE "Capa unida {entitat}" SET "maxConsum" = GREATEST("m2A", "m2B", "m2C", "m2D", "m2E", "m2F", "m2G");\n'
@@ -1302,7 +1353,11 @@ class EficEnerg:
             return
 
     def scroll_text(self):
-        self.dlg.textBox.moveCursor(QTextCursor.End)
+        self.dlg.textEstat.moveCursor(QTextCursor.End)
+    
+    def updateProgress(self, progress):
+        self.dlg.progressBar.setValue(progress)
+        QApplication.processEvents()
 
     def unirCapes(self):
         global uri
@@ -1466,7 +1521,7 @@ class EficEnerg:
                 "FIELD": "id",
                 "INPUT_2": layerEntitat,
                 "FIELD_2": "id",
-                "FIELDS_TO_COPY": ['QualifMaxSup', 'INDEX_consum', 'INDEX_emissions'],
+                "FIELDS_TO_COPY": ['INDEX_consum', 'INDEX_emissions', 'QualifMaxSup'],
                 "METHOD": 1,
                 "OUTPUT": 'memory:'
             }
@@ -1527,7 +1582,7 @@ class EficEnerg:
                         "OUTPUT": 'memory:'
                     }
                 else:
-                    if self.dlg.checkNumHab.isChecked():
+                    if self.dlg.checkNumHabit.isChecked():
                         alg_params = {
                         "INPUT": layer,
                         "FIELD": "id",
@@ -1744,6 +1799,8 @@ class EficEnerg:
             return
         print("No hi ha excepcions")
 
+        self.updateProgress(10)
+
         self.dlg.setEnabled(False)
         self.dlg.groupBD.setEnabled(False)
         self.dlg.groupChecks.setEnabled(False)
@@ -1758,6 +1815,8 @@ class EficEnerg:
         QApplication.processEvents()
         print("Fetes copies de les capes originals")
 
+        self.updateProgress(20)
+
         ''' IDs Entitats '''
 
         textBox += f"Calculant ID d'entitats seleccionades...\n"
@@ -1769,6 +1828,8 @@ class EficEnerg:
         QApplication.processEvents()
         print("Fetes IDs de les entitats")
 
+        self.updateProgress(30)
+
         ''' Unió capes '''
 
         textBox += f"Unint capes seleccionades...\n"
@@ -1778,6 +1839,8 @@ class EficEnerg:
         self.unirCapes()
         QApplication.processEvents()
         
+        self.updateProgress(40)
+
         ''' Processament càlculs '''
 
         'NumX habitatges per entitats'
@@ -1825,6 +1888,7 @@ class EficEnerg:
             self.calculMediana()
             QApplication.processEvents()
 
+        self.updateProgress(50)
 
         'Carregar capes, fer drops i tornar a unir-les per alleugerir-les'
         'per NumHabit'
@@ -1868,6 +1932,8 @@ class EficEnerg:
             self.dropCapesReUnidesMediana()
             self.reUnirCapesMediana()
             QApplication.processEvents()
+
+        self.updateProgress(60)
 
         ''' Diagrames de pie chart '''
 
@@ -1993,6 +2059,8 @@ class EficEnerg:
         
         QgsProject.instance().reloadAllLayers()
 
+        self.updateProgress(70)
+
         ''' Etiquetes de mitjana, mediana i moda '''
 
 
@@ -2081,18 +2149,25 @@ class EficEnerg:
             labelModa = QgsPalLayerSettings()
             labelModa.enabled = True
 
-            labelModa.fieldName = """
-            CASE
-                WHEN "QualifMaxSup" IS NOT NULL AND "indexMODAsup" IS NOT NULL AND "indexMODAsupPonderat" IS NOT NULL THEN '<div><b><font color="black">' || format_number("indexMODAsup", 1) || '</font></b></div><div><b><font color="#707070">' || format_number("indexMODAsupPonderat", 1) || '</font></b></div>'
-                WHEN "QualifMaxSup" IS NOT NULL AND "indexMODAsup" IS NOT NULL THEN '<div><b><font color="black">' || format_number("indexMODAsup", 1) || '</font></b></div>'
-                WHEN "QualifMaxSup" IS NOT NULL AND "indexMODAsupPonderat" IS NOT NULL THEN '<div><b><font color="#707070">' || format_number("indexMODAsupPonderat", 1) || '</font></b></div>'
-                WHEN "indexMODAsup" IS NOT NULL AND "indexMODAsupPonderat" IS NOT NULL THEN '<div>indexMODAsup: <b><font color="black">' || format_number("indexMODAsup", 1) || '</font></b></div><div>indexMODAsupPonderat: <b><font color="#707070">' || format_number("indexMODAsupPonderat", 1) || '</font></b></div>'
-                WHEN "QualifMaxSup" IS NOT NULL THEN '<div><b><font color="green">' || to_string("QualifMaxSup") + '</font></b></div>'
-                WHEN "indexMODAsup" IS NOT NULL THEN 'indexMODAsup: <div><b><font color="black">' || format_number("indexMODAsup", 1) || '</font></b></div>'
-                WHEN "indexMODAsupPonderat" IS NOT NULL THEN 'indexMODAsupPonderat: <div><b><font color="#707070">' || format_number("indexMODAsupPonderat", 1) || '</font></b></div>'
-                ELSE ''
-            END
-            """
+            if self.dlg.checkNumHabit.isChecked():
+                labelModa.fieldName = """
+                CASE
+                    WHEN "indexMODAsup" IS NOT NULL AND "indexMODAsupPonderat" IS NOT NULL THEN '<div><b><font color="black">' || format_number("indexMODAsup", 1) || '</font></b></div><div><b><font color="#707070">' || format_number("indexMODAsupPonderat", 1) || '</font></b></div>'
+                    WHEN "indexMODAsup" IS NOT NULL THEN '<div><b><font color="black">' || format_number("indexMODAsup", 1) || '</font></b></div>'
+                    WHEN "indexMODAsupPonderat" IS NOT NULL THEN '<div><b><font color="#707070">' || format_number("indexMODAsupPonderat", 1) || '</font></b></div>'
+                    ELSE ''
+                END
+                """
+
+            if self.dlg.checkm2.isChecked():
+                labelModa.fieldName = """
+                CASE
+                    WHEN "indexMODAhab" IS NOT NULL AND "indexMODAhabPonderat" IS NOT NULL THEN '<div><b><font color="black">' || format_number("indexMODAhab", 1) || '</font></b></div><div><b><font color="#707070">' || format_number("indexMODAhabPonderat", 1) || '</font></b></div>'
+                    WHEN "indexMODAhab" IS NOT NULL THEN '<div><b><font color="black">' || format_number("indexMODAhab", 1) || '</font></b></div>'
+                    WHEN "indexMODAhabPonderat" IS NOT NULL THEN '<div><b><font color="#707070">' || format_number("indexMODAhabPonderat", 1) || '</font></b></div>'
+                    ELSE ''
+                END
+                """
             
             labelModa.isExpression = True
             labelModa.placement = QgsPalLayerSettings.AroundPoint
@@ -2252,7 +2327,7 @@ class EficEnerg:
 
         QgsProject.instance().reloadAllLayers()
 
-        self.dropFinalCapesIColumnes()
+        #self.dropFinalCapesIColumnes()
         textBox += f"PROCÉS FINALITZAT!\n"
         self.dlg.textEstat.setText(textBox)
         self.scroll_text()
