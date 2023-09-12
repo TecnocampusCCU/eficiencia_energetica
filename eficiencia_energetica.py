@@ -93,7 +93,6 @@ user1 = ""
 cur = None
 conn = None
 progress = None
-aux = False
 textBox = ""
 uri = None
 numOperacions = 0
@@ -303,6 +302,7 @@ class EficEnerg:
             self.barraEstat_connectant()
             textBox += f"\nConnectant a la base de dades {nomBD1}...\n"
             self.dlg.textEstat.setText(textBox)
+            self.scroll_text()
             self.dlg.lblEstatConn.setAutoFillBackground(True)
             QApplication.processEvents()
 
@@ -319,6 +319,7 @@ class EficEnerg:
                 textBox += f"\nConnectat a la base de dades {nomBD1}\n"
                 textBox += "\nSelecciona les entitats amb les que vulguis treballar i indica amb quines entitats treballaràs així com els camps que vols calcular i inicia el procés"
                 self.dlg.textEstat.setText(textBox)
+                self.scroll_text()
                 cur = conn.cursor()
                 uri = QgsDataSourceUri()
                 uri.setConnection(host1, port1, nomBD1, user1, password1)
@@ -1300,6 +1301,9 @@ class EficEnerg:
             conn.rollback()
             return
 
+    def scroll_text(self):
+        self.dlg.textBox.moveCursor(QTextCursor.End)
+
     def unirCapes(self):
         global uri
         global entitatLayerJoined
@@ -1501,15 +1505,38 @@ class EficEnerg:
 
         global uri
         if self.dlg.checkModa.isChecked():
-            alg_params = {
-                "INPUT": layer,
-                "FIELD": "id",
-                "INPUT_2": layerEntitat,
-                "FIELD_2": "id",
-                "FIELDS_TO_COPY": ['QualifMaxSup', 'indexMODAsup', 'indexMODAsupPonderat'],
-                "METHOD": 1,
-                "OUTPUT": 'memory:'
-            }
+            if self.dlg.checkNumHabit.isChecked() and self.dlg.checkm2.isChecked():
+                alg_params = {
+                        "INPUT": layer,
+                        "FIELD": "id",
+                        "INPUT_2": layerEntitat,
+                        "FIELD_2": "id",
+                        "FIELDS_TO_COPY": ['indexMODAhab', 'indexMODAhabPonderat', 'indexMODAsup', 'indexMODAsupPonderat', 'QualifMaxSup'],
+                        "METHOD": 1,
+                        "OUTPUT": 'memory:'
+                    }
+            else:
+                if self.dlg.checkm2.isChecked():
+                    alg_params = {
+                        "INPUT": layer,
+                        "FIELD": "id",
+                        "INPUT_2": layerEntitat,
+                        "FIELD_2": "id",
+                        "FIELDS_TO_COPY": ['QualifMaxSup', 'indexMODAsup', 'indexMODAsupPonderat'],
+                        "METHOD": 1,
+                        "OUTPUT": 'memory:'
+                    }
+                else:
+                    if self.dlg.checkNumHab.isChecked():
+                        alg_params = {
+                        "INPUT": layer,
+                        "FIELD": "id",
+                        "INPUT_2": layerEntitat,
+                        "FIELD_2": "id",
+                        "FIELDS_TO_COPY": ['indexMODAhab', 'indexMODAhabPonderat', 'QualifMaxSup'],
+                        "METHOD": 1,
+                        "OUTPUT": 'memory:'
+                    }
         result = processing.run("native:joinattributestable", alg_params)
         resumRecompte = result["OUTPUT"]
         layerResum = resumRecompte
@@ -1724,6 +1751,7 @@ class EficEnerg:
         textBox += f"\nINICIANT EL PROCÉS...\n"
         print("Comença programa")
         self.dlg.textEstat.setText(textBox)
+        self.scroll_text()
 
         ''' Crear copies capes originals '''
         self.crearCopiesCapesEntitats()
@@ -1734,6 +1762,7 @@ class EficEnerg:
 
         textBox += f"Calculant ID d'entitats seleccionades...\n"
         self.dlg.textEstat.setText(textBox)
+        self.scroll_text()
         self.calcularCampsHabitatges()
         if not entitat==llistaEntitats[1]:
             self.crearIDentitats()
@@ -1744,6 +1773,7 @@ class EficEnerg:
 
         textBox += f"Unint capes seleccionades...\n"
         self.dlg.textEstat.setText(textBox)
+        self.scroll_text()
         self.dropCapesUnides()
         self.unirCapes()
         QApplication.processEvents()
@@ -1755,6 +1785,7 @@ class EficEnerg:
         if(self.dlg.checkNumHabit.isChecked()):
             textBox += f"Calculant NumX d'habitatges...\n"
             self.dlg.textEstat.setText(textBox)
+            self.scroll_text()
             self.calculNumX()
             QApplication.processEvents()
         
@@ -1763,6 +1794,7 @@ class EficEnerg:
         if(self.dlg.checkm2.isChecked()):
             textBox += f"Calculant m2 d'habitatges...\n"
             self.dlg.textEstat.setText(textBox)
+            self.scroll_text()
             self.calculm2()
             QApplication.processEvents()    
         
@@ -1771,6 +1803,7 @@ class EficEnerg:
         if self.dlg.checkMitjana.isChecked():
             textBox += f"Calculant mitjana de consum i emissions d'habitatges per entitats...\n"
             self.dlg.textEstat.setText(textBox)
+            self.scroll_text()
             self.calculMitjana()
             QApplication.processEvents()
 
@@ -1779,6 +1812,7 @@ class EficEnerg:
         if self.dlg.checkModa.isChecked():
             textBox += f"Calculant moda de consum i emissions d'habitatges per entitats...\n"
             self.dlg.textEstat.setText(textBox)
+            self.scroll_text()
             self.calculModa()
             QApplication.processEvents()
 
@@ -1787,6 +1821,7 @@ class EficEnerg:
         if self.dlg.checkMediana.isChecked():
             textBox += f"Calculant mediana de consum i emissions d'habitatges per entitats...\n"
             self.dlg.textEstat.setText(textBox)
+            self.scroll_text()
             self.calculMediana()
             QApplication.processEvents()
 
@@ -2220,6 +2255,7 @@ class EficEnerg:
         self.dropFinalCapesIColumnes()
         textBox += f"PROCÉS FINALITZAT!\n"
         self.dlg.textEstat.setText(textBox)
+        self.scroll_text()
         self.dlg.setEnabled(True)
         self.dlg.groupBD.setEnabled(True)
         self.dlg.groupChecks.setEnabled(True)
