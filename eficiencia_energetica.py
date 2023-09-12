@@ -370,6 +370,23 @@ class EficEnerg:
 
     def on_change_checkNumHabit(self):
         global numOperacions
+
+        if self.dlg.checkm2.isChecked() or self.dlg.checkNumHabit.isChecked():
+            self.dlg.checkMitjana.setEnabled(True)
+            self.dlg.checkModa.setEnabled(True)
+            self.dlg.checkMediana.setEnabled(True)
+
+        if not self.dlg.checkm2.isChecked() and not self.dlg.checkNumHabit.isChecked():
+            self.dlg.checkModa.setEnabled(False)
+            self.dlg.checkModa.setChecked(False)
+            self.dlg.checkMitjana.setEnabled(False)
+            self.dlg.checkMitjana.setChecked(False)
+            self.dlg.checkMediana.setEnabled(False)
+            self.dlg.checkMediana.setChecked(False)
+
+        if self.dlg.checkNumHabit.isChecked() and self.dlg.checkm2.isChecked():
+            self.dlg.labelRestriccio.setVisible(True)
+
         if self.dlg.checkNumHabit.isChecked():
             numOperacions += 1
         if not self.dlg.checkNumHabit.isChecked():
@@ -377,11 +394,13 @@ class EficEnerg:
 
     def on_change_checkm2(self):
         global numOperacions
-        if self.dlg.checkm2.isChecked():
-            self.dlg.checkModa.setEnabled(True)
+
+        if self.dlg.checkm2.isChecked() or self.dlg.checkNumHabit.isChecked():
             self.dlg.checkMitjana.setEnabled(True)
+            self.dlg.checkModa.setEnabled(True)
             self.dlg.checkMediana.setEnabled(True)
-        if not self.dlg.checkm2.isChecked():
+
+        if not self.dlg.checkm2.isChecked() and not self.dlg.checkNumHabit.isChecked():
             self.dlg.checkModa.setEnabled(False)
             self.dlg.checkModa.setChecked(False)
             self.dlg.checkMitjana.setEnabled(False)
@@ -476,6 +495,7 @@ class EficEnerg:
         self.dlg.checkMediana.setEnabled(False)
         self.dlg.labelAvis.setVisible(False)
         self.dlg.progressBar.setValue(0)
+        self.dlg.labelRestriccio.setVisible(False)
         textBox = "Selecciona una base de dades...\n"
         self.dlg.textEstat.setText(textBox)
         self.dlg.setEnabled(True)
@@ -2326,8 +2346,9 @@ class EficEnerg:
             QApplication.processEvents()
 
         QgsProject.instance().reloadAllLayers()
-
+        self.updateProgress(80)
         #self.dropFinalCapesIColumnes()
+        self.updateProgress(90)
         textBox += f"PROCÉS FINALITZAT!\n"
         self.dlg.textEstat.setText(textBox)
         self.scroll_text()
@@ -2335,6 +2356,7 @@ class EficEnerg:
         self.dlg.groupBD.setEnabled(True)
         self.dlg.groupChecks.setEnabled(True)
         self.dlg.groupEntitats.setEnabled(True)
+        self.updateProgress(100)
         self.estatFinalitzat()
         QMessageBox.information(None, "Procés finalitzat", f"El procés per a l'entitat {entitat} ha finalitzat.", QMessageBox.Ok)
         QApplication.processEvents()
