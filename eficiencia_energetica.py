@@ -24,13 +24,6 @@
 /***************************************************************************
  *                                                                         *
  *   Per implementar encara [TODO] :                                       *
- *   - Canviar la moda perquè es calculi també per al nombre d'habitatges, *
- *     no només per als metres quadrats.                                   *
- *   - Canviar els tamanys dels diagrames, s'ha de trobat una manera de    *
- *     que els diagrames no es moguin intentant ocupar l'àrea visible      *
- *     del polígon i no tinguin escalats absurdament grans o petits.       *          
- *   - Fer una barra de progrés, potser seria millor fins i tot treure     *
- *     el requadre d'informació ja que tampoc sembla gaire útil.           *
  *   - Al finalitzar tot, escriure un manual d'usuari del plugin.          *
  *                                                                         *
  ***************************************************************************/
