@@ -66,8 +66,10 @@ from qgis.core import (QgsCategorizedSymbolRenderer,
                        QgsLayoutItemLegend, QgsLegendRenderer,
                        QgsLinearlyInterpolatedDiagramRenderer, QgsMapLayer,
                        QgsPalLayerSettings, QgsPieDiagram,
-                       QgsProcessingException, QgsProject, QgsRendererCategory,
+                       QgsProcessingException, QgsProject, QgsProperty,
+                       QgsPropertyCollection, QgsRendererCategory,
                        QgsSimpleFillSymbolLayer, QgsSimpleLineSymbolLayer,
+                       QgsSingleCategoryDiagramRenderer,
                        QgsSingleSymbolRenderer, QgsSymbol,
                        QgsTextBackgroundSettings, QgsTextFormat, QgsUnitTypes,
                        QgsVectorLayer, QgsVectorLayerExporter,
@@ -84,7 +86,7 @@ from .eficiencia_energetica_dialog import EficEnergDialog
 from .resources import *
 
 '''Varibles globals'''
-Versio_modul = "V_Q3.230906"
+Versio_modul = "V_Q3.230914"
 nomBD1 = ""
 password1 = ""
 host1 = ""
@@ -1997,37 +1999,60 @@ class EficEnerg:
             diagramNumHabitSettings = QgsDiagramSettings()
             diagramNumHabitSettings.categoryColors = NumDiagramColors.values()
             diagramNumHabitSettings.categoryAttributes = NumDiagramColors.keys()
-            diagramNumHabitSettings.scaleByArea = True
+            diagramNumHabitSettings.scaleByArea = False
+            diagramNumHabitSettings.scaleBasedVisibility = True
+            diagramNumHabitSettings.size = QSizeF(15, 15)
+            if entitat == llistaEntitats[1]: # parcel
+                diagramNumHabitSettings.minimumScale = 500
+                diagramNumHabitSettings.maximumScale = 1
+            if entitat == llistaEntitats[2]: # illes
+                diagramNumHabitSettings.minimumScale = 4000
+                diagramNumHabitSettings.maximumScale = 1
+            if entitat == llistaEntitats[3]:
+                diagramNumHabitSettings.minimumScale = 10000
+                diagramNumHabitSettings.maximumScale = 1
+            if entitat == llistaEntitats[4] or entitat == llistaEntitats[5] or entitat == llistaEntitats[6]:
+                diagramNumHabitSettings.minimumScale = 40000
+                diagramNumHabitSettings.maximumScale = 1
             diagramNumHabitSettings.categoryLabels = ["A", "B", "C", "D", "E", "F", "G"]
             diagramNumHabitSettings.enabled = True
 
-            diagramNumHabitRenderer = QgsLinearlyInterpolatedDiagramRenderer()
-            diagramNumHabitRenderer.setLowerValue(0)
-            diagramNumHabitRenderer.setLowerSize(QSizeF(0, 0))
-            diagramNumHabitRenderer.setUpperValue(self.maxTotalEE())
-            diagramNumHabitRenderer.setUpperSize(QSizeF(30, 30))
-            diagramNumHabitRenderer.setClassificationField("TotalEE")
+            diagramNumHabitRenderer = QgsSingleCategoryDiagramRenderer()
             diagramNumHabitRenderer.setDiagram(diagramNumHabit)
             diagramNumHabitRenderer.setDiagramSettings(diagramNumHabitSettings)
             
             capaUnidaNumHabit_temp.setDiagramRenderer(diagramNumHabitRenderer)
+
+            propertyx = QgsProperty()
+            propertyx.setExpressionString("x(centroid($geometry))")
+            propertyx.setActive(True)
+
+            propertyy = QgsProperty()
+            propertyy.setExpressionString("y(centroid($geometry))")
+            propertyy.setActive(True)
+
+            propertyVisibilitat = QgsProperty()
+            propertyVisibilitat.setExpressionString("""CASE WHEN "TotalEE" = 0 THEN False ELSE True END """)
+            propertyVisibilitat.setActive(True)
+
+            propertyCollection = QgsPropertyCollection("Propietats")
+            propertyCollection.setProperty(3, propertyx)
+            propertyCollection.setProperty(4, propertyy)
+            propertyCollection.setProperty(9, propertyVisibilitat)
+
             diagramNumHabitLayerSettings = QgsDiagramLayerSettings()
+            diagramNumHabitLayerSettings.setDataDefinedProperties(propertyCollection)
+                        
             capaUnidaNumHabit_temp.setDiagramLayerSettings(diagramNumHabitLayerSettings)
             
             single_symbol_renderer = capaUnidaNumHabit_temp.renderer().clone()
             symbol = single_symbol_renderer.symbol()
             symbol_layer = QgsSimpleLineSymbolLayer()
             symbol_layer.setWidth(0)
-            #symbol.changeSymbolLayer(0, symbol_layer)
             capaUnidaNumHabit_temp.setRenderer(single_symbol_renderer)
 
             capaUnidaNumHabit_temp.triggerRepaint()
             QApplication.processEvents()
-            #QgsProject.instance().legendLayersAdded.emit([capaUnidaNumHabit_temp.id()])
-            #QgsProject.instance().reloadAllLayers()
-
-
-
 
         if self.dlg.checkm2.isChecked():
             uri.setDataSource(schema1, f"{entitat} amb metres quadrats segons categoria", 'geom')
@@ -2049,33 +2074,70 @@ class EficEnerg:
             diagramm2Settings = QgsDiagramSettings()
             diagramm2Settings.categoryColors = m2DiagramColors.values()
             diagramm2Settings.categoryAttributes = m2DiagramColors.keys()
-            diagramm2Settings.scaleByArea = True
+            diagramm2Settings.scaleByArea = False # Deixem en False el escalat per area de manera que no es descontrolin els tamanys amb els zooms
+            #diagramm2Settings.sizeType = QgsPieDiagram.SizeDiameter
+            diagramm2Settings.scaleBasedVisibility = True
+            diagramm2Settings.size = QSizeF(15, 15)
+            if entitat == llistaEntitats[1]: # parcel
+                diagramm2Settings.minimumScale = 500
+                diagramm2Settings.maximumScale = 1
+            if entitat == llistaEntitats[2]: # illes
+                diagramm2Settings.minimumScale = 4000
+                diagramm2Settings.maximumScale = 1
+            if entitat == llistaEntitats[3]: # seccions
+                diagramm2Settings.minimumScale = 10000
+                diagramm2Settings.maximumScale = 1
+            if entitat == llistaEntitats[4] or entitat == llistaEntitats[5] or entitat == llistaEntitats[6]: # barris districtespostals i districtes
+                diagramm2Settings.minimumScale = 40000
+                diagramm2Settings.maximumScale = 1
+            
             diagramm2Settings.categoryLabels = ["A", "B", "C", "D", "E", "F", "G"]
             diagramm2Settings.enabled = True
 
-            diagramm2Renderer = QgsLinearlyInterpolatedDiagramRenderer()
-            diagramm2Renderer.setLowerValue(0)
-            diagramm2Renderer.setLowerSize(QSizeF(0, 0))
-            diagramm2Renderer.setUpperValue(self.maxTotalm2())
-            diagramm2Renderer.setUpperSize(QSizeF(100, 100))
-            diagramm2Renderer.setClassificationField("Totalm2")
+            #diagramm2Renderer = QgsLinearlyInterpolatedDiagramRenderer()
+            #diagramm2Renderer.setClassificationField("Totalm2")
+            #diagramm2Renderer.setDiagram(diagramm2)
+            #diagramm2Renderer.setDiagramSettings(diagramm2Settings)
+
+            diagramm2Renderer = QgsSingleCategoryDiagramRenderer()
             diagramm2Renderer.setDiagram(diagramm2)
             diagramm2Renderer.setDiagramSettings(diagramm2Settings)
 
             capaUnidam2_temp.setDiagramRenderer(diagramm2Renderer)
+
             diagramm2LayerSettings = QgsDiagramLayerSettings()
+
+            ' A partir de la informacio que he tret de la consola de Python podria fer que es quedessin estàtics els diagrames '
+
+            propertyx = QgsProperty()
+            propertyx.setExpressionString("x(centroid($geometry))")
+            propertyx.setActive(True)
+
+            propertyy = QgsProperty()
+            propertyy.setExpressionString("y(centroid($geometry))")
+            propertyy.setActive(True)
+
+            propertyVisibilitat = QgsProperty()
+            propertyVisibilitat.setExpressionString("""CASE WHEN "TotalEE" = 0 THEN False ELSE True END """)
+            propertyVisibilitat.setActive(True)
+
+            propertyCollection = QgsPropertyCollection("Coordenades")
+            propertyCollection.setProperty(3, propertyx)
+            propertyCollection.setProperty(4, propertyy)
+            propertyCollection.setProperty(9, propertyVisibilitat)
+
+            diagramm2LayerSettings.setDataDefinedProperties(propertyCollection)
+
             capaUnidam2_temp.setDiagramLayerSettings(diagramm2LayerSettings)
 
             single_symbol_renderer_m2 = capaUnidam2_temp.renderer().clone()
             symbol_m2 = single_symbol_renderer_m2.symbol()
             symbol_layer_m2 = QgsSimpleLineSymbolLayer()
             symbol_layer_m2.setWidth(0)
-            #symbol_m2.changeSymbolLayer(0, symbol_layer_m2)
             capaUnidam2_temp.setRenderer(single_symbol_renderer_m2)
 
             capaUnidam2_temp.triggerRepaint()
             QApplication.processEvents()
-            #QgsProject.instance().legendLayersAdded.emit([capaUnidaNumHabit_temp.id()])
         
         QgsProject.instance().reloadAllLayers()
 
@@ -2347,7 +2409,7 @@ class EficEnerg:
 
         QgsProject.instance().reloadAllLayers()
         self.updateProgress(80)
-        #self.dropFinalCapesIColumnes()
+        self.dropFinalCapesIColumnes()
         self.updateProgress(90)
         textBox += f"PROCÉS FINALITZAT!\n"
         self.dlg.textEstat.setText(textBox)
