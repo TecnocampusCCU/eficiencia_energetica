@@ -679,7 +679,7 @@
     <string notr="true">background-color: rgb(85, 255, 127);</string>
    </property>
    <property name="text">
-    <string>INICI</string>
+    <string>INICIAR</string>
    </property>
   </widget>
   <widget class="QPushButton" name="pushSortir">
@@ -1140,7 +1140,7 @@
     </rect>
    </property>
    <property name="text">
-    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:7pt; font-weight:600;&quot;&gt;Advertència&lt;/span&gt;&lt;span style=&quot; font-size:7pt;&quot;&gt;: Seleccionar molts càlculs o moltes entitats pot resultar en temps d'execució elevats.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:7pt; font-weight:600;&quot;&gt;Advertència&lt;/span&gt;&lt;span style=&quot; font-size:7pt;&quot;&gt;: Seleccionar molts càlculs pot resultar en temps d'execució elevats.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="textFormat">
     <enum>Qt::AutoText</enum>

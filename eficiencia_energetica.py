@@ -50,24 +50,15 @@ from PyQt5.QtGui import QColor
 from PyQt5.QtSql import *
 from PyQt5.QtWidgets import QAction, QApplication, QMessageBox
 from qgis.core import (QgsCategorizedSymbolRenderer,
-                       QgsCoordinateReferenceSystem, QgsDataDefinedSizeLegend,
-                       QgsDataSourceUri, QgsDiagram, QgsDiagramLayerSettings,
-                       QgsDiagramRenderer, QgsDiagramSettings, QgsFeature,
-                       QgsFeatureRenderer, QgsFeatureRequest, QgsField,
-                       QgsGeometry, QgsLayerTree, QgsLayerTreeModel,
-                       QgsLayerTreeModelLegendNode, QgsLayout,
-                       QgsLayoutItemLegend, QgsLegendRenderer,
-                       QgsLinearlyInterpolatedDiagramRenderer, QgsMapLayer,
-                       QgsPalLayerSettings, QgsPieDiagram,
-                       QgsProcessingException, QgsProject, QgsProperty,
-                       QgsPropertyCollection, QgsRendererCategory,
+                       QgsCoordinateReferenceSystem, QgsDataSourceUri,
+                       QgsDiagramLayerSettings, QgsDiagramSettings,
+                       QgsPalLayerSettings, QgsPieDiagram, QgsProject,
+                       QgsProperty, QgsPropertyCollection, QgsRendererCategory,
                        QgsSimpleFillSymbolLayer, QgsSimpleLineSymbolLayer,
-                       QgsSingleCategoryDiagramRenderer,
-                       QgsSingleSymbolRenderer, QgsSymbol,
+                       QgsSingleCategoryDiagramRenderer, QgsSymbol,
                        QgsTextBackgroundSettings, QgsTextFormat, QgsUnitTypes,
                        QgsVectorLayer, QgsVectorLayerExporter,
-                       QgsVectorLayerSimpleLabeling, QgsVectorLayerUtils,
-                       QgsWkbTypes)
+                       QgsVectorLayerSimpleLabeling, QgsWkbTypes)
 from qgis.PyQt.QtCore import QCoreApplication, QSettings, QTranslator
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction, QApplication, QMessageBox
@@ -105,7 +96,7 @@ entitatLayerResumModa = None
 entitatLayerResumMediana = None
 
 llistaEntitats = [
-    "",
+    None, # Entitat per defecte, ha de donar error
     "parcel",
     "ILLES",
     "Seccions",
@@ -268,7 +259,6 @@ class EficEnerg:
         self.first_start = True
 
     def on_change_ComboConn(self):
-        global aux
         global nomBD1
         global password1
         global host1
@@ -283,7 +273,6 @@ class EficEnerg:
         nom_conn = self.dlg.comboBD.currentText()
 
         if nom_conn != select:
-            aux = True
             s.beginGroup("PostgreSQL/connections/"+nom_conn)
             currentKeys = s.childKeys()
 
@@ -335,7 +324,7 @@ class EficEnerg:
                 template = "An exception of type {0} occurred. Arguments:\n{1!r}"
                 message = template.format(type(ex).__name__, ex.args)
                 print (message)
-                QMessageBox.information(None, "Error", "Error canvi connexió")
+                QMessageBox.critical(None, "Error", "Error canvi connexió")
                 if conn is not None:
                     conn.rollback()
                 self.dlg.lblEstatConn.setStyleSheet('border:1px solid #000000; background-color: #ff7f7f')
@@ -343,7 +332,6 @@ class EficEnerg:
                 return
              
         else:
-            aux = False
             self.barraEstat_noConnectat()
     
     def on_change_comboEntitat(self):
@@ -354,9 +342,19 @@ class EficEnerg:
         global llistaEntitats
         entitat = llistaEntitats[self.dlg.comboEntitat.currentIndex()]
         schema1 = "public"
-        uri.setDataSource(schema1, entitat, 'geom')
-        entitatLayer = QgsVectorLayer(uri.uri(), entitat, 'postgres')
-
+        try:
+            uri.setDataSource(schema1, entitat, 'geom')
+            entitatLayer = QgsVectorLayer(uri.uri(), entitat, 'postgres')
+        except Exception as ex:
+            print ("Error no s'ha trobat entitat")
+            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            message = template.format(type(ex).__name__, ex.args)
+            print (message)
+            QMessageBox.critical(None, "Error", "Error no s'ha trobat entitat")
+            conn.rollback()
+            self.dlg.setEnabled(True)
+            return
+        
     def on_change_entitatsIOperacions(self):
         if numOperacions > 2:
             self.dlg.labelAvis.setVisible(True)
@@ -381,6 +379,8 @@ class EficEnerg:
 
         if self.dlg.checkNumHabit.isChecked() and self.dlg.checkm2.isChecked():
             self.dlg.labelRestriccio.setVisible(True)
+        else:
+            self.dlg.labelRestriccio.setVisible(False)
 
         if self.dlg.checkNumHabit.isChecked():
             numOperacions += 1
@@ -402,6 +402,11 @@ class EficEnerg:
             self.dlg.checkMitjana.setChecked(False)
             self.dlg.checkMediana.setEnabled(False)
             self.dlg.checkMediana.setChecked(False)
+        
+        if self.dlg.checkNumHabit.isChecked() and self.dlg.checkm2.isChecked():
+            self.dlg.labelRestriccio.setVisible(True)
+        else:
+            self.dlg.labelRestriccio.setVisible(False)
 
         if self.dlg.checkm2.isChecked():
             numOperacions += 1
@@ -463,10 +468,8 @@ class EficEnerg:
         return currentConnections
 
     def estatInicial(self):
-        global aux
         global textBox
         global Versio_modul
-        aux = False
         self.dlg.comboBD.setCurrentIndex(0)
         self.dlg.comboEntitat.setCurrentIndex(0)
         self.barraEstat_noConnectat()
@@ -537,7 +540,7 @@ class EficEnerg:
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             message = template.format(type(ex).__name__, ex.args)
             print (message)
-            QMessageBox.information(None, "Error", "Error a creació de capes copia")
+            QMessageBox.critical(None, "Error", "Error a creació de capes copia")
             conn.rollback()
             return
 
@@ -545,11 +548,10 @@ class EficEnerg:
         if not entitat==llistaEntitats[1]:
             global habitatgesLayer
             '''Funcio per calcular els ID de les entitats que es combinaran amb els habitatges'''
-            sql = f'ALTER TABLE "{habitatges}_copy" DROP COLUMN IF EXISTS "{entitat}_id";\n'
-            cur.execute(sql)
-            conn.commit()
-
             try:
+                sql = f'ALTER TABLE "{habitatges}_copy" DROP COLUMN IF EXISTS "{entitat}_id";\n'
+                cur.execute(sql)
+                conn.commit()
                 sql = f'ALTER TABLE "{habitatges}_copy" ADD COLUMN "{entitat}_id" INTEGER;\n'
                 sql += f'UPDATE "{habitatges}_copy" SET "{entitat}_id" = "{entitat}_copy".id FROM "{entitat}_copy" WHERE ST_Intersects("{habitatges}_copy".geom, "{entitat}_copy".geom);'
                 cur.execute(sql)
@@ -562,7 +564,7 @@ class EficEnerg:
                 template = "An exception of type {0} occurred. Arguments:\n{1!r}"
                 message = template.format(type(ex).__name__, ex.args)
                 print (message)
-                QMessageBox.information(None, "Error", "Error calculant ID auxiliars entitats")
+                QMessageBox.critical(None, "Error", "Error calculant ID auxiliars entitats")
                 conn.rollback()
                 self.dlg.setEnabled(True)
                 return
@@ -570,20 +572,33 @@ class EficEnerg:
     def calcularCampsHabitatges(self):
         global habitatges
         global habitatgesLayer
-        
-        sql = f'ALTER TABLE "{habitatges}_copy" DROP COLUMN IF EXISTS "producte_con";\n'
-        sql += f'ALTER TABLE "{habitatges}_copy" DROP COLUMN IF EXISTS "producte_emi";\n'
-        sql += f'ALTER TABLE "{habitatges}_copy" DROP COLUMN IF EXISTS "UTM";\n'
-        cur.execute(sql)
-        conn.commit()
 
         if entitat==llistaEntitats[1]:
-            sql = f'ALTER TABLE "{habitatges}_copy" ADD COLUMN "UTM" VARCHAR;\n'
-            sql += f'UPDATE "{habitatges}_copy" SET "UTM" = LEFT("referencia cadastral", 7);\n'
+            try:
+                sql = f'ALTER TABLE "{habitatges}_copy" DROP COLUMN IF EXISTS "UTM";\n'
+                cur.execute(sql)
+                conn.commit()
+
+                sql = f'ALTER TABLE "{habitatges}_copy" ADD COLUMN "UTM" VARCHAR;\n'
+                sql += f'UPDATE "{habitatges}_copy" SET "UTM" = LEFT("referencia cadastral", 7);\n'
+                cur.execute(sql)
+                conn.commit()
+            except Exception as ex:
+                print ("Error calculant camps auxiliars habitatges (en particular UTM per parcel·les)")
+                template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+                message = template.format(type(ex).__name__, ex.args)
+                print (message)
+                QMessageBox.critical(None, "Error", "Error calculant camps auxiliars habitatges (en particular UTM per parcel·les)")
+                conn.rollback()
+                self.dlg.setEnabled(True)
+                return
+
+        try:
+            sql = f'ALTER TABLE "{habitatges}_copy" DROP COLUMN IF EXISTS "producte_con";\n'
+            sql += f'ALTER TABLE "{habitatges}_copy" DROP COLUMN IF EXISTS "producte_emi";\n'
             cur.execute(sql)
             conn.commit()
 
-        try:
             sql = f'ALTER TABLE "{habitatges}_copy" ADD COLUMN "producte_con" FLOAT;\n'
             sql += f'UPDATE "{habitatges}_copy" SET "producte_con" = CAST("energia primària no renovable" AS FLOAT) * CAST("metres_cadastre" AS FLOAT);\n'
             
@@ -600,7 +615,7 @@ class EficEnerg:
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             message = template.format(type(ex).__name__, ex.args)
             print (message)
-            QMessageBox.information(None, "Error", "Error calculant camps auxiliars habitatges")
+            QMessageBox.critical(None, "Error", "Error calculant camps auxiliars habitatges")
             conn.rollback()
             self.dlg.setEnabled(True)
             return
@@ -624,7 +639,7 @@ class EficEnerg:
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             message = template.format(type(ex).__name__, ex.args)
             print (message)
-            QMessageBox.information(None, "Error", "Error dropping NumX columns")
+            QMessageBox.critical(None, "Error", "Error dropping NumX columns")
             conn.rollback()
             self.dlg.setEnabled(True)
             return
@@ -656,7 +671,7 @@ class EficEnerg:
                 template = "An exception of type {0} occurred. Arguments:\n{1!r}"
                 message = template.format(type(ex).__name__, ex.args)
                 print (message)
-                QMessageBox.information(None, "Error", "Error calculating NumX columns")
+                QMessageBox.critical(None, "Error", "Error calculating NumX columns")
                 conn.rollback()
                 self.dlg.setEnabled(True)
                 return
@@ -685,7 +700,7 @@ class EficEnerg:
                 template = "An exception of type {0} occurred. Arguments:\n{1!r}"
                 message = template.format(type(ex).__name__, ex.args)
                 print (message)
-                QMessageBox.information(None, "Error", "Error calculating NumX columns")
+                QMessageBox.critical(None, "Error", "Error calculating NumX columns")
                 conn.rollback()
                 self.dlg.setEnabled(True)
                 return
@@ -708,7 +723,7 @@ class EficEnerg:
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             message = template.format(type(ex).__name__, ex.args)
             print (message)
-            QMessageBox.information(None, "Error", "Error dropping m2X columns")
+            QMessageBox.critical(None, "Error", "Error dropping m2X columns")
             conn.rollback()
             self.dlg.setEnabled(True)
             return
@@ -740,7 +755,7 @@ class EficEnerg:
                 template = "An exception of type {0} occurred. Arguments:\n{1!r}"
                 message = template.format(type(ex).__name__, ex.args)
                 print (message)
-                QMessageBox.information(None, "Error", "Error calculating m2X columns")
+                QMessageBox.critical(None, "Error", "Error calculating m2X columns")
                 conn.rollback()
                 self.dlg.setEnabled(True)
                 return
@@ -769,7 +784,7 @@ class EficEnerg:
                 template = "An exception of type {0} occurred. Arguments:\n{1!r}"
                 message = template.format(type(ex).__name__, ex.args)
                 print (message)
-                QMessageBox.information(None, "Error", "Error calculating m2X columns")
+                QMessageBox.critical(None, "Error", "Error calculating m2X columns")
                 conn.rollback()
                 self.dlg.setEnabled(True)
                 return
@@ -854,7 +869,7 @@ class EficEnerg:
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             message = template.format(type(ex).__name__, ex.args)
             print (message)
-            QMessageBox.information(None, "Error", "Error fent sumes de camps de la mitjana")
+            QMessageBox.critical(None, "Error", "Error fent sumes de camps de la mitjana")
             conn.rollback()
             self.dlg.setEnabled(True)
             return
@@ -1138,7 +1153,7 @@ class EficEnerg:
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             message = template.format(type(ex).__name__, ex.args)
             print (message)
-            QMessageBox.information(None, "Error", "Error fent calcul moda")
+            QMessageBox.critical(None, "Error", "Error fent calcul moda")
             conn.rollback()
             self.dlg.setEnabled(True)
             return
@@ -1278,7 +1293,7 @@ class EficEnerg:
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             message = template.format(type(ex).__name__, ex.args)
             print (message)
-            QMessageBox.information(None, "Error", "Error fent mediana")
+            QMessageBox.critical(None, "Error", "Error fent mediana")
             conn.rollback()
             self.dlg.setEnabled(True)
             return
@@ -1293,7 +1308,7 @@ class EficEnerg:
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             message = template.format(type(ex).__name__, ex.args)
             print (message)
-            QMessageBox.information(None, "Error", "Error a drop table if exists de capes unides")
+            QMessageBox.critical(None, "Error", "Error a drop table if exists de capes unides")
             conn.rollback()
             return
     
@@ -1307,7 +1322,7 @@ class EficEnerg:
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             message = template.format(type(ex).__name__, ex.args)
             print (message)
-            QMessageBox.information(None, "Error", "Error a drop table resum recompte NumHabit")
+            QMessageBox.critical(None, "Error", "Error a drop table resum recompte NumHabit")
             conn.rollback()
             return
         
@@ -1321,7 +1336,7 @@ class EficEnerg:
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             message = template.format(type(ex).__name__, ex.args)
             print (message)
-            QMessageBox.information(None, "Error", "Error a drop table resum recompte m2")
+            QMessageBox.critical(None, "Error", "Error a drop table resum recompte m2")
             conn.rollback()
             return
         
@@ -1335,7 +1350,7 @@ class EficEnerg:
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             message = template.format(type(ex).__name__, ex.args)
             print (message)
-            QMessageBox.information(None, "Error", "Error a drop table resum recompte mitjana")
+            QMessageBox.critical(None, "Error", "Error a drop table resum recompte mitjana")
             conn.rollback()
             return
         
@@ -1349,7 +1364,7 @@ class EficEnerg:
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             message = template.format(type(ex).__name__, ex.args)
             print (message)
-            QMessageBox.information(None, "Error", "Error a drop table resum recompte moda")
+            QMessageBox.critical(None, "Error", "Error a drop table resum recompte moda")
             conn.rollback()
             return
 
@@ -1363,7 +1378,7 @@ class EficEnerg:
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             message = template.format(type(ex).__name__, ex.args)
             print (message)
-            QMessageBox.information(None, "Error", "Error a drop table resum recompte mediana")
+            QMessageBox.critical(None, "Error", "Error a drop table resum recompte mediana")
             conn.rollback()
             return
 
@@ -1398,8 +1413,15 @@ class EficEnerg:
                 "METHOD": 0,
                 "OUTPUT": 'memory:'
             }
-        print(alg_params)
-        result = processing.run("native:joinattributestable", alg_params)
+        try:
+            result = processing.run("native:joinattributestable", alg_params)
+        except Exception as ex:
+            print ("Error al procés d'unir capes")
+            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            message = template.format(type(ex).__name__, ex.args)
+            print (message)
+            QMessageBox.critical(None, "Error", "Error al procés d'unir capes")
+            return
 
         capa_unida = result["OUTPUT"]
         layerEntitat = capa_unida
@@ -1417,22 +1439,28 @@ class EficEnerg:
             exporter.addFeatures(layerEntitat.getFeatures())
             QApplication.processEvents()
 
-
         except Exception as ex:
             print ("Error a creació de capes unides")
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             message = template.format(type(ex).__name__, ex.args)
             print (message)
-            QMessageBox.information(None, "Error", "Error a creació de capes unides")
+            QMessageBox.critical(None, "Error", "Error a creació de capes unides")
             conn.rollback()
             return
 
     def carregarCapesMapa(self):
         global entitatLayerJoined
-
-        uri.setDataSource(schema1, f"Capa unida {entitat}", 'geom')
-        entitatLayerJoined = QgsVectorLayer(uri.uri(), f"Capa unida {entitat}", 'postgres')
-        
+        try:
+            uri.setDataSource(schema1, f"Capa unida {entitat}", 'geom')
+            entitatLayerJoined = QgsVectorLayer(uri.uri(), f"Capa unida {entitat}", 'postgres')
+        except Exception as ex:
+            print ("Error a carregar capes al mapa")
+            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            message = template.format(type(ex).__name__, ex.args)
+            print (message)
+            QMessageBox.critical(None, "Error", "Error a carregar capes al mapa")
+            conn.rollback()
+            return
         QApplication.processEvents()
 
     def reUnirCapesNumHabit(self):
@@ -1452,7 +1480,15 @@ class EficEnerg:
                 "METHOD": 1,
                 "OUTPUT": 'memory:'
             }
-        result = processing.run("native:joinattributestable", alg_params)
+        try:
+            result = processing.run("native:joinattributestable", alg_params)
+        except Exception as ex:
+            print ("Error al procés d'unir capes NumHabit")
+            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            message = template.format(type(ex).__name__, ex.args)
+            print (message)
+            QMessageBox.critical(None, "Error", "Error al procés d'unir capes NumHabit")
+            return
         resumRecompte = result["OUTPUT"]
         layerResum = resumRecompte
         if not layerResum.isValid():
@@ -1475,7 +1511,7 @@ class EficEnerg:
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             message = template.format(type(ex).__name__, ex.args)
             print (message)
-            QMessageBox.information(None, "Error", "Error a creació de capes unides")
+            QMessageBox.critical(None, "Error", "Error a creació de capes unides")
             conn.rollback()
             return
 
@@ -1496,7 +1532,15 @@ class EficEnerg:
                 "METHOD": 1,
                 "OUTPUT": 'memory:'
             }
-        result = processing.run("native:joinattributestable", alg_params)
+        try:
+            result = processing.run("native:joinattributestable", alg_params)
+        except Exception as ex:
+            print ("Error al procés d'unir capes m2")
+            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            message = template.format(type(ex).__name__, ex.args)
+            print (message)
+            QMessageBox.critical(None, "Error", "Error al procés d'unir capes m2")
+            return
         resumRecompte = result["OUTPUT"]
         layerResum = resumRecompte
         if not layerResum.isValid():
@@ -1519,7 +1563,7 @@ class EficEnerg:
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             message = template.format(type(ex).__name__, ex.args)
             print (message)
-            QMessageBox.information(None, "Error", "Error a creació de capes unides")
+            QMessageBox.critical(None, "Error", "Error a creació de capes unides")
             conn.rollback()
             return
 
@@ -1540,7 +1584,15 @@ class EficEnerg:
                 "METHOD": 1,
                 "OUTPUT": 'memory:'
             }
-        result = processing.run("native:joinattributestable", alg_params)
+        try:
+            result = processing.run("native:joinattributestable", alg_params)
+        except Exception as ex:
+            print ("Error al procés d'unir capes mitjana")
+            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            message = template.format(type(ex).__name__, ex.args)
+            print (message)
+            QMessageBox.critical(None, "Error", "Error al procés d'unir capes mitjana")
+            return
         resumRecompte = result["OUTPUT"]
         layerResum = resumRecompte
         if not layerResum.isValid():
@@ -1563,7 +1615,7 @@ class EficEnerg:
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             message = template.format(type(ex).__name__, ex.args)
             print (message)
-            QMessageBox.information(None, "Error", "Error a creació de capes unides")
+            QMessageBox.critical(None, "Error", "Error a creació de capes unides")
             conn.rollback()
             return
         
@@ -1607,7 +1659,15 @@ class EficEnerg:
                         "METHOD": 1,
                         "OUTPUT": 'memory:'
                     }
-        result = processing.run("native:joinattributestable", alg_params)
+        try:
+            result = processing.run("native:joinattributestable", alg_params)
+        except Exception as ex:
+            print ("Error al procés d'unir capes moda")
+            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            message = template.format(type(ex).__name__, ex.args)
+            print (message)
+            QMessageBox.critical(None, "Error", "Error al procés d'unir capes moda")
+            return
         resumRecompte = result["OUTPUT"]
         layerResum = resumRecompte
         if not layerResum.isValid():
@@ -1630,7 +1690,7 @@ class EficEnerg:
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             message = template.format(type(ex).__name__, ex.args)
             print (message)
-            QMessageBox.information(None, "Error", "Error a creació de capes unides")
+            QMessageBox.critical(None, "Error", "Error a creació de capes unides")
             conn.rollback()
             return
 
@@ -1651,7 +1711,15 @@ class EficEnerg:
                 "METHOD": 1,
                 "OUTPUT": 'memory:'
             }
-        result = processing.run("native:joinattributestable", alg_params)
+        try:
+            result = processing.run("native:joinattributestable", alg_params)
+        except Exception as ex:
+            print ("Error al procés d'unir capes mediana")
+            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            message = template.format(type(ex).__name__, ex.args)
+            print (message)
+            QMessageBox.critical(None, "Error", "Error al procés d'unir capes mediana")
+            return
         resumRecompte = result["OUTPUT"]
         layerResum = resumRecompte
         if not layerResum.isValid():
@@ -1674,7 +1742,7 @@ class EficEnerg:
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             message = template.format(type(ex).__name__, ex.args)
             print (message)
-            QMessageBox.information(None, "Error", "Error a creació de capes unides")
+            QMessageBox.critical(None, "Error", "Error a creació de capes unides")
             conn.rollback()
             return
 
@@ -1695,16 +1763,10 @@ class EficEnerg:
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             message = template.format(type(ex).__name__, ex.args)
             print (message)
-            QMessageBox.information(None, "Error", "Error fent drops finals")
+            QMessageBox.critical(None, "Error", "Error fent drops finals")
             conn.rollback()
             self.dlg.setEnabled(True)
             return 
-
-    def barraEstat_processant(self):
-        '''Aquesta funció canvia l'aparença de la barra d'estat a "Processant..."'''
-        self.dlg.lblEstatConn.setStyleSheet('border:1px solid #000000; background-color: rgb(255, 125, 155)')
-        self.dlg.lblEstatConn.setText("Processant...")
-        QApplication.processEvents()
         
     def barraEstat_noConnectat(self):
         '''Aquesta funció canvia l'aparença de la barra d'estat a "No connectat"'''
@@ -1727,24 +1789,45 @@ class EficEnerg:
     def maxTotalEE(self):
         global conn
         global cur
-        sql = f'''SELECT MAX("TotalEE") FROM "Capa unida {entitat}";'''
-        cur.execute(sql)
+        try:
+            sql = f'''SELECT MAX("TotalEE") FROM "Capa unida {entitat}";'''
+            cur.execute(sql)
+        except Exception as ex:
+            print ("Error fent maxTotalEE")
+            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            message = template.format(type(ex).__name__, ex.args) 
+            print (message)
+            QMessageBox.critical(None, "Error", "Error trobant el nombre maxim d'habitatges")
+            conn.rollback()
+            self.dlg.setEnabled(True)
+            return
         return cur.fetchone()[0]
 
     def maxTotalm2(self):
         global conn
         global cur
-        sql = f'''SELECT MAX("Totalm2"::float) FROM "Capa unida {entitat}";'''
-        cur.execute(sql)
-        result = cur.fetchone()[0]
+        try:
+            sql = f'''SELECT MAX("Totalm2"::float) FROM "Capa unida {entitat}";'''
+            cur.execute(sql)
+            result = cur.fetchone()[0]
+        except Exception as ex:
+            print ("Error fent maxTotalm2")
+            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            message = template.format(type(ex).__name__, ex.args) 
+            print (message)
+            QMessageBox.critical(None, "Error", "Error trobant el nombre maxim de metres quadrats")
+            conn.rollback()
+            self.dlg.setEnabled(True)
+            return
         if (result == None):
             return 0
         else:
             return float(result)
 
     def on_click_Sortir(self):
-        cur.close()
-        conn.close()
+        if cur != None and conn != None:
+            cur.close()
+            conn.close()
         self.estatInicial()
         self.dlg.close()
 
@@ -1779,40 +1862,23 @@ class EficEnerg:
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             message = template.format(type(ex).__name__, ex.args)
             print (message)
-            QMessageBox.information(None, "Error", "Error a la connexio")
+            QMessageBox.critical(None, "Error", "Error a la connexio")
             conn.rollback()
             self.dlg.setEnabled(True)
             return
 
-        if habitatges == None or habitatges=='Selecciona els habitatges':
-            self.dlg.setEnabled(True)
-            print ("No s'ha seleccionat cap habitatge")
-            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-            message = template.format(type(ex).__name__, ex.args)
-            print (message)
-            QMessageBox.information(None, "Error", "No s'ha seleccionat cap habitatge")
-            conn.rollback()
-            self.dlg.setEnabled(True)
-            return
-        if entitat == llistaEntitats[0]:
+        if entitat == llistaEntitats[0] or entitat == None:
             print("No s'ha seleccionat cap entitat amb la que treballar")
-            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-            message = template.format(type(ex).__name__, ex.args)
-            print (message)
-            QMessageBox.information(None, "Error", "No s'ha seleccionat cap habitatge")
+            QMessageBox.warning(None, "Error", "No s'ha seleccionat cap entitat amb la que treballar")
             conn.rollback()
             self.dlg.setEnabled(True)
             return
         if (not self.dlg.checkNumHabit.isChecked() and not self.dlg.checkm2.isChecked() and not self.dlg.checkMitjana.isChecked() and not self.dlg.checkModa.isChecked() and not self.dlg.checkMediana.isChecked()):
-            print ("No s'ha seleccionat cap operació que realitzar")
-            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-            message = template.format(type(ex).__name__, ex.args)
-            print (message)
-            QMessageBox.information(None, "Error", "No s'ha seleccionat cap operació que realitzar")
+            print ("No s'ha seleccionat cap càlcul que realitzar")
+            QMessageBox.warning(None, "Error", "No s'ha seleccionat cap càlcul que realitzar")
             conn.rollback()
             self.dlg.setEnabled(True)
             return
-        print("No hi ha excepcions")
 
         self.updateProgress(10)
 
@@ -1820,15 +1886,13 @@ class EficEnerg:
         self.dlg.groupBD.setEnabled(False)
         self.dlg.groupChecks.setEnabled(False)
         self.dlg.groupEntitats.setEnabled(False)
-        textBox += f"\nINICIANT EL PROCÉS...\n"
-        print("Comença programa")
+        textBox = f"INICIANT EL PROCÉS...\n"
         self.dlg.textEstat.setText(textBox)
         self.scroll_text()
 
         ''' Crear copies capes originals '''
         self.crearCopiesCapesEntitats()
         QApplication.processEvents()
-        print("Fetes copies de les capes originals")
 
         self.updateProgress(20)
 
@@ -1841,7 +1905,6 @@ class EficEnerg:
         if not entitat==llistaEntitats[1]:
             self.crearIDentitats()
         QApplication.processEvents()
-        print("Fetes IDs de les entitats")
 
         self.updateProgress(30)
 
@@ -1926,10 +1989,7 @@ class EficEnerg:
         if self.dlg.checkMitjana.isChecked():
             self.carregarCapesMapa()
             self.dropCapesReUnidesMitjana()
-            print("es crida reunir capes mitjana")
             self.reUnirCapesMitjana()
-            print("capa reunida mitjana:")
-            print(entitatLayerResumMitjana.fields().names())
             QApplication.processEvents()
 
         'per moda'
@@ -2025,7 +2085,7 @@ class EficEnerg:
             propertyy.setActive(True)
 
             propertyVisibilitat = QgsProperty()
-            propertyVisibilitat.setExpressionString("""CASE WHEN "TotalEE" = 0 THEN False ELSE True END """)
+            propertyVisibilitat.setExpressionString("""CASE WHEN "TotalEE" = 0 THEN False WHEN "TotalEE" IS NULL THEN False ELSE True END """)
             propertyVisibilitat.setActive(True)
 
             propertyCollection = QgsPropertyCollection("Propietats")
@@ -2068,7 +2128,6 @@ class EficEnerg:
             diagramm2Settings.categoryColors = m2DiagramColors.values()
             diagramm2Settings.categoryAttributes = m2DiagramColors.keys()
             diagramm2Settings.scaleByArea = False # Deixem en False el escalat per area de manera que no es descontrolin els tamanys amb els zooms
-            #diagramm2Settings.sizeType = QgsPieDiagram.SizeDiameter
             diagramm2Settings.scaleBasedVisibility = True
             diagramm2Settings.size = QSizeF(15, 15)
             if entitat == llistaEntitats[1]: # parcel
@@ -2086,11 +2145,6 @@ class EficEnerg:
             
             diagramm2Settings.categoryLabels = ["A", "B", "C", "D", "E", "F", "G"]
             diagramm2Settings.enabled = True
-
-            #diagramm2Renderer = QgsLinearlyInterpolatedDiagramRenderer()
-            #diagramm2Renderer.setClassificationField("Totalm2")
-            #diagramm2Renderer.setDiagram(diagramm2)
-            #diagramm2Renderer.setDiagramSettings(diagramm2Settings)
 
             diagramm2Renderer = QgsSingleCategoryDiagramRenderer()
             diagramm2Renderer.setDiagram(diagramm2)
@@ -2111,7 +2165,7 @@ class EficEnerg:
             propertyy.setActive(True)
 
             propertyVisibilitat = QgsProperty()
-            propertyVisibilitat.setExpressionString("""CASE WHEN "TotalEE" = 0 THEN False ELSE True END """)
+            propertyVisibilitat.setExpressionString("""CASE WHEN "Totalm2" = 0 THEN False WHEN "Totalm2" IS NULL THEN False ELSE True END """)
             propertyVisibilitat.setActive(True)
 
             propertyCollection = QgsPropertyCollection("Coordenades")
