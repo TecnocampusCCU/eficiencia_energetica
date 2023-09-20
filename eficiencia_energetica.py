@@ -48,7 +48,7 @@ from PyQt5.QtCore import QSizeF
 from PyQt5.QtGui import *
 from PyQt5.QtGui import QColor
 from PyQt5.QtSql import *
-from PyQt5.QtWidgets import QAction, QApplication, QMessageBox
+from PyQt5.QtWidgets import QAction, QApplication, QMessageBox,QToolBar
 from qgis.core import (QgsCategorizedSymbolRenderer,
                        QgsCoordinateReferenceSystem, QgsDataSourceUri,
                        QgsDiagramLayerSettings, QgsDiagramSettings,
@@ -70,7 +70,7 @@ from .eficiencia_energetica_dialog import EficEnergDialog
 from .resources import *
 
 '''Varibles globals'''
-Versio_modul = "V_Q3.230914"
+Versio_modul = "V_Q3.230920"
 nomBD1 = ""
 password1 = ""
 host1 = ""
@@ -130,7 +130,8 @@ class EficEnerg:
         if os.path.exists(locale_path):
             self.translator = QTranslator()
             self.translator.load(locale_path)
-            QCoreApplication.installTranslator(self.translator)
+            if qVersion() > '4.3.3':
+                QCoreApplication.installTranslator(self.translator)
 
         # Create the dialog and keep reference
 
@@ -154,8 +155,15 @@ class EficEnerg:
 
         # Declare instance attributes
         self.actions = []
-        self.menu = self.tr(u'&Eficiencia Energetica')
-
+        self.menu = self.tr(u'&CCU')
+        trobat=False
+        for x in iface.mainWindow().findChildren(QToolBar,'CCU'): 
+            self.toolbar = x
+            trobat=True
+        
+        if not trobat:
+            self.toolbar = self.iface.addToolBar('CCU')
+            self.toolbar.setObjectName('CCU')
     # noinspection PyMethodMayBeStatic
     def tr(self, message):
         """Get the translation for a string using Qt translation API.
@@ -234,7 +242,7 @@ class EficEnerg:
 
         if add_to_toolbar:
             # Adds plugin icon to Plugins toolbar
-            self.iface.addToolBarIcon(action)
+            self.toolbar.addAction(action)
 
         if add_to_menu:
             self.iface.addPluginToMenu(
@@ -251,7 +259,7 @@ class EficEnerg:
         icon_path = ':/plugins/eficiencia_energetica/icon.png'
         self.add_action(
             icon_path,
-            text=self.tr(u''),
+            text=self.tr(u'Eficiencia Energetica'),
             callback=self.run,
             parent=self.iface.mainWindow())
 
@@ -2499,9 +2507,10 @@ class EficEnerg:
         """Removes the plugin menu item and icon from QGIS GUI."""
         for action in self.actions:
             self.iface.removePluginMenu(
-                self.tr(u'&Eficiència Energetica'),
+                self.tr(u'&CCU'),
                 action)
-            self.iface.removeToolBarIcon(action)
+            #self.iface.removeToolBarIcon(action)
+            self.toolbar.removeAction(action)
 
     def run(self):
         """Run method that performs all the real work"""
