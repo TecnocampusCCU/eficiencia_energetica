@@ -70,7 +70,7 @@ from .eficiencia_energetica_dialog import EficEnergDialog
 from .resources import *
 
 '''Varibles globals'''
-Versio_modul = "V_Q3.230920"
+Versio_modul = "V_Q3.230925"
 nomBD1 = ""
 password1 = ""
 host1 = ""
@@ -896,9 +896,11 @@ class EficEnerg:
                 cur.execute(sql)
                 conn.commit()
 
-                sql = f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN IF NOT EXISTS "maxConsum" FLOAT;\n'
+                # A versions de PostgreSQL anterior a la 10 no es pot utilitzar IF NOT EXISTS per tant faig DROP COLUMN i després la torno a crear
+
+                sql = f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "maxConsum" FLOAT;\n'
                 sql += f'UPDATE "Capa unida {entitat}_{fitxer}" SET "maxConsum" = GREATEST("NumA", "NumB", "NumC", "NumD", "NumE", "NumF", "NumG");\n'
-                sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN IF NOT EXISTS "QualifMaxSup" VARCHAR;\n'
+                sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "QualifMaxSup" VARCHAR;\n'
                 sql += f'''UPDATE "Capa unida {entitat}_{fitxer}" SET "QualifMaxSup" =
                     CASE
                         WHEN "maxConsum" = "NumA" THEN 'A'
@@ -1028,9 +1030,15 @@ class EficEnerg:
 
             if self.dlg.checkm2.isChecked():
 
-                sql = f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN IF NOT EXISTS "maxConsum" FLOAT;\n'
+                sql = f'ALTER TABLE "Capa unida {entitat}_{fitxer}" DROP COLUMN IF EXISTS "maxConsum";\n'
+                sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" DROP COLUMN IF EXISTS "QualifMaxSup";\n'
+
+                cur.execute(sql)
+                conn.commit()
+
+                sql = f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "maxConsum" FLOAT;\n'
                 sql += f'UPDATE "Capa unida {entitat}_{fitxer}" SET "maxConsum" = GREATEST("m2A", "m2B", "m2C", "m2D", "m2E", "m2F", "m2G");\n'
-                sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN IF NOT EXISTS "QualifMaxSup" VARCHAR;\n'
+                sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "QualifMaxSup" VARCHAR;\n'
                 sql += f'''UPDATE "Capa unida {entitat}_{fitxer}" SET "QualifMaxSup" =  
                     CASE 
                         WHEN "maxConsum" = "m2A" THEN 'A' 
@@ -1173,9 +1181,14 @@ class EficEnerg:
 
             if self.dlg.checkNumHabit.isChecked():
                     
-                    sql = f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN IF NOT EXISTS "maxConsum" FLOAT;\n'
+                    sql = f'ALTER TABLE "Capa unida {entitat}_{fitxer}" DROP COLUMN IF EXISTS "maxConsum";\n'
+                    sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" DROP COLUMN IF EXISTS "QualifMaxSup";\n'
+                    cur.execute(sql)
+                    conn.commit()
+                    
+                    sql = f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "maxConsum" FLOAT;\n'
                     sql += f'UPDATE "Capa unida {entitat}_{fitxer}" SET "maxConsum" = GREATEST("NumA", "NumB", "NumC", "NumD", "NumE", "NumF", "NumG");\n'
-                    sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN IF NOT EXISTS "QualifMaxSup" VARCHAR;\n'
+                    sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "QualifMaxSup" VARCHAR;\n'
                     sql += f'''UPDATE "Capa unida {entitat}_{fitxer}" SET "QualifMaxSup" =  
                         CASE 
                             WHEN "maxConsum" = "NumA" THEN 'A' 
@@ -1198,9 +1211,9 @@ class EficEnerg:
                 cur.execute(sql)
                 conn.commit()
 
-                sql = f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN IF NOT EXISTS "maxConsum" FLOAT;\n'
+                sql = f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "maxConsum" FLOAT;\n'
                 sql += f'UPDATE "Capa unida {entitat}_{fitxer}" SET "maxConsum" = GREATEST("m2A", "m2B", "m2C", "m2D", "m2E", "m2F", "m2G");\n'
-                sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN IF NOT EXISTS "QualifMaxSup" VARCHAR;\n'
+                sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "QualifMaxSup" VARCHAR;\n'
                 sql += f'''UPDATE "Capa unida {entitat}_{fitxer}" SET "QualifMaxSup" =  
                     CASE 
                         WHEN "maxConsum" = "m2A" THEN 'A' 
@@ -2289,18 +2302,8 @@ class EficEnerg:
 
             labelModa = QgsPalLayerSettings()
             labelModa.enabled = True
-
+            
             if self.dlg.checkNumHabit.isChecked():
-                labelModa.fieldName = """
-                CASE
-                    WHEN "indexMODAsup" IS NOT NULL AND "indexMODAsupPonderat" IS NOT NULL THEN '<div><b><font color="black">' || format_number("indexMODAsup", 1) || '</font></b></div><div><b><font color="#707070">' || format_number("indexMODAsupPonderat", 1) || '</font></b></div>'
-                    WHEN "indexMODAsup" IS NOT NULL THEN '<div><b><font color="black">' || format_number("indexMODAsup", 1) || '</font></b></div>'
-                    WHEN "indexMODAsupPonderat" IS NOT NULL THEN '<div><b><font color="#707070">' || format_number("indexMODAsupPonderat", 1) || '</font></b></div>'
-                    ELSE ''
-                END
-                """
-
-            if self.dlg.checkm2.isChecked():
                 labelModa.fieldName = """
                 CASE
                     WHEN "indexMODAhab" IS NOT NULL AND "indexMODAhabPonderat" IS NOT NULL THEN '<div><b><font color="black">' || format_number("indexMODAhab", 1) || '</font></b></div><div><b><font color="#707070">' || format_number("indexMODAhabPonderat", 1) || '</font></b></div>'
@@ -2310,6 +2313,16 @@ class EficEnerg:
                 END
                 """
             
+            if self.dlg.checkm2.isChecked():
+                labelModa.fieldName = """
+                CASE
+                    WHEN "indexMODAsup" IS NOT NULL AND "indexMODAsupPonderat" IS NOT NULL THEN '<div><b><font color="black">' || format_number("indexMODAsup", 1) || '</font></b></div><div><b><font color="#707070">' || format_number("indexMODAsupPonderat", 1) || '</font></b></div>'
+                    WHEN "indexMODAsup" IS NOT NULL THEN '<div><b><font color="black">' || format_number("indexMODAsup", 1) || '</font></b></div>'
+                    WHEN "indexMODAsupPonderat" IS NOT NULL THEN '<div><b><font color="#707070">' || format_number("indexMODAsupPonderat", 1) || '</font></b></div>'
+                    ELSE ''
+                END
+                """
+
             labelModa.isExpression = True
             labelModa.placement = QgsPalLayerSettings.AroundPoint
 

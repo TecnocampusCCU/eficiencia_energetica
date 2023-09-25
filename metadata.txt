@@ -6,7 +6,7 @@
 name=Eficiencia Energetica
 qgisMinimumVersion=3.0
 description=EficienciaEnergetica
-version=Q3.230920
+version=Q3.230925
 author=CCU
 email=mrodriguezj@edu.tecnocampus.cat
 
