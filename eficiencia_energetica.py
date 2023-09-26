@@ -70,7 +70,7 @@ from .eficiencia_energetica_dialog import EficEnergDialog
 from .resources import *
 
 '''Varibles globals'''
-Versio_modul = "V_Q3.230925"
+Versio_modul = "V_Q3.230926"
 nomBD1 = ""
 password1 = ""
 host1 = ""
@@ -803,6 +803,12 @@ class EficEnerg:
             ' Calcul de maxConsum i QualifMaxSup per tal de tenir una qualificació energètica amb la que representar amb un color la entitat al mapa '
 
             if self.dlg.checkNumHabit.isChecked():
+
+                sql = f'ALTER TABLE "Capa unida {entitat}_{fitxer}" DROP COLUMN IF EXISTS "maxConsum";\n'
+                sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" DROP COLUMN IF EXISTS "QualifMaxSup";\n'
+
+                cur.execute(sql)
+                conn.commit()
 
                 sql = f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "maxConsum" FLOAT;\n'
                 sql += f'UPDATE "Capa unida {entitat}_{fitxer}" SET "maxConsum" = GREATEST("NumA", "NumB", "NumC", "NumD", "NumE", "NumF", "NumG");\n'
@@ -1596,16 +1602,41 @@ class EficEnerg:
         layerEntitat = entitatLayerJoined
 
         global uri
+
         if self.dlg.checkMitjana.isChecked():
-            alg_params = {
-                "INPUT": layer,
-                "FIELD": "id",
-                "INPUT_2": layerEntitat,
-                "FIELD_2": "id",
-                "FIELDS_TO_COPY": ['INDEX_consum', 'INDEX_emissions', 'QualifMaxSup'],
-                "METHOD": 1,
-                "OUTPUT": 'memory:'
-            }
+            if self.dlg.checkNumHabit.isChecked() and self.dlg.checkm2.isChecked():
+                alg_params = {
+                    "INPUT": layer,
+                    "FIELD": "id",
+                    "INPUT_2": layerEntitat,
+                    "FIELD_2": "id",
+                    "FIELDS_TO_COPY": ['INDEX_consum', 'INDEX_emissions', 'QualifMaxSup'],
+                    "METHOD": 1,
+                    "OUTPUT": 'memory:'
+                }
+            else:
+                if self.dlg.checkm2.isChecked():
+                    alg_params = {
+                        "INPUT": layer,
+                        "FIELD": "id",
+                        "INPUT_2": layerEntitat,
+                        "FIELD_2": "id",
+                        "FIELDS_TO_COPY": ['QualifMaxSup', 'INDEX_consum', 'INDEX_emissions'],
+                        "METHOD": 1,
+                        "OUTPUT": 'memory:'
+                    }
+                else:
+                    if self.dlg.checkNumHabit.isChecked():
+                        alg_params = {
+                            "INPUT": layer,
+                            "FIELD": "id",
+                            "INPUT_2": layerEntitat,
+                            "FIELD_2": "id",
+                            "FIELDS_TO_COPY": ['QualifMaxSup', 'INDEX_consum', 'INDEX_emissions'],
+                            "METHOD": 1,
+                            "OUTPUT": 'memory:'
+                        }
+                
         try:
             result = processing.run("native:joinattributestable", alg_params)
         except Exception as ex:
@@ -1655,7 +1686,7 @@ class EficEnerg:
                         "FIELD": "id",
                         "INPUT_2": layerEntitat,
                         "FIELD_2": "id",
-                        "FIELDS_TO_COPY": ['indexMODAhab', 'indexMODAhabPonderat', 'indexMODAsup', 'indexMODAsupPonderat', 'QualifMaxSup'],
+                        "FIELDS_TO_COPY": ['indexMODAhab', 'indexMODAhabPonderat', 'QualifMaxSup', 'indexMODAsup', 'indexMODAsupPonderat'],
                         "METHOD": 1,
                         "OUTPUT": 'memory:'
                     }
@@ -1677,7 +1708,7 @@ class EficEnerg:
                         "FIELD": "id",
                         "INPUT_2": layerEntitat,
                         "FIELD_2": "id",
-                        "FIELDS_TO_COPY": ['indexMODAhab', 'indexMODAhabPonderat', 'QualifMaxSup'],
+                        "FIELDS_TO_COPY": ['QualifMaxSup', 'indexMODAhab', 'indexMODAhabPonderat'],
                         "METHOD": 1,
                         "OUTPUT": 'memory:'
                     }
@@ -2291,6 +2322,21 @@ class EficEnerg:
 
             labelMitjana.setFormat(text_format)
 
+            if entitat == llistaEntitats[1]: # parcel
+                labelMitjana.minimumScale = 500
+                labelMitjana.maximumScale = 1
+            if entitat == llistaEntitats[2]: # illes
+                labelMitjana.minimumScale = 4000
+                labelMitjana.maximumScale = 1
+            if entitat == llistaEntitats[3]: # seccions
+                labelMitjana.minimumScale = 10000
+                labelMitjana.maximumScale = 1
+            if entitat == llistaEntitats[4] or entitat == llistaEntitats[5] or entitat == llistaEntitats[6]: # barris districtespostals i districtes
+                labelMitjana.minimumScale = 40000
+                labelMitjana.maximumScale = 1
+            
+            labelMitjana.scaleVisibility = True
+
             entitatLayerResumMitjana.setLabeling(QgsVectorLayerSimpleLabeling(labelMitjana))
             entitatLayerResumMitjana.setLabelsEnabled(True)
             entitatLayerResumMitjana.setRenderer(symbology)
@@ -2391,6 +2437,21 @@ class EficEnerg:
 
             labelModa.setFormat(text_format)
 
+            if entitat == llistaEntitats[1]: # parcel
+                labelModa.minimumScale = 500
+                labelModa.maximumScale = 1
+            if entitat == llistaEntitats[2]: # illes
+                labelModa.minimumScale = 4000
+                labelModa.maximumScale = 1
+            if entitat == llistaEntitats[3]: # seccions
+                labelModa.minimumScale = 10000
+                labelModa.maximumScale = 1
+            if entitat == llistaEntitats[4] or entitat == llistaEntitats[5] or entitat == llistaEntitats[6]: # barris districtespostals i districtes
+                labelModa.minimumScale = 40000
+                labelModa.maximumScale = 1
+
+            labelModa.scaleVisibility = True
+
             entitatLayerResumModa.setLabeling(QgsVectorLayerSimpleLabeling(labelModa))
             entitatLayerResumModa.setLabelsEnabled(True)
             entitatLayerResumModa.setRenderer(symbology)
@@ -2471,6 +2532,21 @@ class EficEnerg:
             symbology.addCategory(QgsRendererCategory("G", symbol9, "G"))
 
             labelMediana.setFormat(text_format)
+
+            if entitat == llistaEntitats[1]: # parcel
+                labelMediana.minimumScale = 500
+                labelMediana.maximumScale = 1
+            if entitat == llistaEntitats[2]: # illes
+                labelMediana.minimumScale = 4000
+                labelMediana.maximumScale = 1
+            if entitat == llistaEntitats[3]: # seccions
+                labelMediana.minimumScale = 10000
+                labelMediana.maximumScale = 1
+            if entitat == llistaEntitats[4] or entitat == llistaEntitats[5] or entitat == llistaEntitats[6]: # barris districtespostals i districtes
+                labelMediana.minimumScale = 40000
+                labelMediana.maximumScale = 1
+            
+            labelMediana.scaleVisibility = True
 
             entitatLayerResumMediana.setLabeling(QgsVectorLayerSimpleLabeling(labelMediana))
             entitatLayerResumMediana.setLabelsEnabled(True)
