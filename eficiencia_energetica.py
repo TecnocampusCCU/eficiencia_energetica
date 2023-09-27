@@ -70,7 +70,7 @@ from .eficiencia_energetica_dialog import EficEnergDialog
 from .resources import *
 
 '''Varibles globals'''
-Versio_modul = "V_Q3.230926"
+Versio_modul = "V_Q3.230927"
 nomBD1 = ""
 password1 = ""
 host1 = ""
@@ -2322,6 +2322,20 @@ class EficEnerg:
 
             labelMitjana.setFormat(text_format)
 
+            propertyx = QgsProperty()
+            propertyx.setExpressionString("x(centroid($geometry))")
+            propertyx.setActive(True)
+
+            propertyy = QgsProperty()
+            propertyy.setExpressionString("y(centroid($geometry))")
+            propertyy.setActive(True)
+
+            propertyCollection = QgsPropertyCollection("Coordenades")
+            propertyCollection.setProperty(9, propertyx)
+            propertyCollection.setProperty(10, propertyy)
+
+            labelMitjana.setDataDefinedProperties(propertyCollection)
+
             if entitat == llistaEntitats[1]: # parcel
                 labelMitjana.minimumScale = 500
                 labelMitjana.maximumScale = 1
@@ -2437,6 +2451,20 @@ class EficEnerg:
 
             labelModa.setFormat(text_format)
 
+            propertyx = QgsProperty()
+            propertyx.setExpressionString("x(centroid($geometry))")
+            propertyx.setActive(True)
+
+            propertyy = QgsProperty()
+            propertyy.setExpressionString("y(centroid($geometry))")
+            propertyy.setActive(True)
+
+            propertyCollection = QgsPropertyCollection("Coordenades")
+            propertyCollection.setProperty(9, propertyx)
+            propertyCollection.setProperty(10, propertyy)
+
+            labelModa.setDataDefinedProperties(propertyCollection)
+
             if entitat == llistaEntitats[1]: # parcel
                 labelModa.minimumScale = 500
                 labelModa.maximumScale = 1
@@ -2532,6 +2560,20 @@ class EficEnerg:
             symbology.addCategory(QgsRendererCategory("G", symbol9, "G"))
 
             labelMediana.setFormat(text_format)
+
+            propertyx = QgsProperty()
+            propertyx.setExpressionString("x(centroid($geometry))")
+            propertyx.setActive(True)
+
+            propertyy = QgsProperty()
+            propertyy.setExpressionString("y(centroid($geometry))")
+            propertyy.setActive(True)
+
+            propertyCollection = QgsPropertyCollection("Coordenades")
+            propertyCollection.setProperty(9, propertyx)
+            propertyCollection.setProperty(10, propertyy)
+
+            labelMediana.setDataDefinedProperties(propertyCollection)
 
             if entitat == llistaEntitats[1]: # parcel
                 labelMediana.minimumScale = 500
