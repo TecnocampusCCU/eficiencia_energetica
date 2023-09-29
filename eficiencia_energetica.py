@@ -512,11 +512,11 @@ class EficEnerg:
         for elem in llista:
             try:
                 if isinstance(elem, tuple):
-                    item = QStandardItem(unicode(elem[0]))
+                    item = QStandardItem(str(elem[0]))
                 else:
                     item = QStandardItem(str(elem))
             except TypeError:
-                item = QStandardItem(str(elem[0]))
+                item = QStandardItem(str(elem[0].encode('utf-8')))
             model.appendRow(item)
             if elem == predef:
                 predefInList = elem
@@ -2053,7 +2053,7 @@ class EficEnerg:
         self.updateProgress(40)
 
         ''' Agafem color i valors minim i maxim de visibilitat per escala '''
-
+        '''
         if estandar:
             color = QColor("#707070")
             min = self.dlg.minScale.value()
@@ -2062,7 +2062,7 @@ class EficEnerg:
             color = self.dlg.pushColorP.palette().color(1)
             min = self.dlg.minScaleP.value()
             max = self.dlg.maxScaleP.value()
-
+        '''
         ''' Processament càlculs '''
 
         'NumX habitatges per entitats'
@@ -2236,6 +2236,7 @@ class EficEnerg:
             
             single_symbol_renderer = capaUnidaNumHabit_temp.renderer().clone()
             symbol = single_symbol_renderer.symbol()
+            #color = QColor(255, 0, 0)
             #symbol.setColor(color)
             single_symbol_renderer.setSymbol(symbol)
             symbol_layer = QgsSimpleLineSymbolLayer()
