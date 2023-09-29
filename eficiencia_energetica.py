@@ -48,7 +48,7 @@ from PyQt5.QtCore import QSizeF
 from PyQt5.QtGui import *
 from PyQt5.QtGui import QColor
 from PyQt5.QtSql import *
-from PyQt5.QtWidgets import QAction, QApplication, QMessageBox,QToolBar
+from PyQt5.QtWidgets import QAction, QApplication, QMessageBox,QToolBar, QColorDialog
 from qgis.core import (QgsCategorizedSymbolRenderer,
                        QgsCoordinateReferenceSystem, QgsDataSourceUri,
                        QgsDiagramLayerSettings, QgsDiagramSettings,
@@ -84,6 +84,11 @@ uri = None
 numOperacions = 0
 numEntitats = 0
 fitxer = ""
+color = QColor(0,0,0)
+min = 0
+max = 0
+estandar = True
+personalitzat = False
 
 habitatges = "cert_efi_energ_edif_mataro_geom"
 habitatgesLayer = None
@@ -147,6 +152,8 @@ class EficEnerg:
         self.dlg.checkMitjana.stateChanged.connect(self.on_change_checkMitjana)
         self.dlg.checkModa.stateChanged.connect(self.on_change_checkModa)
         self.dlg.checkMediana.stateChanged.connect(self.on_change_checkMediana)
+        self.dlg.pushColorP.clicked.connect(self.on_click_color)
+        self.dlg.tabPersonalitzacio.currentChanged.connect(self.on_currentChanged_tabPersonalitzacio)
 
         self.dlg.checkNumHabit.stateChanged.connect(self.on_change_entitatsIOperacions)
         self.dlg.checkm2.stateChanged.connect(self.on_change_entitatsIOperacions)
@@ -339,6 +346,13 @@ class EficEnerg:
                 self.dlg.lblEstatConn.setStyleSheet('border:1px solid #000000; background-color: #ff7f7f')
                 self.dlg.lblEstatConn.setText('Error: Hi ha algun camp erroni.')
                 return
+            
+            self.dlg.tabPersonalitzacio.setVisible(True)
+            self.dlg.pushColor.setEnabled(False)
+            self.dlg.pushColor.setStyleSheet("background-color: #707070")
+            self.dlg.pushColor.setAutoFillBackground(True)
+            self.dlg.minScale.setEnabled(False)
+            self.dlg.maxScale.setEnabled(False)
              
         else:
             self.barraEstat_noConnectat()
@@ -363,6 +377,27 @@ class EficEnerg:
             conn.rollback()
             self.dlg.setEnabled(True)
             return
+        
+        if entitat == llistaEntitats[1]:
+            self.dlg.minScale.setValue(500)
+            self.dlg.maxScale.setValue(1)
+            self.dlg.minScaleP.setValue(500)
+            self.dlg.maxScaleP.setValue(1)
+        if entitat == llistaEntitats[2]:
+            self.dlg.minScale.setValue(4000)
+            self.dlg.maxScale.setValue(1)
+            self.dlg.minScaleP.setValue(4000)
+            self.dlg.maxScaleP.setValue(1)
+        if entitat == llistaEntitats[3]:
+            self.dlg.minScale.setValue(10000)
+            self.dlg.maxScale.setValue(1)
+            self.dlg.minScaleP.setValue(10000)
+            self.dlg.maxScaleP.setValue(1)
+        if entitat == llistaEntitats[4] or entitat == llistaEntitats[5] or entitat == llistaEntitats[6]:
+            self.dlg.minScale.setValue(40000)
+            self.dlg.maxScale.setValue(1)
+            self.dlg.minScaleP.setValue(40000)
+            self.dlg.maxScaleP.setValue(1)
         
     def on_change_entitatsIOperacions(self):
         if numOperacions > 2:
@@ -443,6 +478,32 @@ class EficEnerg:
         else:
             numOperacions -= 1
 
+    def on_click_color(self):
+        global color
+        try:
+            aux = QColorDialog.getColor()
+        except Exception as ex:
+            pass
+        if aux.isValid():
+            color = aux
+        else:
+            color = None
+            pass
+        if color != None:
+            self.dlg.pushColorP.setStyleSheet("background-color: " + color.name())
+            self.dlg.pushColorP.setAutoFillBackground(True)
+
+    def on_currentChanged_tabPersonalitzacio(self):
+        global estandar
+        global personalitzat
+        if self.dlg.tabPersonalitzacio.currentIndex() == 0:
+            estandar = True
+            personalitzat = False
+        if self.dlg.tabPersonalitzacio.currentIndex() == 1:
+            estandar = False
+            personalitzat = True
+
+
     def ompleCombos(self, combo, llista, predef, sort):
         combo.blockSignals(True)
         combo.clear()
@@ -503,6 +564,17 @@ class EficEnerg:
         self.dlg.labelAvis.setVisible(False)
         self.dlg.progressBar.setValue(0)
         self.dlg.labelRestriccio.setVisible(False)
+        self.dlg.tabPersonalitzacio.setVisible(False)
+        self.dlg.pushColor.setEnabled(False)
+        self.dlg.pushColor.setStyleSheet("background-color: #707070")
+        self.dlg.pushColor.setAutoFillBackground(True)
+        self.dlg.minScale.setEnabled(False)
+        self.dlg.maxScale.setEnabled(False)
+        self.dlg.pushColorP.setEnabled(True)
+        self.dlg.pushColorP.setStyleSheet("background-color: #707070")
+        self.dlg.pushColorP.setAutoFillBackground(True)
+        self.dlg.minScaleP.setEnabled(True)
+        self.dlg.maxScaleP.setEnabled(True)
         textBox = "Selecciona una base de dades...\n"
         self.dlg.textEstat.setText(textBox)
         self.dlg.setEnabled(True)
@@ -1895,6 +1967,11 @@ class EficEnerg:
         global port1
         global schema1
         global uri
+        global color
+        global min
+        global max
+        global estandar
+        global personalitzat
 
         global habitatges
         global habitatgesLayer
@@ -1974,6 +2051,17 @@ class EficEnerg:
         QApplication.processEvents()
         
         self.updateProgress(40)
+
+        ''' Agafem color i valors minim i maxim de visibilitat per escala '''
+
+        if estandar:
+            color = QColor("#707070")
+            min = self.dlg.minScale.value()
+            max = self.dlg.maxScale.value()
+        if personalitzat:
+            color = self.dlg.pushColorP.palette().color(1)
+            min = self.dlg.minScaleP.value()
+            max = self.dlg.maxScaleP.value()
 
         ''' Processament càlculs '''
 
@@ -2111,18 +2199,10 @@ class EficEnerg:
             diagramNumHabitSettings.scaleByArea = False
             diagramNumHabitSettings.scaleBasedVisibility = True
             diagramNumHabitSettings.size = QSizeF(15, 15)
-            if entitat == llistaEntitats[1]: # parcel
-                diagramNumHabitSettings.minimumScale = 500
-                diagramNumHabitSettings.maximumScale = 1
-            if entitat == llistaEntitats[2]: # illes
-                diagramNumHabitSettings.minimumScale = 4000
-                diagramNumHabitSettings.maximumScale = 1
-            if entitat == llistaEntitats[3]:
-                diagramNumHabitSettings.minimumScale = 10000
-                diagramNumHabitSettings.maximumScale = 1
-            if entitat == llistaEntitats[4] or entitat == llistaEntitats[5] or entitat == llistaEntitats[6]:
-                diagramNumHabitSettings.minimumScale = 40000
-                diagramNumHabitSettings.maximumScale = 1
+            #diagramNumHabitSettings.minimumScale = min
+            #diagramNumHabitSettings.maximumScale = max
+            diagramNumHabitSettings.minimumScale = 10000
+            diagramNumHabitSettings.maximumScale = 1000
             diagramNumHabitSettings.categoryLabels = ["A", "B", "C", "D", "E", "F", "G"]
             diagramNumHabitSettings.enabled = True
 
@@ -2156,7 +2236,10 @@ class EficEnerg:
             
             single_symbol_renderer = capaUnidaNumHabit_temp.renderer().clone()
             symbol = single_symbol_renderer.symbol()
+            #symbol.setColor(color)
+            single_symbol_renderer.setSymbol(symbol)
             symbol_layer = QgsSimpleLineSymbolLayer()
+            #symbol_layer = QgsSimpleLineSymbolLayer(color)
             symbol_layer.setWidth(0)
             capaUnidaNumHabit_temp.setRenderer(single_symbol_renderer)
 
