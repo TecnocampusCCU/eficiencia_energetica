@@ -463,9 +463,9 @@ class EficEnerg:
             self.dlg.labelRestriccio.setText("Al calcular la Mitjana, la Moda i la Mediana no es tenen en compte les superfícies dels habitatges.")
         
         if not self.dlg.checkNumHabit.isChecked() and self.dlg.checkm2.isChecked():
-            self.dlg.checkMitjana.setEnabled(False)
+            self.dlg.checkMitjana.setEnabled(True)
             self.dlg.checkModa.setEnabled(True)
-            self.dlg.checkMediana.setEnabled(True)
+            self.dlg.checkMediana.setEnabled(False)
             self.dlg.labelRestriccio.setVisible(True)
             self.dlg.labelRestriccio.setText("Els càlculs de la Mitjana i la Moda estan ponderats per la superfície dels habitatges.")
 
@@ -2744,8 +2744,10 @@ class EficEnerg:
             ' Nou renderer '
 
             if consum:
-
-                symbology = QgsGraduatedSymbolRenderer("INDEX_consums_hab", ranges.values())
+                if self.dlg.checkNumHabit.isChecked() and not self.dlg.checkm2.isChecked():
+                    symbology = QgsGraduatedSymbolRenderer("INDEX_consums_hab", ranges.values())
+                if self.dlg.checkm2.isChecked() or (self.dlg.checkNumHabit.isChecked() and self.dlg.checkm2.isChecked()):
+                    symbology = QgsGraduatedSymbolRenderer("INDEX_consum", ranges.values())
 
                 symbolA = QgsFillSymbol()
                 symbolA.setColor(colors["colorA"])
@@ -2771,8 +2773,10 @@ class EficEnerg:
                 symbology.updateRangeSymbol(6, symbolG)
             
             if emissions:
-
-                symbology = QgsGraduatedSymbolRenderer("INDEX_emissions_hab", ranges.values())
+                if self.dlg.checkNumHabit.isChecked() and not self.dlg.checkm2.isChecked():
+                    symbology = QgsGraduatedSymbolRenderer("INDEX_emissions_hab", ranges.values())
+                if self.dlg.checkm2.isChecked() or (self.dlg.checkNumHabit.isChecked() and self.dlg.checkm2.isChecked()):
+                    symbology = QgsGraduatedSymbolRenderer("INDEX_emissions", ranges.values())
 
                 symbolA = QgsFillSymbol()
                 symbolA.setColor(colors["colorA"])
