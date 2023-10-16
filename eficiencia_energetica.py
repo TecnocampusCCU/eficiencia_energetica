@@ -73,7 +73,7 @@ from .eficiencia_energetica_dialog import EficEnergDialog
 from .resources import *
 
 '''Varibles globals'''
-Versio_modul = "V_Q3.230927"
+Versio_modul = "V_Q3.231016"
 nomBD1 = ""
 password1 = ""
 host1 = ""
