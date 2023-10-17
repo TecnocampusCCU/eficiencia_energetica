@@ -58,7 +58,7 @@ from qgis.core import (QgsCategorizedSymbolRenderer,
                        QgsPropertyCollection, QgsRendererCategory,
                        QgsRendererRange, QgsSimpleFillSymbolLayer,
                        QgsSimpleLineSymbolLayer,
-                       QgsSingleCategoryDiagramRenderer, QgsSymbol,
+                       QgsSingleCategoryDiagramRenderer, QgsSymbol, QgsSingleSymbolRenderer,
                        QgsTextBackgroundSettings, QgsTextFormat, QgsUnitTypes,
                        QgsVectorLayer, QgsVectorLayerExporter,
                        QgsVectorLayerSimpleLabeling, QgsWkbTypes)
@@ -73,7 +73,7 @@ from .eficiencia_energetica_dialog import EficEnergDialog
 from .resources import *
 
 '''Varibles globals'''
-Versio_modul = "V_Q3.231016"
+Versio_modul = "V_Q3.231017"
 nomBD1 = ""
 password1 = ""
 host1 = ""
@@ -88,8 +88,8 @@ numOperacions = 0
 numEntitats = 0
 fitxer = ""
 color = QColor(0,0,0)
-min = 0
-max = 0
+minimumValue = 0
+maximumValue = 0
 estandar = True
 personalitzat = False
 consum = False
@@ -2324,8 +2324,8 @@ class EficEnerg:
         global schema1
         global uri
         global color
-        global min
-        global max
+        global minimumValue
+        global maximumValue
         global estandar
         global personalitzat
 
@@ -2419,16 +2419,16 @@ class EficEnerg:
 
         ''' Agafem color i valors minim i maxim de visibilitat per escala '''
 
-        '''
+        
         if estandar:
             color = QColor("#707070")
-            min = self.dlg.minScale.value()
-            max = self.dlg.maxScale.value()
+            minimumValue = self.dlg.minScale.value()
+            maximumValue = self.dlg.maxScale.value()
         if personalitzat:
-            color = self.dlg.pushColorP.palette().color(1)
-            min = self.dlg.minScaleP.value()
-            max = self.dlg.maxScaleP.value()
-        '''
+            #color = self.dlg.pushColorP.palette().color(1)
+            minimumValue = self.dlg.minScaleP.value()
+            maximumValue = self.dlg.maxScaleP.value()
+        
 
         ''' Processament càlculs '''
 
@@ -2549,12 +2549,14 @@ class EficEnerg:
             diagramNumHabitSettings.scaleByArea = False
             diagramNumHabitSettings.scaleBasedVisibility = True
             diagramNumHabitSettings.size = QSizeF(15, 15)
-            #diagramNumHabitSettings.minimumScale = min
-            #diagramNumHabitSettings.maximumScale = max
-            diagramNumHabitSettings.minimumScale = 10000
-            diagramNumHabitSettings.maximumScale = 1000
+            diagramNumHabitSettings.minimumScale = minimumValue
+            diagramNumHabitSettings.maximumScale = maximumValue
+            #diagramNumHabitSettings.minimumScale = 10000
+            #diagramNumHabitSettings.maximumScale = 1000
             diagramNumHabitSettings.categoryLabels = ["A", "B", "C", "D", "E", "F", "G"]
             diagramNumHabitSettings.enabled = True
+
+            capaUnidaNumHabit_temp.renderer().symbol().setColor(color)
 
             diagramNumHabitRenderer = QgsSingleCategoryDiagramRenderer()
             diagramNumHabitRenderer.setDiagram(diagramNumHabit)
@@ -2586,11 +2588,7 @@ class EficEnerg:
             
             single_symbol_renderer = capaUnidaNumHabit_temp.renderer().clone()
             symbol = single_symbol_renderer.symbol()
-            #color = QColor(255, 0, 0)
-            #symbol.setColor(color)
-            #single_symbol_renderer.setSymbol(symbol)
             symbol_layer = QgsSimpleLineSymbolLayer()
-            #symbol_layer = QgsSimpleLineSymbolLayer(color)
             symbol_layer.setWidth(0)
             capaUnidaNumHabit_temp.setRenderer(single_symbol_renderer)
 
@@ -2623,21 +2621,13 @@ class EficEnerg:
             diagramm2Settings.scaleByArea = False # Deixem en False el escalat per area de manera que no es descontrolin els tamanys amb els zooms
             diagramm2Settings.scaleBasedVisibility = True
             diagramm2Settings.size = QSizeF(15, 15)
-            if entitat == llistaEntitats[1]: # parcel
-                diagramm2Settings.minimumScale = 500
-                diagramm2Settings.maximumScale = 1
-            if entitat == llistaEntitats[2]: # illes
-                diagramm2Settings.minimumScale = 4000
-                diagramm2Settings.maximumScale = 1
-            if entitat == llistaEntitats[3]: # seccions
-                diagramm2Settings.minimumScale = 10000
-                diagramm2Settings.maximumScale = 1
-            if entitat == llistaEntitats[4] or entitat == llistaEntitats[5] or entitat == llistaEntitats[6]: # barris districtespostals i districtes
-                diagramm2Settings.minimumScale = 40000
-                diagramm2Settings.maximumScale = 1
+            diagramm2Settings.minimumScale = minimumValue
+            diagramm2Settings.maximumScale = maximumValue
             
             diagramm2Settings.categoryLabels = ["A", "B", "C", "D", "E", "F", "G"]
             diagramm2Settings.enabled = True
+
+            capaUnidam2_temp.renderer().symbol().setColor(color)
 
             diagramm2Renderer = QgsSingleCategoryDiagramRenderer()
             diagramm2Renderer.setDiagram(diagramm2)
@@ -2817,18 +2807,8 @@ class EficEnerg:
 
             labelMitjana.setDataDefinedProperties(propertyCollection)
 
-            if entitat == llistaEntitats[1]: # parcel
-                labelMitjana.minimumScale = 500
-                labelMitjana.maximumScale = 1
-            if entitat == llistaEntitats[2]: # illes
-                labelMitjana.minimumScale = 4000
-                labelMitjana.maximumScale = 1
-            if entitat == llistaEntitats[3]: # seccions
-                labelMitjana.minimumScale = 10000
-                labelMitjana.maximumScale = 1
-            if entitat == llistaEntitats[4] or entitat == llistaEntitats[5] or entitat == llistaEntitats[6]: # barris districtespostals i districtes
-                labelMitjana.minimumScale = 40000
-                labelMitjana.maximumScale = 1
+            labelMitjana.minimumScale = minimumValue
+            labelMitjana.maximumScale = maximumValue
             
             labelMitjana.scaleVisibility = True
 
@@ -2998,18 +2978,8 @@ class EficEnerg:
 
             labelModa.setDataDefinedProperties(propertyCollection)
 
-            if entitat == llistaEntitats[1]: # parcel
-                labelModa.minimumScale = 500
-                labelModa.maximumScale = 1
-            if entitat == llistaEntitats[2]: # illes
-                labelModa.minimumScale = 4000
-                labelModa.maximumScale = 1
-            if entitat == llistaEntitats[3]: # seccions
-                labelModa.minimumScale = 10000
-                labelModa.maximumScale = 1
-            if entitat == llistaEntitats[4] or entitat == llistaEntitats[5] or entitat == llistaEntitats[6]: # barris districtespostals i districtes
-                labelModa.minimumScale = 40000
-                labelModa.maximumScale = 1
+            labelModa.minimumScale = minimumValue
+            labelModa.maximumScale = maximumValue
 
             labelModa.scaleVisibility = True
 
@@ -3024,7 +2994,7 @@ class EficEnerg:
             
             labelMediana = QgsPalLayerSettings()
             labelMediana.enabled = True
-            if self.dlg.checkNumHabit.isChecked() and not self.dlg.checkm2.isChecked():
+            if self.dlg.checkNumHabit.isChecked():
                 if consum:
                     labelMediana.fieldName = """
                     CASE
@@ -3088,25 +3058,6 @@ class EficEnerg:
             symbology.updateRangeSymbol(5, symbolF)
             symbology.updateRangeSymbol(6, symbolG)
 
-
-            '''symbology = QgsCategorizedSymbolRenderer()
-            symbology.setClassAttribute("QualifMaxSup")
-
-            symbol = QgsSymbol.defaultSymbol(entitatLayerResumMediana.geometryType())
-            symbol.changeSymbolLayer(0, QgsSimpleFillSymbolLayer(QColor("#000000")))
-            if consum:
-                symbology.addCategory(QgsRendererCategory("xxx", symbol, "Consum (kWh/m²any)"))
-            if emissions:
-                symbology.addCategory(QgsRendererCategory("xxx", symbol, "Emissions (kgCO₂/m²any)"))
-
-            symbology.addCategory(QgsRendererCategory("A", symbols["symbolA"], "A"))
-            symbology.addCategory(QgsRendererCategory("B", symbols["symbolB"], "B"))
-            symbology.addCategory(QgsRendererCategory("C", symbols["symbolC"], "C"))
-            symbology.addCategory(QgsRendererCategory("D", symbols["symbolD"], "D"))
-            symbology.addCategory(QgsRendererCategory("E", symbols["symbolE"], "E"))
-            symbology.addCategory(QgsRendererCategory("F", symbols["symbolF"], "F"))
-            symbology.addCategory(QgsRendererCategory("G", symbols["symbolG"], "G"))'''
-
             labelMediana.setFormat(text_format)
 
             propertyx = QgsProperty()
@@ -3123,18 +3074,8 @@ class EficEnerg:
 
             labelMediana.setDataDefinedProperties(propertyCollection)
 
-            if entitat == llistaEntitats[1]: # parcel
-                labelMediana.minimumScale = 500
-                labelMediana.maximumScale = 1
-            if entitat == llistaEntitats[2]: # illes
-                labelMediana.minimumScale = 4000
-                labelMediana.maximumScale = 1
-            if entitat == llistaEntitats[3]: # seccions
-                labelMediana.minimumScale = 10000
-                labelMediana.maximumScale = 1
-            if entitat == llistaEntitats[4] or entitat == llistaEntitats[5] or entitat == llistaEntitats[6]: # barris districtespostals i districtes
-                labelMediana.minimumScale = 40000
-                labelMediana.maximumScale = 1
+            labelMediana.minimumScale = minimumValue
+            labelMediana.maximumScale = maximumValue
             
             labelMediana.scaleVisibility = True
 
