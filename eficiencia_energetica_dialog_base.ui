@@ -1282,7 +1282,7 @@
     <bool>false</bool>
    </property>
    <property name="currentIndex">
-    <number>0</number>
+    <number>1</number>
    </property>
    <property name="elideMode">
     <enum>Qt::ElideNone</enum>
@@ -1371,6 +1371,12 @@
        <height>22</height>
       </rect>
      </property>
+     <property name="prefix">
+      <string>1:</string>
+     </property>
+     <property name="decimals">
+      <number>0</number>
+     </property>
      <property name="maximum">
       <double>100000000.000000000000000</double>
      </property>
@@ -1383,6 +1389,12 @@
        <width>62</width>
        <height>22</height>
       </rect>
+     </property>
+     <property name="prefix">
+      <string>1:</string>
+     </property>
+     <property name="decimals">
+      <number>0</number>
      </property>
      <property name="maximum">
       <double>100000000.000000000000000</double>
@@ -1414,6 +1426,12 @@
        <width>62</width>
        <height>22</height>
       </rect>
+     </property>
+     <property name="prefix">
+      <string>1:</string>
+     </property>
+     <property name="decimals">
+      <number>0</number>
      </property>
      <property name="maximum">
       <double>100000000.000000000000000</double>
@@ -1453,6 +1471,12 @@
        <width>62</width>
        <height>22</height>
       </rect>
+     </property>
+     <property name="prefix">
+      <string>1:</string>
+     </property>
+     <property name="decimals">
+      <number>0</number>
      </property>
      <property name="maximum">
       <double>100000000.000000000000000</double>
