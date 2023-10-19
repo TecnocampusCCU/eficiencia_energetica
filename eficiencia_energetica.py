@@ -73,7 +73,7 @@ from .eficiencia_energetica_dialog import EficEnergDialog
 from .resources import *
 
 '''Varibles globals'''
-Versio_modul = "V_Q3.231017"
+Versio_modul = "V_Q3.231019"
 nomBD1 = ""
 password1 = ""
 host1 = ""
@@ -137,12 +137,6 @@ symbols = {
     'symbolF': QgsSymbol.defaultSymbol(2),
     'symbolG': QgsSymbol.defaultSymbol(2)
 }
-
-'''symbol = QgsSymbol.defaultSymbol(2)
-fill_symbol = QgsSimpleFillSymbolLayer.create({'color': colors["colorA"]})
-symbol_layer = symbol.symbolLayer(0)
-symbol_layer.setFillColor(colors["colorA"])
-symbol.changeSymbolLayer(0, fill_symbol)'''
 
 ranges = {
     'rangeA': QgsRendererRange(0.0, 34.1, symbols['symbolA'], 'A'),
@@ -2545,7 +2539,7 @@ class EficEnerg:
             diagramNumHabit = QgsPieDiagram()
             diagramNumHabitSettings = QgsDiagramSettings()
             diagramNumHabitSettings.categoryColors = colors.values()
-            diagramNumHabitSettings.categoryAttributes = {'NumA', 'NumB', 'NumC', 'NumD', 'NumE', 'NumF', 'NumG'}
+            diagramNumHabitSettings.categoryAttributes = ['NumA', 'NumB', 'NumC', 'NumD', 'NumE', 'NumF', 'NumG']
             diagramNumHabitSettings.scaleByArea = False
             diagramNumHabitSettings.scaleBasedVisibility = True
             diagramNumHabitSettings.size = QSizeF(15, 15)
@@ -2617,7 +2611,9 @@ class EficEnerg:
             diagramm2 = QgsPieDiagram()
             diagramm2Settings = QgsDiagramSettings()
             diagramm2Settings.categoryColors = colors.values()
-            diagramm2Settings.categoryAttributes = {'m2A', 'm2B', 'm2C', 'm2D', 'm2E', 'm2F', 'm2G'}
+            print(diagramm2Settings.categoryColors)
+            diagramm2Settings.categoryAttributes = ['m2A', 'm2B', 'm2C', 'm2D', 'm2E', 'm2F', 'm2G']
+            print(diagramm2Settings.categoryAttributes)
             diagramm2Settings.scaleByArea = False # Deixem en False el escalat per area de manera que no es descontrolin els tamanys amb els zooms
             diagramm2Settings.scaleBasedVisibility = True
             diagramm2Settings.size = QSizeF(15, 15)
@@ -2625,6 +2621,7 @@ class EficEnerg:
             diagramm2Settings.maximumScale = maximumValue
             
             diagramm2Settings.categoryLabels = ["A", "B", "C", "D", "E", "F", "G"]
+            print(diagramm2Settings.categoryLabels)
             diagramm2Settings.enabled = True
 
             capaUnidam2_temp.renderer().symbol().setColor(color)
