@@ -525,8 +525,6 @@ class EficEnerg:
             return
         if aux.isValid():
             color = aux
-            print(aux)
-            print("Nom color: " + aux.name())
         else:
             color = None
             pass
@@ -922,7 +920,6 @@ class EficEnerg:
                     sql += f'UPDATE "Capa unida {entitat}_{fitxer}" SET "TotalEE" = "NumA" + "NumB" + "NumC" + "NumD" + "NumE" + "NumF" + "NumG";'
                     cur.execute(sql)
                     conn.commit()
-                    print("S'ha acabat el calcul de NumX")
                 except Exception as ex:
                     print ("Error calculating NumX columns")
                     template = "An exception of type {0} occurred. Arguments:\n{1!r}"
@@ -1414,7 +1411,6 @@ class EficEnerg:
                 return
 
         if emissions:
-            print("S'arriba al calcul de la moda")
             try:
                 if self.dlg.checkNumHabit.isChecked() and not self.dlg.checkm2.isChecked():
                     sql = f'ALTER TABLE "Capa unida {entitat}_{fitxer}" DROP COLUMN IF EXISTS "maxEmifreq";\n'
@@ -1498,7 +1494,6 @@ class EficEnerg:
                         '''
                         cur.execute(sql)
                         conn.commit()
-                        print("S'acaba el calcul de moda")
 
                 if self.dlg.checkm2.isChecked() or (self.dlg.checkNumHabit.isChecked() and self.dlg.checkm2.isChecked()):
                     sql = f'ALTER TABLE "Capa unida {entitat}_{fitxer}" DROP COLUMN IF EXISTS "maxEmissions";\n'
@@ -1691,7 +1686,6 @@ class EficEnerg:
                         '''
                         cur.execute(sql)
                         conn.commit()
-                        print("S'acaba el calcul de mediana")
 
             except Exception as ex:
                 print ("Error fent calcul mediana")
@@ -2545,8 +2539,6 @@ class EficEnerg:
             diagramNumHabitSettings.size = QSizeF(15, 15)
             diagramNumHabitSettings.minimumScale = minimumValue
             diagramNumHabitSettings.maximumScale = maximumValue
-            #diagramNumHabitSettings.minimumScale = 10000
-            #diagramNumHabitSettings.maximumScale = 1000
             diagramNumHabitSettings.categoryLabels = ["A", "B", "C", "D", "E", "F", "G"]
             diagramNumHabitSettings.enabled = True
 
@@ -2611,9 +2603,7 @@ class EficEnerg:
             diagramm2 = QgsPieDiagram()
             diagramm2Settings = QgsDiagramSettings()
             diagramm2Settings.categoryColors = colors.values()
-            print(diagramm2Settings.categoryColors)
             diagramm2Settings.categoryAttributes = ['m2A', 'm2B', 'm2C', 'm2D', 'm2E', 'm2F', 'm2G']
-            print(diagramm2Settings.categoryAttributes)
             diagramm2Settings.scaleByArea = False # Deixem en False el escalat per area de manera que no es descontrolin els tamanys amb els zooms
             diagramm2Settings.scaleBasedVisibility = True
             diagramm2Settings.size = QSizeF(15, 15)
@@ -2621,7 +2611,6 @@ class EficEnerg:
             diagramm2Settings.maximumScale = maximumValue
             
             diagramm2Settings.categoryLabels = ["A", "B", "C", "D", "E", "F", "G"]
-            print(diagramm2Settings.categoryLabels)
             diagramm2Settings.enabled = True
 
             capaUnidam2_temp.renderer().symbol().setColor(color)
