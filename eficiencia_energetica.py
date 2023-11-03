@@ -50,7 +50,7 @@ from PyQt5.QtGui import QColor
 from PyQt5.QtSql import *
 from PyQt5.QtWidgets import (QAction, QApplication, QColorDialog, QMessageBox,
                              QToolBar)
-from qgis.core import (QgsCategorizedSymbolRenderer,
+from qgis.core import (QgsCategorizedSymbolRenderer, QgsProcessingParameterFeatureSink,
                        QgsCoordinateReferenceSystem, QgsDataSourceUri, QgsFillSymbol,
                        QgsDiagramLayerSettings, QgsDiagramSettings,
                        QgsGraduatedSymbolRenderer, QgsPalLayerSettings,
@@ -61,7 +61,7 @@ from qgis.core import (QgsCategorizedSymbolRenderer,
                        QgsSingleCategoryDiagramRenderer, QgsSymbol, QgsSingleSymbolRenderer,
                        QgsTextBackgroundSettings, QgsTextFormat, QgsUnitTypes,
                        QgsVectorLayer, QgsVectorLayerExporter,
-                       QgsVectorLayerSimpleLabeling, QgsWkbTypes)
+                       QgsVectorLayerSimpleLabeling, QgsWkbTypes, QgsProcessing, QgsProcessingAlgorithm, QgsProcessingParameterMapLayer, QgsProcessingParameterBoolean)
 from qgis.PyQt.QtCore import QCoreApplication, QSettings, QTranslator
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction, QApplication, QMessageBox
@@ -105,6 +105,10 @@ entitatLayerResumm2 = None
 entitatLayerResumMitjana = None
 entitatLayerResumModa = None
 entitatLayerResumMediana = None
+
+results = {}
+outputs = {}
+parameters = {}
 
 llistaEntitats = [
     None, # Entitat per defecte, ha de donar error
@@ -683,1103 +687,855 @@ class EficEnerg:
             conn.rollback()
             return
 
-    def crearIDentitats(self):
-        if not entitat==llistaEntitats[1]:
-            global habitatgesLayer
-            '''Funcio per calcular els ID de les entitats que es combinaran amb els habitatges'''
+    def calculsNum(self):
+        if self.dlg.checkNumHabit.isChecked() or self.dlg.checkm2.isChecked():
+            if consum:
+                alg_params = {
+                    "INPUT": entitatLayer,
+                    "VALUES_FIELD_NAME": "metres_cadastre",
+                    "CATEGORIES_FIELD_NAME": "qualificació de consum energia primaria no renovable",
+                    "OUTPUT": "memory:"
+                }
+            if emissions:
+                alg_params = {
+                    "INPUT": entitatLayer,
+                    "VALUES_FIELD_NAME": "metres_cadastre",
+                    "CATEGORIES_FIELD_NAME": "qualificació emissions de co2",
+                    "OUTPUT": "memory:"
+                }
             try:
-                sql = f'ALTER TABLE "{habitatges}_copy_{fitxer}" DROP COLUMN IF EXISTS "{entitat}_id";\n'
-                cur.execute(sql)
-                conn.commit()
-                sql = f'ALTER TABLE "{habitatges}_copy_{fitxer}" ADD COLUMN "{entitat}_id" INTEGER;\n'
-                sql += f'UPDATE "{habitatges}_copy_{fitxer}" SET "{entitat}_id" = "{entitat}_copy_{fitxer}".id FROM "{entitat}_copy_{fitxer}" WHERE ST_Intersects("{habitatges}_copy_{fitxer}".geom, "{entitat}_copy_{fitxer}".geom);'
-                cur.execute(sql)
-                conn.commit()
-
-                uri.setDataSource(schema1, f"{habitatges}_copy_{fitxer}", 'geom')
-                habitatgesLayer = QgsVectorLayer(uri.uri(), f'"{habitatges}_copy_{fitxer}"', 'postgres')
+                result = processing.run("qgis:statisticsbycategories", alg_params)
             except Exception as ex:
-                print ("Error calculant ID auxiliars entitats")
+                print ("Error al processing d'estadistiques per categories")
                 template = "An exception of type {0} occurred. Arguments:\n{1!r}"
                 message = template.format(type(ex).__name__, ex.args)
                 print (message)
-                QMessageBox.critical(None, "Error", "Error calculant ID auxiliars entitats")
+                QMessageBox.critical(None, "Error", "Error al processing d'estadistiques per categories")
                 conn.rollback()
                 self.dlg.setEnabled(True)
                 return
+    
+    def calculIdEntitat(self):
+        global outputs
 
-    def calcularCampsHabitatges(self):
-        global habitatges
-        global habitatgesLayer
+        ''' ID Entitat '''
+        alg_params = {
+            'FIELD_LENGTH': 0,
+            'FIELD_NAME': 'id',
+            'FIELD_PRECISION': 0,
+            'FIELD_TYPE': 0,
+            'FORMULA': '\"id\"',
+            'INPUT': entitatLayer,
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+        outputs['IdEntitat'] = processing.run('qgis:fieldcalculator', alg_params)
 
-        if entitat==llistaEntitats[1]:
-            try:
-                sql = f'ALTER TABLE "{habitatges}_copy_{fitxer}" DROP COLUMN IF EXISTS "UTM";\n'
-                cur.execute(sql)
-                conn.commit()
+    def castConsum(self):
+        global outputs
 
-                sql = f'ALTER TABLE "{habitatges}_copy_{fitxer}" ADD COLUMN "UTM" VARCHAR;\n'
-                sql += f'UPDATE "{habitatges}_copy_{fitxer}" SET "UTM" = LEFT("referencia cadastral", 7);\n'
-                cur.execute(sql)
-                conn.commit()
-            except Exception as ex:
-                print ("Error calculant camps auxiliars habitatges (en particular UTM per parcel·les)")
-                template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-                message = template.format(type(ex).__name__, ex.args)
-                print (message)
-                QMessageBox.critical(None, "Error", "Error calculant camps auxiliars habitatges (en particular UTM per parcel·les)")
-                conn.rollback()
-                self.dlg.setEnabled(True)
-                return
+        ''' Cast Consum '''
+        alg_params = {
+            'FIELD_LENGTH': 0,
+            'FIELD_NAME': 'consum',
+            'FIELD_PRECISION': 0,
+            'FIELD_TYPE': 0,
+            'FORMULA': '\"energia primària no renovable\"',
+            'INPUT': habitatgesLayer,
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+        outputs['CastConsum'] = processing.run('qgis:fieldcalculator', alg_params)
 
-        try:
-            sql = f'ALTER TABLE "{habitatges}_copy_{fitxer}" DROP COLUMN IF EXISTS "producte_con";\n'
-            sql += f'ALTER TABLE "{habitatges}_copy_{fitxer}" DROP COLUMN IF EXISTS "producte_emi";\n'
-            cur.execute(sql)
-            conn.commit()
+    def castEmissions(self):
+        global outputs
 
-            sql = f'ALTER TABLE "{habitatges}_copy_{fitxer}" ADD COLUMN "producte_con" FLOAT;\n'
-            sql += f'UPDATE "{habitatges}_copy_{fitxer}" SET "producte_con" = CAST("energia primària no renovable" AS FLOAT) * CAST("metres_cadastre" AS FLOAT);\n'
-            
-            sql += f'ALTER TABLE "{habitatges}_copy_{fitxer}" ADD COLUMN "producte_emi" FLOAT;\n'
-            sql += f'UPDATE "{habitatges}_copy_{fitxer}" SET "producte_emi" = CAST("emissions de co2" AS FLOAT) * CAST("metres_cadastre" AS FLOAT);'
+        ''' Cast Emissions '''
+        alg_params = {
+            'FIELD_LENGTH': 0,
+            'FIELD_NAME': 'emissions',
+            'FIELD_PRECISION': 0,
+            'FIELD_TYPE': 0,
+            'FORMULA': '\"emissions de co2\"',
+            'INPUT': habitatgesLayer,
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+        outputs['CastEmissions'] = processing.run('qgis:fieldcalculator', alg_params)
 
-            cur.execute(sql)
-            conn.commit()    
+    def castm2(self):
+        global outputs
 
-            uri.setDataSource(schema1, f"{habitatges}_copy_{fitxer}", 'geom')
-            habitatgesLayer = QgsVectorLayer(uri.uri(), f'"{habitatges}_copy_{fitxer}"', 'postgres')    
-        except Exception as ex:
-            print ("Error calculant camps auxiliars habitatges")
-            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-            message = template.format(type(ex).__name__, ex.args)
-            print (message)
-            QMessageBox.critical(None, "Error", "Error calculant camps auxiliars habitatges")
-            conn.rollback()
-            self.dlg.setEnabled(True)
-            return
-
-    def calculNumX(self):
-            
+        ''' Cast m2 '''
         if consum:
+            alg_params = {
+                'FIELD_LENGTH': 0,
+                'FIELD_NAME': 'm2',
+                'FIELD_PRECISION': 0,
+                'FIELD_TYPE': 0,
+                'FORMULA': '\"metres_cadastre\"',
+                'INPUT': outputs['CastConsum']['OUTPUT'],
+                'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+            }
 
-            ''' Drop de les columnes en cas d'existir '''
-            try:
-                drop = f'ALTER TABLE "Capa unida {entitat}_{fitxer}" DROP COLUMN IF EXISTS "NumA";\n'
-                drop += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" DROP COLUMN IF EXISTS "NumB";\n'
-                drop += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" DROP COLUMN IF EXISTS "NumC";\n'
-                drop += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" DROP COLUMN IF EXISTS "NumD";\n'
-                drop += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" DROP COLUMN IF EXISTS "NumE";\n'
-                drop += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" DROP COLUMN IF EXISTS "NumF";\n'
-                drop += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" DROP COLUMN IF EXISTS "NumG";\n'
-                drop += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" DROP COLUMN IF EXISTS "TotalEE";'
-                cur.execute(drop)
-                conn.commit()
-            except Exception as ex:
-                print ("Error dropping NumX columns")
-                template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-                message = template.format(type(ex).__name__, ex.args)
-                print (message)
-                QMessageBox.critical(None, "Error", "Error dropping NumX columns")
-                conn.rollback()
-                self.dlg.setEnabled(True)
-                return
-            
-            '''Calcul de les diferents columnes NumA, NumB, ..., NumG i TotalEE'''
+        if emissions:
+            alg_params = {
+                'FIELD_LENGTH': 0,
+                'FIELD_NAME': 'm2',
+                'FIELD_PRECISION': 0,
+                'FIELD_TYPE': 0,
+                'FORMULA': '\"metres_cadastre\"',
+                'INPUT': outputs['CastEmissions']['OUTPUT'],
+                'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+            }
+        outputs['Castm2'] = processing.run('qgis:fieldcalculator', alg_params)
+    
+    def joinEntitatHabitatges(self):
+        global outputs
 
-            if entitat == llistaEntitats[1]:
-                try:
-                    sql = f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "NumA" integer;\n'
-                    sql += f'''UPDATE "Capa unida {entitat}_{fitxer}" SET "NumA" = subquery.sum_count FROM (SELECT "UTM", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'A' THEN 1 ELSE 0 END) AS sum_count FROM "Capa unida {entitat}_{fitxer}" GROUP BY "UTM") AS subquery WHERE "Capa unida {entitat}_{fitxer}"."UTM" = subquery."UTM";\n'''
-                    sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "NumB" integer;\n'
-                    sql += f'''UPDATE "Capa unida {entitat}_{fitxer}" SET "NumB" = subquery.sum_count FROM (SELECT "UTM", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'B' THEN 1 ELSE 0 END) AS sum_count FROM "Capa unida {entitat}_{fitxer}" GROUP BY "UTM") AS subquery WHERE "Capa unida {entitat}_{fitxer}"."UTM" = subquery."UTM";\n'''
-                    sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "NumC" integer;\n'
-                    sql += f'''UPDATE "Capa unida {entitat}_{fitxer}" SET "NumC" = subquery.sum_count FROM (SELECT "UTM", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'C' THEN 1 ELSE 0 END) AS sum_count FROM "Capa unida {entitat}_{fitxer}" GROUP BY "UTM") AS subquery WHERE "Capa unida {entitat}_{fitxer}"."UTM" = subquery."UTM";\n'''
-                    sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "NumD" integer;\n'
-                    sql += f'''UPDATE "Capa unida {entitat}_{fitxer}" SET "NumD" = subquery.sum_count FROM (SELECT "UTM", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'D' THEN 1 ELSE 0 END) AS sum_count FROM "Capa unida {entitat}_{fitxer}" GROUP BY "UTM") AS subquery WHERE "Capa unida {entitat}_{fitxer}"."UTM" = subquery."UTM";\n'''
-                    sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "NumE" integer;\n'
-                    sql += f'''UPDATE "Capa unida {entitat}_{fitxer}" SET "NumE" = subquery.sum_count FROM (SELECT "UTM", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'E' THEN 1 ELSE 0 END) AS sum_count FROM "Capa unida {entitat}_{fitxer}" GROUP BY "UTM") AS subquery WHERE "Capa unida {entitat}_{fitxer}"."UTM" = subquery."UTM";\n'''
-                    sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "NumF" integer;\n'
-                    sql += f'''UPDATE "Capa unida {entitat}_{fitxer}" SET "NumF" = subquery.sum_count FROM (SELECT "UTM", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'F' THEN 1 ELSE 0 END) AS sum_count FROM "Capa unida {entitat}_{fitxer}" GROUP BY "UTM") AS subquery WHERE "Capa unida {entitat}_{fitxer}"."UTM" = subquery."UTM";\n'''
-                    sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "NumG" integer;\n'
-                    sql += f'''UPDATE "Capa unida {entitat}_{fitxer}" SET "NumG" = subquery.sum_count FROM (SELECT "UTM", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'G' THEN 1 ELSE 0 END) AS sum_count FROM "Capa unida {entitat}_{fitxer}" GROUP BY "UTM") AS subquery WHERE "Capa unida {entitat}_{fitxer}"."UTM" = subquery."UTM";\n'''
-                    sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "TotalEE" integer;\n'
-                    sql += f'UPDATE "Capa unida {entitat}_{fitxer}" SET "TotalEE" = "NumA" + "NumB" + "NumC" + "NumD" + "NumE" + "NumF" + "NumG";'
-                    cur.execute(sql)
-                    conn.commit()
-                except Exception as ex:
-                    print ("Error calculating NumX columns")
-                    template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-                    message = template.format(type(ex).__name__, ex.args)
-                    print (message)
-                    QMessageBox.critical(None, "Error", "Error calculating NumX columns")
-                    conn.rollback()
-                    self.dlg.setEnabled(True)
-                    return
-            else:
-                try:
-                    sql = f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "NumA" integer;\n'
-                    sql += f'''UPDATE "Capa unida {entitat}_{fitxer}" SET "NumA" = subquery.sum_count FROM (SELECT "id", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'A' THEN 1 ELSE 0 END) AS sum_count FROM "Capa unida {entitat}_{fitxer}" GROUP BY "id") AS subquery WHERE "Capa unida {entitat}_{fitxer}"."id" = subquery."id";\n'''
-                    sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "NumB" integer;\n'
-                    sql += f'''UPDATE "Capa unida {entitat}_{fitxer}" SET "NumB" = subquery.sum_count FROM (SELECT "id", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'B' THEN 1 ELSE 0 END) AS sum_count FROM "Capa unida {entitat}_{fitxer}" GROUP BY "id") AS subquery WHERE "Capa unida {entitat}_{fitxer}"."id" = subquery."id";\n'''
-                    sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "NumC" integer;\n'
-                    sql += f'''UPDATE "Capa unida {entitat}_{fitxer}" SET "NumC" = subquery.sum_count FROM (SELECT "id", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'C' THEN 1 ELSE 0 END) AS sum_count FROM "Capa unida {entitat}_{fitxer}" GROUP BY "id") AS subquery WHERE "Capa unida {entitat}_{fitxer}"."id" = subquery."id";\n'''
-                    sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "NumD" integer;\n'
-                    sql += f'''UPDATE "Capa unida {entitat}_{fitxer}" SET "NumD" = subquery.sum_count FROM (SELECT "id", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'D' THEN 1 ELSE 0 END) AS sum_count FROM "Capa unida {entitat}_{fitxer}" GROUP BY "id") AS subquery WHERE "Capa unida {entitat}_{fitxer}"."id" = subquery."id";\n'''
-                    sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "NumE" integer;\n'
-                    sql += f'''UPDATE "Capa unida {entitat}_{fitxer}" SET "NumE" = subquery.sum_count FROM (SELECT "id", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'E' THEN 1 ELSE 0 END) AS sum_count FROM "Capa unida {entitat}_{fitxer}" GROUP BY "id") AS subquery WHERE "Capa unida {entitat}_{fitxer}"."id" = subquery."id";\n'''
-                    sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "NumF" integer;\n'
-                    sql += f'''UPDATE "Capa unida {entitat}_{fitxer}" SET "NumF" = subquery.sum_count FROM (SELECT "id", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'F' THEN 1 ELSE 0 END) AS sum_count FROM "Capa unida {entitat}_{fitxer}" GROUP BY "id") AS subquery WHERE "Capa unida {entitat}_{fitxer}"."id" = subquery."id";\n'''
-                    sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "NumG" integer;\n'
-                    sql += f'''UPDATE "Capa unida {entitat}_{fitxer}" SET "NumG" = subquery.sum_count FROM (SELECT "id", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'G' THEN 1 ELSE 0 END) AS sum_count FROM "Capa unida {entitat}_{fitxer}" GROUP BY "id") AS subquery WHERE "Capa unida {entitat}_{fitxer}"."id" = subquery."id";\n'''
-                    sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "TotalEE" integer;\n'
-                    sql += f'UPDATE "Capa unida {entitat}_{fitxer}" SET "TotalEE" = "NumA" + "NumB" + "NumC" + "NumD" + "NumE" + "NumF" + "NumG";'
-                    cur.execute(sql)
-                    conn.commit()
-                except Exception as ex:
-                    print ("Error calculating NumX columns")
-                    template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-                    message = template.format(type(ex).__name__, ex.args)
-                    print (message)
-                    QMessageBox.critical(None, "Error", "Error calculating NumX columns")
-                    conn.rollback()
-                    self.dlg.setEnabled(True)
-                    return
+        ''' Join Entitat - Habitatges '''
+        if consum:
+            alg_params = {
+                'DISCARD_NONMATCHING': False,
+                'INPUT': outputs['IdEntitat']['OUTPUT'],
+                'JOIN': outputs['Castm2']['OUTPUT'],
+                'JOIN_FIELDS': ['id','referencia cadastral','metres_cadastre','qualificació de consum energia primaria no renovable','energia primària no renovable','consum','m2'],
+                'METHOD': 0,
+                'PREDICATE': [0],
+                'PREFIX': '',
+                'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT                           
+            }
+        if emissions:
+            alg_params = {
+                'DISCARD_NONMATCHING': False,
+                'INPUT': outputs['IdEntitat']['OUTPUT'],
+                'JOIN': outputs['Castm2']['OUTPUT'],
+                'JOIN_FIELDS': ['id','referencia cadastral','metres_cadastre','qualificacio emissions de co2','emissions de co2','emissions','m2'],
+                'METHOD': 0,
+                'PREDICATE': [0],
+                'PREFIX': '',
+                'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT                           
+            }
+        outputs['JoinEntitatHabitatges'] = processing.run('native:joinattributesbylocation', alg_params)
+
+    def indexMITJANAhabIindexMEDIANAhab(self):
+        global outputs
+
+        ''' indexMITJANAhab i indexMEDIANAhab '''
+        if consum:
+            alg_params = {
+                'CATEGORIES_FIELD_NAME':    ['seccio'],
+                'INPUT': outputs['JoinEntitatHabitatges']['OUTPUT'],
+                'VALUES_FIELD_NAME':        'consum',
+                'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+            }
+        if emissions:
+            alg_params = {
+                'CATEGORIES_FIELD_NAME':    ['seccio'],
+                'INPUT': outputs['JoinEntitatHabitatges']['OUTPUT'],
+                'VALUES_FIELD_NAME':        'emissions',
+                'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+            }
+        outputs['IndexmitjanahabIIndexmedianahab'] = processing.run('qgis:statisticsbycategories', alg_params)
+
+    def numsIindexMODAhab(self):
+        global outputs
+
+        ''' Nums i indexMODAhab '''
+        if consum:
+            alg_params = {
+                'CATEGORIES_FIELD_NAME':    ['seccio','qualificació de consum energia primaria no renovable'],
+                'INPUT': outputs['JoinEntitatHabitatges']['OUTPUT'],
+                'VALUES_FIELD_NAME':        'consum',
+                'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+            }
+        if emissions:
+            alg_params = {
+                'CATEGORIES_FIELD_NAME':    ['seccio','qualificacio emissions de co2'],
+                'INPUT': outputs['JoinEntitatHabitatges']['OUTPUT'],
+                'VALUES_FIELD_NAME':        'emissions',
+                'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+            }
+        outputs['NumsIIndexmodahab'] = processing.run('qgis:statisticsbycategories', alg_params)
+
+    def calcularProducteCon(self):
+        global outputs
+
+        ''' producte_con '''
+        alg_params = {
+            'FIELD_LENGTH': 0,
+            'FIELD_NAME': 'producte_con',
+            'FIELD_PRECISION': 0,
+            'FIELD_TYPE': 0,
+            'FORMULA': '\"m2\" * \"consum\"',
+            'INPUT': outputs['JoinEntitatHabitatges']['OUTPUT'],
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+        outputs['Producte_con'] = processing.run('qgis:fieldcalculator', alg_params)
+
+    def calcularProducteEmi(self):
+        global outputs
+
+        ''' producte_emi '''
+        alg_params = {
+            'FIELD_LENGTH': 0,
+            'FIELD_NAME': 'producte_emi',
+            'FIELD_PRECISION': 0,
+            'FIELD_TYPE': 0,
+            'FORMULA': '\"m2\" * \"emissions\"',
+            'INPUT': outputs['JoinEntitatHabitatges']['OUTPUT'],
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+        outputs['Producte_emi'] = processing.run('qgis:fieldcalculator', alg_params)
+
+    def sumProducteConEmi(self):
+        global outputs
+
+        ''' sum_producte_con '''
+        if consum:
+            alg_params = {
+                'CATEGORIES_FIELD_NAME':    ['seccio','qualificació de consum energia primaria no renovable'],
+                'INPUT': outputs['Producte_con']['OUTPUT'],
+                'VALUES_FIELD_NAME':        'producte_con',
+                'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+            }
+            outputs['Sum_producte_con'] = processing.run('qgis:statisticsbycategories', alg_params)
+        if emissions:
+            alg_params = {
+                'CATEGORIES_FIELD_NAME':    ['seccio','qualificacio emissions de co2'],
+                'INPUT': outputs['Producte_emi']['OUTPUT'],
+                'VALUES_FIELD_NAME':        'producte_emi',
+                'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+            }
+            outputs['Sum_producte_emi'] = processing.run('qgis:statisticsbycategories', alg_params)
+
+    def joinEstadistiques(self):
+        global outputs
+
+        ''' Join Estadistiques '''
+        alg_params = {
+            'DISCARD_NONMATCHING': False,
+            'FIELD': 'seccio',
+            'FIELDS_TO_COPY': [''],
+            'FIELD_2': 'seccio',
+            'INPUT': outputs['NumsIIndexmodahab']['OUTPUT'],
+            'INPUT_2': outputs['IndexmitjanahabIIndexmedianahab']['OUTPUT'],
+            'METHOD': 1,
+            'PREFIX': '',
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+        outputs['JoinEstadistiques'] = processing.run('native:joinattributestable', alg_params)
+
+    def joinFinalNumHab(self):
+        global outputs
+        global results
+
+        ''' Join Final '''
+        alg_params = {
+            'DISCARD_NONMATCHING': False,
+            'FIELD': 'seccio',
+            'FIELDS_TO_COPY': [''],
+            'FIELD_2': 'seccio',
+            'INPUT': outputs['IdEntitat']['OUTPUT'],
+            'INPUT_2': outputs['JoinEstadistiques']['OUTPUT'],
+            'METHOD': 1,
+            'PREFIX': '',
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+        outputs['JoinFinalNumHab'] = processing.run('native:joinattributestable', alg_params)
+        return outputs['JoinFinalNumHab']['OUTPUT']
+
+    def sum_m2(self):
+        global outputs
+
+        ''' sum_m2 '''
+        if consum:
+            alg_params = {
+                'CATEGORIES_FIELD_NAME':    ['seccio', 'qualificació de consum energia primaria no renovable'],
+                'INPUT': outputs['Producte_con']['OUTPUT'],
+                'VALUES_FIELD_NAME':        'm2',
+                'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+            }
+        if emissions:
+            alg_params = {
+                'CATEGORIES_FIELD_NAME':    ['seccio', 'qualificacio emissions de co2'],
+                'INPUT': outputs['Producte_emi']['OUTPUT'],
+                'VALUES_FIELD_NAME':        'm2',
+                'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+            }
+        outputs['Sum_m2'] = processing.run('qgis:statisticsbycategories', alg_params)
+
+    def cleanProducteConEmi(self):
+        global outputs
+
+        if consum:
+            alg_params = {
+                'COLUMN': ['unique','min','max','range','mean','median','stddev','minority','majority','q1','q3','iqr'],
+                'INPUT': outputs['Sum_producte_con']['OUTPUT'],
+                'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+            }
+            outputs['Clean_producte_con'] = processing.run('qgis:deletecolumn', alg_params)
+        if emissions:
+            alg_params = {
+                'COLUMN': ['unique','min','max','range','mean','median','stddev','minority','majority','q1','q3','iqr'],
+                'INPUT': outputs['Sum_producte_emi']['OUTPUT'],
+                'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+            }
+            outputs['Clean_producte_emi'] = processing.run('qgis:deletecolumn', alg_params)
+
+    def cleanM2(self):
+        global outputs
+
+        ''' Clean m2 '''
+        alg_params = {
+            'COLUMN': ['unique','min','max','range','mean','median','stddev','minority','majority','q1','q3','iqr'],
+            'INPUT': outputs['Sum_m2']['OUTPUT'],
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+        outputs['Clean_m2'] = processing.run('qgis:deletecolumn', alg_params)
+
+    def sumM2Net(self):
+        global outputs
+
+        ''' sum_m2_net '''
+        alg_params = {
+            'FIELD': 'sum',
+            'INPUT': outputs['Clean_m2']['OUTPUT'],
+            'NEW_NAME': 'sum_m2',
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+        outputs['Sum_m2_net'] = processing.run('qgis:renametablefield', alg_params)
+
+    def m2_fin(self):
+        global outputs
+
+        ''' m2_fin '''
+        if consum:
+            alg_params = {
+                'FIELD_LENGTH': 0,
+                'FIELD_NAME': 'seccio_qual',
+                'FIELD_PRECISION': 0,
+                'FIELD_TYPE': 2,
+                'FORMULA': ' concat(to_string(  \"seccio\" ) ,\'-\', \"qualificació de consum energia primaria no renovable\" )',
+                'INPUT': outputs['Sum_m2_net']['OUTPUT'],
+                'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+            }
+        if emissions:
+            alg_params = {
+                'FIELD_LENGTH': 0,
+                'FIELD_NAME': 'seccio_qual',
+                'FIELD_PRECISION': 0,
+                'FIELD_TYPE': 2,
+                'FORMULA': ' concat(to_string(  \"seccio\" ) ,\'-\', \"qualificacio emissions de co2\" )',
+                'INPUT': outputs['Sum_m2_net']['OUTPUT'],
+                'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+            }
+        outputs['M2_fin'] = processing.run('qgis:fieldcalculator', alg_params)
+
+    def sum_product_net(self):
+        global outputs
+
+        ''' sum_product_net '''
+        if consum:
+            alg_params = {
+                'FIELD': 'sum',
+                'INPUT': outputs['Clean_producte_con']['OUTPUT'],
+                'NEW_NAME': 'sum_producte_con',
+                'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+            }
+            outputs['Sum_producte_con_net'] = processing.run('qgis:renametablefield', alg_params)
+        if emissions:
+            alg_params = {
+                'FIELD': 'sum',
+                'INPUT': outputs['Clean_producte_emi']['OUTPUT'],
+                'NEW_NAME': 'sum_producte_emi',
+                'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+            }
+            outputs['Sum_producte_emi_net'] = processing.run('qgis:renametablefield', alg_params)
+
+    def producte_conemi_fin(self):
+        global outputs
+
+        ''' producte_conemi_fin '''
+        if consum:
+            alg_params = {
+                'FIELD_LENGTH': 0,
+                'FIELD_NAME': 'seccio_qual',
+                'FIELD_PRECISION': 0,
+                'FIELD_TYPE': 2,
+                'FORMULA': ' concat(to_string(  \"seccio\" ) ,\'-\', \"qualificació de consum energia primaria no renovable\" )',
+                'INPUT': outputs['Sum_producte_con_net']['OUTPUT'],
+                'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+            }
+            outputs['Producte_con_fin'] = processing.run('qgis:fieldcalculator', alg_params)
+        if emissions:
+            alg_params = {
+                'FIELD_LENGTH': 0,
+                'FIELD_NAME': 'seccio_qual',
+                'FIELD_PRECISION': 0,
+                'FIELD_TYPE': 2,
+                'FORMULA': ' concat(to_string(  \"seccio\" ) ,\'-\', \"qualificacio emissions de co2\" )',
+                'INPUT': outputs['Sum_producte_emi_net']['OUTPUT'],
+                'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+            }
+            outputs['Producte_emi_fin'] = processing.run('qgis:fieldcalculator', alg_params)
+
+    def unirCapes(self):
+        global outputs
+
+        ''' Unir capes '''
+        if consum:
+            alg_params = {
+                'DISCARD_NONMATCHING': False,
+                'FIELD': 'seccio_qual',
+                'FIELDS_TO_COPY': ['sum_m2'],
+                'FIELD_2': 'seccio_qual',
+                'INPUT': outputs['Producte_con_fin']['OUTPUT'],
+                'INPUT_2': outputs['M2_fin']['OUTPUT'],
+                'METHOD': 0,
+                'PREFIX': '',
+                'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+            }
+            outputs['Capes_unides'] = processing.run('native:joinattributestable', alg_params)
+        if emissions:
+            alg_params = {
+                'DISCARD_NONMATCHING': False,
+                'FIELD': 'seccio_qual',
+                'FIELDS_TO_COPY': ['sum_m2'],
+                'FIELD_2': 'seccio_qual',
+                'INPUT': outputs['Producte_con_fin']['OUTPUT'],
+                'INPUT_2': outputs['M2_fin']['OUTPUT'],
+                'METHOD': 0,
+                'PREFIX': '',
+                'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+            }
+            outputs['Capes_unides'] = processing.run('native:joinattributestable', alg_params)
+
+    def moda(self):
+        global outputs
+
+        ''' Moda '''
+        if consum:
+            alg_params = {
+                'FIELD_LENGTH': 0,
+                'FIELD_NAME': 'moda',
+                'FIELD_PRECISION': 0,
+                'FIELD_TYPE': 0,
+                'FORMULA': 'sum_producte_con/sum_m2',
+                'INPUT': outputs['Capes_unides']['OUTPUT'],
+                'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+            }
+            outputs['Moda'] = processing.run('qgis:fieldcalculator', alg_params)
+        if emissions:
+            alg_params = {
+                'FIELD_LENGTH': 0,
+                'FIELD_NAME': 'moda',
+                'FIELD_PRECISION': 0,
+                'FIELD_TYPE': 0,
+                'FORMULA': 'sum_producte_emi/sum_m2',
+                'INPUT': outputs['Capes_unides']['OUTPUT'],
+                'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+            }
+            outputs['Moda'] = processing.run('qgis:fieldcalculator', alg_params)
+
+    def pre_mitjana(self):
+        if consum:
+            alg_params = {
+                'AGGREGATES': [{'aggregate': 'first_value','delimiter': ',','input': '\"seccio\"','length': 0,'name': 'seccio','precision': 0,'type': 2},{'aggregate': 'sum','delimiter': ',','input': 'sum_producte_con','length': 0,'name': 'sum_producte_con','precision': 0,'type': 6},{'aggregate': 'sum','delimiter': ',','input': 'sum_m2','length': 0,'name': 'sum_m2','precision': 0,'type': 6}],
+                'GROUP_BY': 'seccio',
+                'INPUT': outputs['Moda']['OUTPUT'],
+                'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+            }
+            outputs['Pre_mitjana'] = processing.run('qgis:aggregate', alg_params)
+        if emissions:
+            alg_params = {
+                'AGGREGATES': [{'aggregate': 'first_value','delimiter': ',','input': '\"seccio\"','length': 0,'name': 'seccio','precision': 0,'type': 2},{'aggregate': 'sum','delimiter': ',','input': 'sum_producte_emi','length': 0,'name': 'sum_producte_emi','precision': 0,'type': 6},{'aggregate': 'sum','delimiter': ',','input': 'sum_m2','length': 0,'name': 'sum_m2','precision': 0,'type': 6}],
+                'GROUP_BY': 'seccio',
+                'INPUT': outputs['Moda']['OUTPUT'],
+                'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+            }
+            outputs['Pre_mitjana'] = processing.run('qgis:aggregate', alg_params)
+
+    def filtrarModa(self):
+        global outputs
+
+        if consum:
+            alg_params = {
+                'AGGREGATES': [{'aggregate': 'first_value','delimiter': ',','input': '\"seccio\"','length': 0,'name': 'seccio','precision': 0,'type': 2},{'aggregate': 'maximum','delimiter': ',','input': '\"count\"','length': 0,'name': 'count','precision': 0,'type': 2},{'aggregate': 'first_value','delimiter': ',','input': '\"moda\"','length': 0,'name': 'moda','precision': 0,'type': 6},{'aggregate': 'first_value','delimiter': ',','input': '\"qualificació de consum energia primaria no renovable\"','length': 0,'name': 'qualif','precision': 0,'type': 10},{'aggregate': 'first_value','delimiter': ',','input': '\"sum_producte_con\"','length': 0,'name': 'sum_producte_con','precision': 0,'type': 6},{'aggregate': 'first_value','delimiter': ',','input': '\"sum_m2\"','length': 0,'name': 'sum_m2','precision': 0,'type': 6}],
+                'GROUP_BY': 'seccio',
+                'INPUT': outputs['Moda']['OUTPUT'],
+                'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+            }
+            outputs['Filtrar_moda'] = processing.run('native:aggregate', alg_params)
+        if emissions:
+            alg_params = {
+                'AGGREGATES': [{'aggregate': 'first_value','delimiter': ',','input': '\"seccio\"','length': 0,'name': 'seccio','precision': 0,'type': 2},{'aggregate': 'maximum','delimiter': ',','input': '\"count\"','length': 0,'name': 'count','precision': 0,'type': 2},{'aggregate': 'first_value','delimiter': ',','input': '\"moda\"','length': 0,'name': 'moda','precision': 0,'type': 6},{'aggregate': 'first_value','delimiter': ',','input': '\"qualificacio emissions de co2\"','length': 0,'name': 'qualif','precision': 0,'type': 10},{'aggregate': 'first_value','delimiter': ',','input': '\"sum_producte_emi\"','length': 0,'name': 'sum_producte_emi','precision': 0,'type': 6},{'aggregate': 'first_value','delimiter': ',','input': '\"sum_m2\"','length': 0,'name': 'sum_m2','precision': 0,'type': 6}],
+                'GROUP_BY': 'seccio',
+                'INPUT': outputs['Moda']['OUTPUT'],
+                'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+            }
+            outputs['Filtrar_moda'] = processing.run('native:aggregate', alg_params)
+
+    def ordenarModa(self):
+        global outputs
+
+        alg_params = {
+            'ASCENDING': True,
+            'EXPRESSION': '\"seccio\"',
+            'INPUT': outputs['Filtrar_moda']['OUTPUT'],
+            'NULLS_FIRST': False,
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+        outputs['Ordenar_moda'] = processing.run('native:orderbyexpression', alg_params)
+
+    def mitjana(self):
+        global outputs
+
+        alg_params = {
+            'FIELD_LENGTH': 0,
+            'FIELD_NAME': 'mitjana',
+            'FIELD_PRECISION': 0,
+            'FIELD_TYPE': 0,
+            'FORMULA': 'sum_producte_con/sum_m2',
+            'INPUT': outputs['Pre_mitjana']['OUTPUT'],
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+        outputs['Mitjana'] = processing.run('qgis:fieldcalculator', alg_params)
+
+    def unirAtributos(self):
+        global outputs
+        global results
+
+        alg_params = {
+            'DISCARD_NONMATCHING': False,
+            'FIELD': 'seccio',
+            'FIELDS_TO_COPY': ['mitjana'],
+            'FIELD_2': 'seccio',
+            'INPUT': outputs['Ordenar_moda']['OUTPUT'],
+            'INPUT_2': outputs['Mitjana']['OUTPUT'],
+            'METHOD': 1,
+            'PREFIX': '',
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+        outputs['Unir_atributos'] = processing.run('native:joinattributestable', alg_params)
+        return outputs['Unir_atributos']['OUTPUT']
+
+
+
+
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    def modelQgis(self):
+        global results
+        global outputs
+        if self.dlg.checkNumHabit.isChecked():
+            if consum:
+
+                ''' ID Entitat '''
+                alg_params = {
+                    'FIELD_LENGTH': 0,
+                    'FIELD_NAME': 'id',
+                    'FIELD_PRECISION': 0,
+                    'FIELD_TYPE': 0,
+                    'FORMULA': '\"id\"',
+                    'INPUT': entitatLayer,
+                    'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+                }
+                outputs['IdEntitat'] = processing.run('qgis:fieldcalculator', alg_params)
+
+                ''' Cast Consum '''
+                alg_params = {
+                    'FIELD_LENGTH': 0,
+                    'FIELD_NAME': 'consum',
+                    'FIELD_PRECISION': 0,
+                    'FIELD_TYPE': 0,
+                    'FORMULA': '\"energia primària no renovable\"',
+                    'INPUT': habitatgesLayer,
+                    'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+                }
+                outputs['CastConsum'] = processing.run('qgis:fieldcalculator', alg_params)
                 
-        if emissions:
-            ''' Drop de les columnes en cas d'existir '''
-            try:
-                drop = f'ALTER TABLE "Capa unida {entitat}_{fitxer}" DROP COLUMN IF EXISTS "NumA";\n'
-                drop += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" DROP COLUMN IF EXISTS "NumB";\n'
-                drop += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" DROP COLUMN IF EXISTS "NumC";\n'
-                drop += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" DROP COLUMN IF EXISTS "NumD";\n'
-                drop += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" DROP COLUMN IF EXISTS "NumE";\n'
-                drop += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" DROP COLUMN IF EXISTS "NumF";\n'
-                drop += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" DROP COLUMN IF EXISTS "NumG";\n'
-                drop += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" DROP COLUMN IF EXISTS "TotalEE";'
-                cur.execute(drop)
-                conn.commit()
-            except Exception as ex:
-                print ("Error dropping NumX columns")
-                template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-                message = template.format(type(ex).__name__, ex.args)
-                print (message)
-                QMessageBox.critical(None, "Error", "Error dropping NumX columns")
-                conn.rollback()
-                self.dlg.setEnabled(True)
-                return
+                ''' Cast m2 '''
+                alg_params = {
+                    'FIELD_LENGTH': 0,
+                    'FIELD_NAME': 'consum',
+                    'FIELD_PRECISION': 0,
+                    'FIELD_TYPE': 0,
+                    'FORMULA': '\"metres_cadastre\"',
+                    'INPUT': outputs['CastConsum']['OUTPUT'],
+                    'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+                }
+                outputs['Castm2'] = processing.run('qgis:fieldcalculator', alg_params)
+
+                ''' Join Entitat - Habitatges '''
+                alg_params = {
+                    'DISCARD_NONMATCHING': False,
+                    'INPUT': outputs['IdEntitat']['OUTPUT'],
+                    'JOIN': outputs['Castm2']['OUTPUT'],
+                    'JOIN_FIELDS': ['id','referencia cadastral','metres_cadastre','qualificació de consum energia primaria no renovable','energia primària no renovable','qualificacio emissions de co2','emissions de co2','consum','m2','producte_con'],
+                    'METHOD': 0,
+                    'PREDICATE': [0],
+                    'PREFIX': '',
+                    'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT                           
+                }
+                outputs['JoinEntitatHabitatges'] = processing.run('native:joinattributestable', alg_params)
+
+                ''' indexMITJANAhab i indexMEDIANAhab '''
+                alg_params = {
+                    'CATEGORIES_FIELD_NAME':    ['seccio'],
+                    'INPUT': outputs['JoinEntitatHabitatges']['OUTPUT'],
+                    'VALUES_FIELD_NAME':        ['consum'],
+                    'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+                }
+                outputs['IndexmitjanahabIIndexmedianahab'] = processing.run('qgis:statisticsbycategories', alg_params)
+
+                ''' Nums i indexMODAhab '''
+                alg_params = {
+                    'CATEGORIES_FIELD_NAME':    ['seccio','qualificacio de consum energia primaria no renovable'],
+                    'INPUT': outputs['JoinEntitatHabitatges']['OUTPUT'],
+                    'VALUES_FIELD_NAME':        ['consum'],
+                    'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+                }
+                outputs['NumsIIndexmodahab'] = processing.run('qgis:statisticsbycategories', alg_params)
+
+                ''' producte_con '''
+                alg_params = {
+                    'FIELD_LENGTH': 0,
+                    'FIELD_NAME': 'producte_con',
+                    'FIELD_PRECISION': 0,
+                    'FIELD_TYPE': 0,
+                    'FORMULA': '\"m2\" * \"consum\"',
+                    'INPUT': outputs['JoinEntitatHabitatges']['OUTPUT'],
+                    'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+                }
+                outputs['Producte_con'] = processing.run('qgis:fieldcalculator', alg_params)
+
+                ''' sum_producte_con '''
+                alg_params = {
+                    'CATEGORIES_FIELD_NAME':    ['seccio','qualificacio de consum energia primaria no renovable'],
+                    'INPUT': outputs['Producte_con']['OUTPUT'],
+                    'VALUES_FIELD_NAME':        ['producte_con'],
+                    'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+                }
+                outputs['Sum_producte_con'] = processing.run('qgis:statisticsbycategories', alg_params)
+
+                ''' Join Estadistiques '''
+                alg_params = {
+                    'DISCARD_NONMATCHING': False,
+                    'FIELD': 'seccio',
+                    'FIELDS_TO_COPY': [''],
+                    'FIELD_2': 'seccio',
+                    'INPUT': outputs['NumsIIndexmodahab']['OUTPUT'],
+                    'INPUT_2': outputs['IndexmitjanahabIIndexmedianahab']['OUTPUT'],
+                    'METHOD': 1,
+                    'PREFIX': '',
+                    'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+                }
+                outputs['JoinEstadistiques'] = processing.run('native:joinattributestable', alg_params)
+
+                ''' Join Final '''
+                alg_params = {
+                    'DISCARD_NONMATCHING': False,
+                    'FIELD': 'seccio',
+                    'FIELDS_TO_COPY': [''],
+                    'FIELD_2': 'seccio',
+                    'INPUT': outputs['IdEntitat']['OUTPUT'],
+                    'INPUT_2': outputs['JoinEstadistiques']['OUTPUT'],
+                    'METHOD': 1,
+                    'PREFIX': '',
+                    'OUTPUT': QgsProcessingParameterFeatureSink('CapaResultat', 'Capa Resultat', optional = True, type=QgsProcessing.TypeVectorAnyGeometry, createByDefault=True, defaultValue='TEMPORARY_OUTPUT')
+                }
+                outputs['JoinFinal'] = processing.run('native:joinattributestable', alg_params)
+                results['CapaResultat'] = outputs['JoinFinal']['OUTPUT']
+                return results
+        if self.dlg.checkm2.isChecked():
+            if consum:
+                ''' sum m2 '''
+                alg_params = {
+                    'CATEGORIES_FIELD_NAME':    ['seccio','qualificació de consum energia primaria no renovable'],
+                    'INPUT': outputs['Producte_con']['OUTPUT'],
+                    'VALUES_FIELD_NAME':        ['m2'],
+                    'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+                }
+                outputs['Sum_m2'] = processing.run('qgis:statisticsbycategories', alg_params)
+
+                ''' Clean producte_con '''
+                alg_params = { # Podria ser que no calgués posar totes les columnes
+                    'COLUMN': ['unique','min','max','range','mean','median','stddev','minority','majority','q1','q3','iqr'],
+                    'INPUT': outputs['Sum_producte_con']['OUTPUT'],
+                    'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+                }
+                outputs['Clean_producte_con'] = processing.run('qgis:deletecolumn', alg_params)
+
+                ''' Clean m2 '''
+                alg_params = {
+                    'COLUMN': ['unique','min','max','range','mean','median','stddev','minority','majority','q1','q3','iqr'],
+                    'INPUT': outputs['Sum_m2']['OUTPUT'],
+                    'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT 
+                }
+                outputs['Clean_m2'] = processing.run('qgis:deletecolumn', alg_params)
+
+                ''' sum_m2_net '''
+                alg_params = {
+                    'FIELD': 'sum',
+                    'INPUT': outputs['Clean_m2']['OUTPUT'],
+                    'NEW_NAME': 'sum_m2',
+                    'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+                }
+                outputs['Sum_m2_net'] = processing.run('qgis:renametablefield', alg_params)
+
+                ''' m2_fin '''
+                alg_params = {
+                    'FIELD_LENGTH': 0,
+                    'FIELD_NAME': 'seccio_qual',
+                    'FIELD_PRECISION': 0,
+                    'FIELD_TYPE': 2,
+                    'FORMULA': ' concat(to_string(  \"seccio\" ) ,\'-\', \"qualificacio de consum energia primaria no renovable\" )',
+                    'INPUT': outputs['Sum_m2_net']['OUTPUT'],
+                    'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+                }
+                outputs['M2_fin'] = processing.run('qgis:fieldcalculator', alg_params)
+
+                ''' sum_producte_con_net '''
+                alg_params = {
+                    'FIELD': 'sum',
+                    'INPUT': outputs['Clean_producte_con']['OUTPUT'],
+                    'NEW_NAME': 'sum_producte_con',
+                    'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+                }
+                outputs['Sum_producte_con_net'] = processing.run('qgis:renametablefield', alg_params)
+
+                ''' producte_con_fin '''
+                alg_params = {
+                    'FIELD_LENGTH': 0,
+                    'FIELD_NAME': 'seccio_qual',
+                    'FIELD_PRECISION': 0,
+                    'FIELD_TYPE': 2,
+                    'FORMULA': ' concat(to_string(  \"seccio\" ) ,\'-\', \"qualificacio de consum energia primaria no renovable\" )',
+                    'INPUT': outputs['Sum_producte_con_net']['OUTPUT'],
+                    'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+                }
+                outputs['Producte_con_fin'] = processing.run('qgis:fieldcalculator', alg_params)
+
+                ''' Capes unides '''
+                alg_params = {
+                    'DISCARD_NONMATCHING': False,
+                    'FIELD': 'seccio_qual',
+                    'FIELDS_TO_COPY': ['sum_m2'],
+                    'FIELD_2': 'seccio_qual',
+                    'INPUT': outputs['producte_con_fin']['OUTPUT'],
+                    'INPUT_2': outputs['sum_m2']['OUTPUT'],
+                    'METHOD': 0,
+                    'PREFIX': '',
+                    'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+                }
+                outputs['Capes_unides'] = processing.run('native:joinattributestable', alg_params)
+
+                ''' Moda '''
+                alg_params = {
+                    'FIELD_LENGTH': 0,
+                    'FIELD_NAME': 'moda',
+                    'FIELD_PRECISION': 0,
+                    'FIELD_TYPE': 0,
+                    'FORMULA': 'sum_producte_con/sum_m2',
+                    'INPUT': outputs['Capes_unides']['OUTPUT'],
+                    'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+                }
+                outputs['Moda'] = processing.run('qgis:fieldcalculator', alg_params)
+
+                ''' pre_mitjana '''
+                alg_params = {
+                    'AGGREGATES': [{'aggregate': 'first_value','delimiter': ',','input': '\"seccio\"','length': 0,'name': 'seccio','precision': 0,'type': 2},{'aggregate': 'sum','delimiter': ',','input': 'sum_producte_con','length': 0,'name': 'sum_producte_con','precision': 0,'type': 6},{'aggregate': 'sum','delimiter': ',','input': 'sum_m2','length': 0,'name': 'sum_m2','precision': 0,'type': 6}],
+                    'GROUP_BY': 'seccio',
+                    'INPUT': outputs['Moda']['OUTPUT'],
+                    'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+                }
+                outputs['Pre_mitjana'] = processing.run('qgis:statisticsbycategories', alg_params)
+
+                ''' Filtrar moda '''
+                alg_params = {
+                    'AGGREGATES': [{'aggregate': 'first_value','delimiter': ',','input': '\"seccio\"','length': 0,'name': 'seccio','precision': 0,'type': 2},{'aggregate': 'maximum','delimiter': ',','input': '\"count\"','length': 0,'name': 'count','precision': 0,'type': 2},{'aggregate': 'first_value','delimiter': ',','input': '\"moda\"','length': 0,'name': 'moda','precision': 0,'type': 6},{'aggregate': 'first_value','delimiter': ',','input': '\"qualificació de consum energia primaria no renovable\"','length': 0,'name': 'qualif','precision': 0,'type': 10},{'aggregate': 'first_value','delimiter': ',','input': '\"sum_producte_con\"','length': 0,'name': 'sum_producte_con','precision': 0,'type': 6},{'aggregate': 'first_value','delimiter': ',','input': '\"sum_m2\"','length': 0,'name': 'sum_m2','precision': 0,'type': 6}],
+                    'GROUP_BY': 'seccio',
+                    'INPUT': outputs['Moda']['OUTPUT'],
+                    'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+                }
+                outputs['Filtrar_moda'] = processing.run('native:aggregate', alg_params)
+
+                ''' Ordenar Moda '''
+                alg_params = {
+                    'ASCENDING': True,
+                    'EXPRESSION': '\"seccio\"',
+                    'INPUT': outputs['Filtrar_moda']['OUTPUT'],
+                    'NULLS_FIRST': False,
+                    'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+                }
+                outputs['Ordenar_moda'] = processing.run('native:orderbyexpression', alg_params)
+
+                ''' Mitjana '''
+                alg_params = {
+                    'FIELD_LENGTH': 0,
+                    'FIELD_NAME': 'mitjana',
+                    'FIELD_PRECISION': 0,
+                    'FIELD_TYPE': 0,
+                    'FORMULA': 'sum_producte_con/sum_m2',
+                    'INPUT': outputs['Pre_mitjana']['OUTPUT'],
+                    'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+                }
+                outputs['Mitjana'] = processing.run('qgis:fieldcalculator', alg_params)
+
+                ''' Unir atributos por valor de campo '''
+                alg_params = {
+                    'DISCARD_NONMATCHING': False,
+                    'FIELD': 'seccio',
+                    'FIELDS_TO_COPY': ['mitjana'],
+                    'FIELD_2': 'seccio',
+                    'INPUT': outputs['Ordenar_moda']['OUTPUT'],
+                    'INPUT_2': outputs['Mitjana']['OUTPUT'],
+                    'METHOD': 1,
+                    'PREFIX': '',
+                    'OUTPUT': QgsProcessingParameterFeatureSink('CapaResultatM2', 'Capa Resultat m2', optional=True, type=QgsProcessing.TypeVectorAnyGeometry, createByDefault=True, defaultValue='TEMPORARY_OUTPUT')
+                }
+                outputs['UnirAtributosPorValorDeCampo'] = processing.run('native:joinattributestable', alg_params)
+                results['CapaResultatM2'] = outputs['UnirAtributosPorValorDeCampo']['OUTPUT']
+                return results
+
             
-            '''Calcul de les diferents columnes NumA, NumB, ..., NumG i TotalEE'''
-
-            if entitat == llistaEntitats[1]:
-                try:
-                    sql = f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "NumA" integer;\n'
-                    sql += f'''UPDATE "Capa unida {entitat}_{fitxer}" SET "NumA" = subquery.sum_count FROM (SELECT "UTM", SUM(CASE WHEN "qualificacio emissions de co2" = 'A' THEN 1 ELSE 0 END) AS sum_count FROM "Capa unida {entitat}_{fitxer}" GROUP BY "UTM") AS subquery WHERE "Capa unida {entitat}_{fitxer}"."UTM" = subquery."UTM";\n'''
-                    sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "NumB" integer;\n'
-                    sql += f'''UPDATE "Capa unida {entitat}_{fitxer}" SET "NumB" = subquery.sum_count FROM (SELECT "UTM", SUM(CASE WHEN "qualificacio emissions de co2" = 'B' THEN 1 ELSE 0 END) AS sum_count FROM "Capa unida {entitat}_{fitxer}" GROUP BY "UTM") AS subquery WHERE "Capa unida {entitat}_{fitxer}"."UTM" = subquery."UTM";\n'''
-                    sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "NumC" integer;\n'
-                    sql += f'''UPDATE "Capa unida {entitat}_{fitxer}" SET "NumC" = subquery.sum_count FROM (SELECT "UTM", SUM(CASE WHEN "qualificacio emissions de co2" = 'C' THEN 1 ELSE 0 END) AS sum_count FROM "Capa unida {entitat}_{fitxer}" GROUP BY "UTM") AS subquery WHERE "Capa unida {entitat}_{fitxer}"."UTM" = subquery."UTM";\n'''
-                    sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "NumD" integer;\n'
-                    sql += f'''UPDATE "Capa unida {entitat}_{fitxer}" SET "NumD" = subquery.sum_count FROM (SELECT "UTM", SUM(CASE WHEN "qualificacio emissions de co2" = 'D' THEN 1 ELSE 0 END) AS sum_count FROM "Capa unida {entitat}_{fitxer}" GROUP BY "UTM") AS subquery WHERE "Capa unida {entitat}_{fitxer}"."UTM" = subquery."UTM";\n'''
-                    sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "NumE" integer;\n'
-                    sql += f'''UPDATE "Capa unida {entitat}_{fitxer}" SET "NumE" = subquery.sum_count FROM (SELECT "UTM", SUM(CASE WHEN "qualificacio emissions de co2" = 'E' THEN 1 ELSE 0 END) AS sum_count FROM "Capa unida {entitat}_{fitxer}" GROUP BY "UTM") AS subquery WHERE "Capa unida {entitat}_{fitxer}"."UTM" = subquery."UTM";\n'''
-                    sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "NumF" integer;\n'
-                    sql += f'''UPDATE "Capa unida {entitat}_{fitxer}" SET "NumF" = subquery.sum_count FROM (SELECT "UTM", SUM(CASE WHEN "qualificacio emissions de co2" = 'F' THEN 1 ELSE 0 END) AS sum_count FROM "Capa unida {entitat}_{fitxer}" GROUP BY "UTM") AS subquery WHERE "Capa unida {entitat}_{fitxer}"."UTM" = subquery."UTM";\n'''
-                    sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "NumG" integer;\n'
-                    sql += f'''UPDATE "Capa unida {entitat}_{fitxer}" SET "NumG" = subquery.sum_count FROM (SELECT "UTM", SUM(CASE WHEN "qualificacio emissions de co2" = 'G' THEN 1 ELSE 0 END) AS sum_count FROM "Capa unida {entitat}_{fitxer}" GROUP BY "UTM") AS subquery WHERE "Capa unida {entitat}_{fitxer}"."UTM" = subquery."UTM";\n'''
-                    sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "TotalEE" integer;\n'
-                    sql += f'UPDATE "Capa unida {entitat}_{fitxer}" SET "TotalEE" = "NumA" + "NumB" + "NumC" + "NumD" + "NumE" + "NumF" + "NumG";'
-                    cur.execute(sql)
-                    conn.commit()
-                except Exception as ex:
-                    print ("Error calculating NumX columns")
-                    template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-                    message = template.format(type(ex).__name__, ex.args)
-                    print (message)
-                    QMessageBox.critical(None, "Error", "Error calculating NumX columns")
-                    conn.rollback()
-                    self.dlg.setEnabled(True)
-                    return
-            else:
-                try:
-                    sql = f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "NumA" integer;\n'
-                    sql += f'''UPDATE "Capa unida {entitat}_{fitxer}" SET "NumA" = subquery.sum_count FROM (SELECT "id", SUM(CASE WHEN "qualificacio emissions de co2" = 'A' THEN 1 ELSE 0 END) AS sum_count FROM "Capa unida {entitat}_{fitxer}" GROUP BY "id") AS subquery WHERE "Capa unida {entitat}_{fitxer}"."id" = subquery."id";\n'''
-                    sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "NumB" integer;\n'
-                    sql += f'''UPDATE "Capa unida {entitat}_{fitxer}" SET "NumB" = subquery.sum_count FROM (SELECT "id", SUM(CASE WHEN "qualificacio emissions de co2" = 'B' THEN 1 ELSE 0 END) AS sum_count FROM "Capa unida {entitat}_{fitxer}" GROUP BY "id") AS subquery WHERE "Capa unida {entitat}_{fitxer}"."id" = subquery."id";\n'''
-                    sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "NumC" integer;\n'
-                    sql += f'''UPDATE "Capa unida {entitat}_{fitxer}" SET "NumC" = subquery.sum_count FROM (SELECT "id", SUM(CASE WHEN "qualificacio emissions de co2" = 'C' THEN 1 ELSE 0 END) AS sum_count FROM "Capa unida {entitat}_{fitxer}" GROUP BY "id") AS subquery WHERE "Capa unida {entitat}_{fitxer}"."id" = subquery."id";\n'''
-                    sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "NumD" integer;\n'
-                    sql += f'''UPDATE "Capa unida {entitat}_{fitxer}" SET "NumD" = subquery.sum_count FROM (SELECT "id", SUM(CASE WHEN "qualificacio emissions de co2" = 'D' THEN 1 ELSE 0 END) AS sum_count FROM "Capa unida {entitat}_{fitxer}" GROUP BY "id") AS subquery WHERE "Capa unida {entitat}_{fitxer}"."id" = subquery."id";\n'''
-                    sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "NumE" integer;\n'
-                    sql += f'''UPDATE "Capa unida {entitat}_{fitxer}" SET "NumE" = subquery.sum_count FROM (SELECT "id", SUM(CASE WHEN "qualificacio emissions de co2" = 'E' THEN 1 ELSE 0 END) AS sum_count FROM "Capa unida {entitat}_{fitxer}" GROUP BY "id") AS subquery WHERE "Capa unida {entitat}_{fitxer}"."id" = subquery."id";\n'''
-                    sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "NumF" integer;\n'
-                    sql += f'''UPDATE "Capa unida {entitat}_{fitxer}" SET "NumF" = subquery.sum_count FROM (SELECT "id", SUM(CASE WHEN "qualificacio emissions de co2" = 'F' THEN 1 ELSE 0 END) AS sum_count FROM "Capa unida {entitat}_{fitxer}" GROUP BY "id") AS subquery WHERE "Capa unida {entitat}_{fitxer}"."id" = subquery."id";\n'''
-                    sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "NumG" integer;\n'
-                    sql += f'''UPDATE "Capa unida {entitat}_{fitxer}" SET "NumG" = subquery.sum_count FROM (SELECT "id", SUM(CASE WHEN "qualificacio emissions de co2" = 'G' THEN 1 ELSE 0 END) AS sum_count FROM "Capa unida {entitat}_{fitxer}" GROUP BY "id") AS subquery WHERE "Capa unida {entitat}_{fitxer}"."id" = subquery."id";\n'''
-                    sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "TotalEE" integer;\n'
-                    sql += f'UPDATE "Capa unida {entitat}_{fitxer}" SET "TotalEE" = "NumA" + "NumB" + "NumC" + "NumD" + "NumE" + "NumF" + "NumG";'
-                    cur.execute(sql)
-                    conn.commit()
-                except Exception as ex:
-                    print ("Error calculating NumX columns")
-                    template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-                    message = template.format(type(ex).__name__, ex.args)
-                    print (message)
-                    QMessageBox.critical(None, "Error", "Error calculating NumX columns")
-                    conn.rollback()
-                    self.dlg.setEnabled(True)
-                    return
-    
-    def calculm2(self):
-        if consum:
-            '''Drop de les columnes en cas d'existir'''
-            try:
-                drop = f'ALTER TABLE "Capa unida {entitat}_{fitxer}" DROP COLUMN IF EXISTS "m2A";\n'
-                drop += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" DROP COLUMN IF EXISTS "m2B";\n'
-                drop += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" DROP COLUMN IF EXISTS "m2C";\n'
-                drop += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" DROP COLUMN IF EXISTS "m2D";\n'
-                drop += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" DROP COLUMN IF EXISTS "m2E";\n'
-                drop += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" DROP COLUMN IF EXISTS "m2F";\n'
-                drop += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" DROP COLUMN IF EXISTS "m2G";\n'
-                drop += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" DROP COLUMN IF EXISTS "Totalm2";'
-                cur.execute(drop)
-                conn.commit()
-            except Exception as ex:
-                print ("Error dropping m2X columns")
-                template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-                message = template.format(type(ex).__name__, ex.args)
-                print (message)
-                QMessageBox.critical(None, "Error", "Error dropping m2X columns")
-                conn.rollback()
-                self.dlg.setEnabled(True)
-                return
-            
-            '''Calcul m2A, m2B, ..., m2G, Totalm2'''
-            
-            if entitat == llistaEntitats[1]:
-                try:
-                    sql = f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "m2A" float;\n'
-                    sql += f'''UPDATE "Capa unida {entitat}_{fitxer}" SET "m2A" = subquery.sum_count FROM (SELECT "UTM", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'A' THEN CAST(metres_cadastre AS float) ELSE 0 END) AS sum_count FROM "Capa unida {entitat}_{fitxer}" GROUP BY "UTM") AS subquery WHERE "Capa unida {entitat}_{fitxer}"."UTM" = subquery."UTM";\n'''
-                    sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "m2B" float;\n'
-                    sql += f'''UPDATE "Capa unida {entitat}_{fitxer}" SET "m2B" = subquery.sum_count FROM (SELECT "UTM", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'B' THEN CAST(metres_cadastre AS float) ELSE 0 END) AS sum_count FROM "Capa unida {entitat}_{fitxer}" GROUP BY "UTM") AS subquery WHERE "Capa unida {entitat}_{fitxer}"."UTM" = subquery."UTM";\n'''
-                    sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "m2C" float;\n'
-                    sql += f'''UPDATE "Capa unida {entitat}_{fitxer}" SET "m2C" = subquery.sum_count FROM (SELECT "UTM", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'C' THEN CAST(metres_cadastre AS float) ELSE 0 END) AS sum_count FROM "Capa unida {entitat}_{fitxer}" GROUP BY "UTM") AS subquery WHERE "Capa unida {entitat}_{fitxer}"."UTM" = subquery."UTM";\n'''
-                    sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "m2D" float;\n'
-                    sql += f'''UPDATE "Capa unida {entitat}_{fitxer}" SET "m2D" = subquery.sum_count FROM (SELECT "UTM", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'D' THEN CAST(metres_cadastre AS float) ELSE 0 END) AS sum_count FROM "Capa unida {entitat}_{fitxer}" GROUP BY "UTM") AS subquery WHERE "Capa unida {entitat}_{fitxer}"."UTM" = subquery."UTM";\n'''
-                    sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "m2E" float;\n'
-                    sql += f'''UPDATE "Capa unida {entitat}_{fitxer}" SET "m2E" = subquery.sum_count FROM (SELECT "UTM", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'E' THEN CAST(metres_cadastre AS float) ELSE 0 END) AS sum_count FROM "Capa unida {entitat}_{fitxer}" GROUP BY "UTM") AS subquery WHERE "Capa unida {entitat}_{fitxer}"."UTM" = subquery."UTM";\n'''
-                    sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "m2F" float;\n'
-                    sql += f'''UPDATE "Capa unida {entitat}_{fitxer}" SET "m2F" = subquery.sum_count FROM (SELECT "UTM", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'F' THEN CAST(metres_cadastre AS float) ELSE 0 END) AS sum_count FROM "Capa unida {entitat}_{fitxer}" GROUP BY "UTM") AS subquery WHERE "Capa unida {entitat}_{fitxer}"."UTM" = subquery."UTM";\n'''
-                    sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "m2G" float;\n'
-                    sql += f'''UPDATE "Capa unida {entitat}_{fitxer}" SET "m2G" = subquery.sum_count FROM (SELECT "UTM", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'G' THEN CAST(metres_cadastre AS float) ELSE 0 END) AS sum_count FROM "Capa unida {entitat}_{fitxer}" GROUP BY "UTM") AS subquery WHERE "Capa unida {entitat}_{fitxer}"."UTM" = subquery."UTM";\n'''
-                    sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "Totalm2" float;\n'
-                    sql += f'UPDATE "Capa unida {entitat}_{fitxer}" SET "Totalm2" = "m2A" + "m2B" + "m2C" + "m2D" + "m2E" + "m2F" + "m2G";'
-                    cur.execute(sql)
-                    conn.commit()
-                except Exception as ex:
-                    print ("Error calculating m2X columns")
-                    template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-                    message = template.format(type(ex).__name__, ex.args)
-                    print (message)
-                    QMessageBox.critical(None, "Error", "Error calculating m2X columns")
-                    conn.rollback()
-                    self.dlg.setEnabled(True)
-                    return
-            else:
-                try:
-                    sql = f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "m2A" float;\n'
-                    sql += f'''UPDATE "Capa unida {entitat}_{fitxer}" SET "m2A" = subquery.sum_count FROM (SELECT "id", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'A' THEN CAST(metres_cadastre AS float) ELSE 0 END) AS sum_count FROM "Capa unida {entitat}_{fitxer}" GROUP BY "id") AS subquery WHERE "Capa unida {entitat}_{fitxer}"."id" = subquery."id";\n'''
-                    sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "m2B" float;\n'
-                    sql += f'''UPDATE "Capa unida {entitat}_{fitxer}" SET "m2B" = subquery.sum_count FROM (SELECT "id", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'B' THEN CAST(metres_cadastre AS float) ELSE 0 END) AS sum_count FROM "Capa unida {entitat}_{fitxer}" GROUP BY "id") AS subquery WHERE "Capa unida {entitat}_{fitxer}"."id" = subquery."id";\n'''
-                    sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "m2C" float;\n'
-                    sql += f'''UPDATE "Capa unida {entitat}_{fitxer}" SET "m2C" = subquery.sum_count FROM (SELECT "id", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'C' THEN CAST(metres_cadastre AS float) ELSE 0 END) AS sum_count FROM "Capa unida {entitat}_{fitxer}" GROUP BY "id") AS subquery WHERE "Capa unida {entitat}_{fitxer}"."id" = subquery."id";\n'''
-                    sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "m2D" float;\n'
-                    sql += f'''UPDATE "Capa unida {entitat}_{fitxer}" SET "m2D" = subquery.sum_count FROM (SELECT "id", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'D' THEN CAST(metres_cadastre AS float) ELSE 0 END) AS sum_count FROM "Capa unida {entitat}_{fitxer}" GROUP BY "id") AS subquery WHERE "Capa unida {entitat}_{fitxer}"."id" = subquery."id";\n'''
-                    sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "m2E" float;\n'
-                    sql += f'''UPDATE "Capa unida {entitat}_{fitxer}" SET "m2E" = subquery.sum_count FROM (SELECT "id", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'E' THEN CAST(metres_cadastre AS float) ELSE 0 END) AS sum_count FROM "Capa unida {entitat}_{fitxer}" GROUP BY "id") AS subquery WHERE "Capa unida {entitat}_{fitxer}"."id" = subquery."id";\n'''
-                    sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "m2F" float;\n'
-                    sql += f'''UPDATE "Capa unida {entitat}_{fitxer}" SET "m2F" = subquery.sum_count FROM (SELECT "id", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'F' THEN CAST(metres_cadastre AS float) ELSE 0 END) AS sum_count FROM "Capa unida {entitat}_{fitxer}" GROUP BY "id") AS subquery WHERE "Capa unida {entitat}_{fitxer}"."id" = subquery."id";\n'''
-                    sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "m2G" float;\n'
-                    sql += f'''UPDATE "Capa unida {entitat}_{fitxer}" SET "m2G" = subquery.sum_count FROM (SELECT "id", SUM(CASE WHEN "qualificació de consum energia primaria no renovable" = 'G' THEN CAST(metres_cadastre AS float) ELSE 0 END) AS sum_count FROM "Capa unida {entitat}_{fitxer}" GROUP BY "id") AS subquery WHERE "Capa unida {entitat}_{fitxer}"."id" = subquery."id";\n'''
-                    sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "Totalm2" float;\n'
-                    sql += f'UPDATE "Capa unida {entitat}_{fitxer}" SET "Totalm2" = "m2A" + "m2B" + "m2C" + "m2D" + "m2E" + "m2F" + "m2G";'
-                    cur.execute(sql)
-                    conn.commit()
-                except Exception as ex:
-                    print ("Error calculating m2X columns")
-                    template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-                    message = template.format(type(ex).__name__, ex.args)
-                    print (message)
-                    QMessageBox.critical(None, "Error", "Error calculating m2X columns")
-                    conn.rollback()
-                    self.dlg.setEnabled(True)
-                    return
-        if emissions:
-            '''Drop de les columnes en cas d'existir'''
-            try:
-                drop = f'ALTER TABLE "Capa unida {entitat}_{fitxer}" DROP COLUMN IF EXISTS "m2A";\n'
-                drop += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" DROP COLUMN IF EXISTS "m2B";\n'
-                drop += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" DROP COLUMN IF EXISTS "m2C";\n'
-                drop += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" DROP COLUMN IF EXISTS "m2D";\n'
-                drop += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" DROP COLUMN IF EXISTS "m2E";\n'
-                drop += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" DROP COLUMN IF EXISTS "m2F";\n'
-                drop += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" DROP COLUMN IF EXISTS "m2G";\n'
-                drop += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" DROP COLUMN IF EXISTS "Totalm2";'
-                cur.execute(drop)
-                conn.commit()
-            except Exception as ex:
-                print ("Error dropping m2X columns")
-                template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-                message = template.format(type(ex).__name__, ex.args)
-                print (message)
-                QMessageBox.critical(None, "Error", "Error dropping m2X columns")
-                conn.rollback()
-                self.dlg.setEnabled(True)
-                return
-            
-            '''Calcul m2A, m2B, ..., m2G, Totalm2'''
-            
-            if entitat == llistaEntitats[1]:
-                try:
-                    sql = f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "m2A" float;\n'
-                    sql += f'''UPDATE "Capa unida {entitat}_{fitxer}" SET "m2A" = subquery.sum_count FROM (SELECT "UTM", SUM(CASE WHEN "qualificacio emissions de co2" = 'A' THEN CAST(metres_cadastre AS float) ELSE 0 END) AS sum_count FROM "Capa unida {entitat}_{fitxer}" GROUP BY "UTM") AS subquery WHERE "Capa unida {entitat}_{fitxer}"."UTM" = subquery."UTM";\n'''
-                    sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "m2B" float;\n'
-                    sql += f'''UPDATE "Capa unida {entitat}_{fitxer}" SET "m2B" = subquery.sum_count FROM (SELECT "UTM", SUM(CASE WHEN "qualificacio emissions de co2" = 'B' THEN CAST(metres_cadastre AS float) ELSE 0 END) AS sum_count FROM "Capa unida {entitat}_{fitxer}" GROUP BY "UTM") AS subquery WHERE "Capa unida {entitat}_{fitxer}"."UTM" = subquery."UTM";\n'''
-                    sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "m2C" float;\n'
-                    sql += f'''UPDATE "Capa unida {entitat}_{fitxer}" SET "m2C" = subquery.sum_count FROM (SELECT "UTM", SUM(CASE WHEN "qualificacio emissions de co2" = 'C' THEN CAST(metres_cadastre AS float) ELSE 0 END) AS sum_count FROM "Capa unida {entitat}_{fitxer}" GROUP BY "UTM") AS subquery WHERE "Capa unida {entitat}_{fitxer}"."UTM" = subquery."UTM";\n'''
-                    sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "m2D" float;\n'
-                    sql += f'''UPDATE "Capa unida {entitat}_{fitxer}" SET "m2D" = subquery.sum_count FROM (SELECT "UTM", SUM(CASE WHEN "qualificacio emissions de co2" = 'D' THEN CAST(metres_cadastre AS float) ELSE 0 END) AS sum_count FROM "Capa unida {entitat}_{fitxer}" GROUP BY "UTM") AS subquery WHERE "Capa unida {entitat}_{fitxer}"."UTM" = subquery."UTM";\n'''
-                    sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "m2E" float;\n'
-                    sql += f'''UPDATE "Capa unida {entitat}_{fitxer}" SET "m2E" = subquery.sum_count FROM (SELECT "UTM", SUM(CASE WHEN "qualificacio emissions de co2" = 'E' THEN CAST(metres_cadastre AS float) ELSE 0 END) AS sum_count FROM "Capa unida {entitat}_{fitxer}" GROUP BY "UTM") AS subquery WHERE "Capa unida {entitat}_{fitxer}"."UTM" = subquery."UTM";\n'''
-                    sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "m2F" float;\n'
-                    sql += f'''UPDATE "Capa unida {entitat}_{fitxer}" SET "m2F" = subquery.sum_count FROM (SELECT "UTM", SUM(CASE WHEN "qualificacio emissions de co2" = 'F' THEN CAST(metres_cadastre AS float) ELSE 0 END) AS sum_count FROM "Capa unida {entitat}_{fitxer}" GROUP BY "UTM") AS subquery WHERE "Capa unida {entitat}_{fitxer}"."UTM" = subquery."UTM";\n'''
-                    sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "m2G" float;\n'
-                    sql += f'''UPDATE "Capa unida {entitat}_{fitxer}" SET "m2G" = subquery.sum_count FROM (SELECT "UTM", SUM(CASE WHEN "qualificacio emissions de co2" = 'G' THEN CAST(metres_cadastre AS float) ELSE 0 END) AS sum_count FROM "Capa unida {entitat}_{fitxer}" GROUP BY "UTM") AS subquery WHERE "Capa unida {entitat}_{fitxer}"."UTM" = subquery."UTM";\n'''
-                    sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "Totalm2" float;\n'
-                    sql += f'UPDATE "Capa unida {entitat}_{fitxer}" SET "Totalm2" = "m2A" + "m2B" + "m2C" + "m2D" + "m2E" + "m2F" + "m2G";'
-                    cur.execute(sql)
-                    conn.commit()
-                except Exception as ex:
-                    print ("Error calculating m2X columns")
-                    template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-                    message = template.format(type(ex).__name__, ex.args)
-                    print (message)
-                    QMessageBox.critical(None, "Error", "Error calculating m2X columns")
-                    conn.rollback()
-                    self.dlg.setEnabled(True)
-                    return
-            else:
-                try:
-                    sql = f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "m2A" float;\n'
-                    sql += f'''UPDATE "Capa unida {entitat}_{fitxer}" SET "m2A" = subquery.sum_count FROM (SELECT "id", SUM(CASE WHEN "qualificacio emissions de co2" = 'A' THEN CAST(metres_cadastre AS float) ELSE 0 END) AS sum_count FROM "Capa unida {entitat}_{fitxer}" GROUP BY "id") AS subquery WHERE "Capa unida {entitat}_{fitxer}"."id" = subquery."id";\n'''
-                    sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "m2B" float;\n'
-                    sql += f'''UPDATE "Capa unida {entitat}_{fitxer}" SET "m2B" = subquery.sum_count FROM (SELECT "id", SUM(CASE WHEN "qualificacio emissions de co2" = 'B' THEN CAST(metres_cadastre AS float) ELSE 0 END) AS sum_count FROM "Capa unida {entitat}_{fitxer}" GROUP BY "id") AS subquery WHERE "Capa unida {entitat}_{fitxer}"."id" = subquery."id";\n'''
-                    sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "m2C" float;\n'
-                    sql += f'''UPDATE "Capa unida {entitat}_{fitxer}" SET "m2C" = subquery.sum_count FROM (SELECT "id", SUM(CASE WHEN "qualificacio emissions de co2" = 'C' THEN CAST(metres_cadastre AS float) ELSE 0 END) AS sum_count FROM "Capa unida {entitat}_{fitxer}" GROUP BY "id") AS subquery WHERE "Capa unida {entitat}_{fitxer}"."id" = subquery."id";\n'''
-                    sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "m2D" float;\n'
-                    sql += f'''UPDATE "Capa unida {entitat}_{fitxer}" SET "m2D" = subquery.sum_count FROM (SELECT "id", SUM(CASE WHEN "qualificacio emissions de co2" = 'D' THEN CAST(metres_cadastre AS float) ELSE 0 END) AS sum_count FROM "Capa unida {entitat}_{fitxer}" GROUP BY "id") AS subquery WHERE "Capa unida {entitat}_{fitxer}"."id" = subquery."id";\n'''
-                    sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "m2E" float;\n'
-                    sql += f'''UPDATE "Capa unida {entitat}_{fitxer}" SET "m2E" = subquery.sum_count FROM (SELECT "id", SUM(CASE WHEN "qualificacio emissions de co2" = 'E' THEN CAST(metres_cadastre AS float) ELSE 0 END) AS sum_count FROM "Capa unida {entitat}_{fitxer}" GROUP BY "id") AS subquery WHERE "Capa unida {entitat}_{fitxer}"."id" = subquery."id";\n'''
-                    sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "m2F" float;\n'
-                    sql += f'''UPDATE "Capa unida {entitat}_{fitxer}" SET "m2F" = subquery.sum_count FROM (SELECT "id", SUM(CASE WHEN "qualificacio emissions de co2" = 'F' THEN CAST(metres_cadastre AS float) ELSE 0 END) AS sum_count FROM "Capa unida {entitat}_{fitxer}" GROUP BY "id") AS subquery WHERE "Capa unida {entitat}_{fitxer}"."id" = subquery."id";\n'''
-                    sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "m2G" float;\n'
-                    sql += f'''UPDATE "Capa unida {entitat}_{fitxer}" SET "m2G" = subquery.sum_count FROM (SELECT "id", SUM(CASE WHEN "qualificacio emissions de co2" = 'G' THEN CAST(metres_cadastre AS float) ELSE 0 END) AS sum_count FROM "Capa unida {entitat}_{fitxer}" GROUP BY "id") AS subquery WHERE "Capa unida {entitat}_{fitxer}"."id" = subquery."id";\n'''
-                    sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "Totalm2" float;\n'
-                    sql += f'UPDATE "Capa unida {entitat}_{fitxer}" SET "Totalm2" = "m2A" + "m2B" + "m2C" + "m2D" + "m2E" + "m2F" + "m2G";'
-                    cur.execute(sql)
-                    conn.commit()
-                except Exception as ex:
-                    print ("Error calculating m2X columns")
-                    template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-                    message = template.format(type(ex).__name__, ex.args)
-                    print (message)
-                    QMessageBox.critical(None, "Error", "Error calculating m2X columns")
-                    conn.rollback()
-                    self.dlg.setEnabled(True)
-                    return
-
-    def calculMitjana(self):
-            
-        if consum:
-
-            ''' Nous càlculs octubre '''
-            try:
-                if self.dlg.checkNumHabit.isChecked() and not self.dlg.checkm2.isChecked():
-                    sql = f'ALTER TABLE "Capa unida {entitat}_{fitxer}" DROP COLUMN IF EXISTS "sum_consums";\n'
-
-                    cur.execute(sql)
-                    conn.commit()
-
-                    if entitat == llistaEntitats[1]:
-                        sql = f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "sum_consums" FLOAT;\n'
-                        sql += f'UPDATE "Capa unida {entitat}_{fitxer}" SET "sum_consums" = subquery.sum_count FROM (SELECT "UTM", SUM(CAST("energia primària no renovable" AS FLOAT)) AS sum_count FROM "Capa unida {entitat}_{fitxer}" GROUP BY "UTM") AS subquery WHERE "Capa unida {entitat}_{fitxer}"."UTM" = subquery."UTM";\n'
-                        cur.execute(sql)
-                        conn.commit()
-
-                    else:
-                        sql = f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "sum_consums" FLOAT;\n'
-                        sql += f'UPDATE "Capa unida {entitat}_{fitxer}" SET "sum_consums" = subquery.sum_count FROM (SELECT "id", SUM(CAST("energia primària no renovable" AS FLOAT)) AS sum_count FROM "Capa unida {entitat}_{fitxer}" GROUP BY "id") AS subquery WHERE "Capa unida {entitat}_{fitxer}"."id" = subquery."id";\n'
-                        cur.execute(sql)
-                        conn.commit()
-
-                    sql = f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "INDEX_consums_hab" FLOAT;\n'
-                    sql += f'UPDATE "Capa unida {entitat}_{fitxer}" SET "INDEX_consums_hab" = CASE WHEN "TotalEE" = 0 THEN 0 ELSE ("sum_consums" / "TotalEE") END;\n'
-
-                    cur.execute(sql)
-                    conn.commit()
-
-                if self.dlg.checkm2.isChecked() or (self.dlg.checkNumHabit.isChecked() and self.dlg.checkm2.isChecked()):
-
-                    sql = f'ALTER TABLE "Capa unida {entitat}_{fitxer}" DROP COLUMN IF EXISTS "sum_producte_con";\n'
-
-                    cur.execute(sql)
-                    conn.commit()
-
-                    if entitat == llistaEntitats[1]:
-                        sql = f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "sum_producte_con" FLOAT;\n'
-                        sql += f'UPDATE "Capa unida {entitat}_{fitxer}" SET "sum_producte_con" = subquery.sum_count FROM (SELECT "UTM", SUM(CAST("producte_con" AS FLOAT)) AS sum_count FROM "Capa unida {entitat}_{fitxer}" GROUP BY "UTM") AS subquery WHERE "Capa unida {entitat}_{fitxer}"."UTM" = subquery."UTM";\n'
-                        sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "sum_m2" FLOAT;\n'
-                        sql += f'UPDATE "Capa unida {entitat}_{fitxer}" SET "sum_m2" = subquery.sum_count FROM (SELECT "UTM", SUM(CAST("metres_cadastre" AS FLOAT)) AS sum_count FROM "Capa unida {entitat}_{fitxer}" GROUP BY "UTM") AS subquery WHERE "Capa unida {entitat}_{fitxer}"."UTM" = subquery."UTM";'
-                        cur.execute(sql)
-                        conn.commit()
-                    else:
-                        sql = f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "sum_producte_con" FLOAT;\n'
-                        sql += f'UPDATE "Capa unida {entitat}_{fitxer}" SET "sum_producte_con" = subquery.sum_count FROM (SELECT "id", SUM(CAST("producte_con" AS FLOAT)) AS sum_count FROM "Capa unida {entitat}_{fitxer}" GROUP BY "id") AS subquery WHERE "Capa unida {entitat}_{fitxer}"."id" = subquery."id";\n'
-                        sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "sum_m2" FLOAT;\n'
-                        sql += f'UPDATE "Capa unida {entitat}_{fitxer}" SET "sum_m2" = subquery.sum_count FROM (SELECT "id", SUM(CAST("metres_cadastre" AS FLOAT)) AS sum_count FROM "Capa unida {entitat}_{fitxer}" GROUP BY "id") AS subquery WHERE "Capa unida {entitat}_{fitxer}"."id" = subquery."id";'
-                        cur.execute(sql)
-                        conn.commit()
-
-                    sql = f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "INDEX_consum" FLOAT;\n'
-                    sql += f'UPDATE "Capa unida {entitat}_{fitxer}" SET "INDEX_consum" = CASE WHEN "sum_m2" = 0 THEN 0 ELSE ("sum_producte_con"/"sum_m2") END;\n'
-                    cur.execute(sql)
-                    conn.commit()
-            
-            except Exception as ex:
-                print ("Error fent sumes de camps de la mitjana")
-                template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-                message = template.format(type(ex).__name__, ex.args)
-                print (message)
-                QMessageBox.critical(None, "Error", "Error fent sumes de camps de la mitjana")
-                conn.rollback()
-                self.dlg.setEnabled(True)
-                return
-            
-        if emissions:
-            try:
-                if self.dlg.checkNumHabit.isChecked() and not self.dlg.checkm2.isChecked():
-                    sql = f'ALTER TABLE "Capa unida {entitat}_{fitxer}" DROP COLUMN IF EXISTS "sum_emissions";\n'
-
-                    cur.execute(sql)
-                    conn.commit()
-
-                    if entitat == llistaEntitats[1]:
-                        sql = f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "sum_emissions" FLOAT;\n'
-                        sql += f'UPDATE "Capa unida {entitat}_{fitxer}" SET "sum_emissions" = subquery.sum_count FROM (SELECT "UTM", SUM(CAST("emissions de co2" AS FLOAT)) AS sum_count FROM "Capa unida {entitat}_{fitxer}" GROUP BY "UTM") AS subquery WHERE "Capa unida {entitat}_{fitxer}"."UTM" = subquery."UTM";'
-                        cur.execute(sql)
-                        conn.commit()
-
-                    else:
-                        sql = f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "sum_emissions" FLOAT;\n'
-                        sql += f'UPDATE "Capa unida {entitat}_{fitxer}" SET "sum_emissions" = subquery.sum_count FROM (SELECT "id", SUM(CAST("emissions de co2" AS FLOAT)) AS sum_count FROM "Capa unida {entitat}_{fitxer}" GROUP BY "id") AS subquery WHERE "Capa unida {entitat}_{fitxer}"."id" = subquery."id";'
-                        cur.execute(sql)
-                        conn.commit()
-
-                    sql = f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "INDEX_emissions_hab" FLOAT;\n'
-                    sql += f'UPDATE "Capa unida {entitat}_{fitxer}" SET "INDEX_emissions_hab" = CASE WHEN "TotalEE" = 0 THEN 0 ELSE ("sum_emissions" / "TotalEE") END;\n'
-
-                    cur.execute(sql)
-                    conn.commit()
-
-                if self.dlg.checkm2.isChecked() or (self.dlg.checkNumHabit.isChecked() and self.dlg.checkm2.isChecked()):
-
-                    sql = f'ALTER TABLE "Capa unida {entitat}_{fitxer}" DROP COLUMN IF EXISTS "sum_producte_emi";\n'
-                    cur.execute(sql)
-                    conn.commit()
-
-                    if entitat == llistaEntitats[1]:
-                        sql = f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "sum_producte_emi" FLOAT;\n'
-                        sql += f'UPDATE "Capa unida {entitat}_{fitxer}" SET "sum_producte_emi" = subquery.sum_count FROM (SELECT "UTM", SUM(CAST("producte_emi" AS FLOAT)) AS sum_count FROM "Capa unida {entitat}_{fitxer}" GROUP BY "UTM") AS subquery WHERE "Capa unida {entitat}_{fitxer}"."UTM" = subquery."UTM";\n'
-                        sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "sum_m2" FLOAT;\n'
-                        sql += f'UPDATE "Capa unida {entitat}_{fitxer}" SET "sum_m2" = subquery.sum_count FROM (SELECT "UTM", SUM(CAST("metres_cadastre" AS FLOAT)) AS sum_count FROM "Capa unida {entitat}_{fitxer}" GROUP BY "UTM") AS subquery WHERE "Capa unida {entitat}_{fitxer}"."UTM" = subquery."UTM";'
-                        cur.execute(sql)
-                        conn.commit()
-                    else:
-                        sql = f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "sum_producte_emi" FLOAT;\n'
-                        sql += f'UPDATE "Capa unida {entitat}_{fitxer}" SET "sum_producte_emi" = subquery.sum_count FROM (SELECT "id", SUM(CAST("producte_emi" AS FLOAT)) AS sum_count FROM "Capa unida {entitat}_{fitxer}" GROUP BY "id") AS subquery WHERE "Capa unida {entitat}_{fitxer}"."id" = subquery."id";\n'
-                        sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "sum_m2" FLOAT;\n'
-                        sql += f'UPDATE "Capa unida {entitat}_{fitxer}" SET "sum_m2" = subquery.sum_count FROM (SELECT "id", SUM(CAST("metres_cadastre" AS FLOAT)) AS sum_count FROM "Capa unida {entitat}_{fitxer}" GROUP BY "id") AS subquery WHERE "Capa unida {entitat}_{fitxer}"."id" = subquery."id";'
-                        cur.execute(sql)
-                        conn.commit()
-
-                    sql = f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "INDEX_emissions" FLOAT;\n'
-                    sql += f'UPDATE "Capa unida {entitat}_{fitxer}" SET "INDEX_emissions" = CASE WHEN "sum_m2" = 0 THEN 0 ELSE ("sum_producte_emi"/"sum_m2") END;'
-                    cur.execute(sql)
-                    conn.commit()
-            
-            except Exception as ex:
-                print ("Error fent sumes de camps de la mitjana")
-                template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-                message = template.format(type(ex).__name__, ex.args)
-                print (message)
-                QMessageBox.critical(None, "Error", "Error fent sumes de camps de la mitjana")
-                conn.rollback()
-                self.dlg.setEnabled(True)
-                return
-
-    def calculModa(self):
-
-        if consum:
-            ''' Nous càlculs octubre '''
-            try:
-                if self.dlg.checkNumHabit.isChecked() and not self.dlg.checkm2.isChecked():
-                    sql = f'ALTER TABLE "Capa unida {entitat}_{fitxer}" DROP COLUMN IF EXISTS "maxConsfreq";\n'
-                    sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" DROP COLUMN IF EXISTS "QualifMaxFreq";\n'
-                    cur.execute(sql)
-                    conn.commit()
-
-                    sql = f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "maxConsfreq" FLOAT;\n'
-                    sql += f'UPDATE "Capa unida {entitat}_{fitxer}" SET "maxConsfreq" = GREATEST("NumA", "NumB", "NumC", "NumD", "NumE", "NumF", "NumG");\n'
-                    sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "QualifMaxFreq" VARCHAR;\n'
-                    sql += f'''UPDATE "Capa unida {entitat}_{fitxer}" SET "QualifMaxFreq" =
-                        CASE
-                            WHEN "maxConsfreq" = "NumA" THEN 'A'
-                            WHEN "maxConsfreq" = "NumB" THEN 'B'
-                            WHEN "maxConsfreq" = "NumC" THEN 'C'
-                            WHEN "maxConsfreq" = "NumD" THEN 'D'
-                            WHEN "maxConsfreq" = "NumE" THEN 'E'
-                            WHEN "maxConsfreq" = "NumF" THEN 'F'
-                            ELSE 'G'
-                        END;
-                    '''
-                    cur.execute(sql)
-                    conn.commit()
-
-                    if entitat==llistaEntitats[1]:
-                        sql = f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "indexMODAhabConsum" FLOAT;\n'
-                        sql += f'''
-                        UPDATE "Capa unida {entitat}_{fitxer}" AS c
-                        SET "indexMODAhabConsum" = subquery.moda
-                        FROM (
-                            SELECT "UTM",
-                                (
-                                    SUM (
-                                        CASE
-                                            WHEN "qualificació de consum energia primaria no renovable" = "QualifMaxFreq"
-                                                THEN CAST("energia primària no renovable" AS FLOAT)
-                                            ELSE 0
-                                        END
-                                    ) / NULLIF(SUM (
-                                        CASE
-                                            WHEN "qualificació de consum energia primaria no renovable" = "QualifMaxFreq"
-                                                THEN 1
-                                            ELSE 0
-                                        END), 0
-                                    )
-                                ) AS moda
-                            FROM {schema1}."Capa unida {entitat}_{fitxer}"
-                            GROUP BY "UTM"
-                        ) AS subquery
-                        WHERE c."UTM" = subquery."UTM"\n;
-                        '''
-                        cur.execute(sql)
-                        conn.commit()
-
-                    else:
-                        sql = f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "indexMODAhabConsum" FLOAT;\n'
-                        sql += f'''
-                        UPDATE "Capa unida {entitat}_{fitxer}" AS c
-                        SET "indexMODAhabConsum" = subquery.moda
-                        FROM (
-                            SELECT "id",
-                                (
-                                    SUM (
-                                        CASE
-                                            WHEN "qualificació de consum energia primaria no renovable" = "QualifMaxFreq"
-                                                THEN CAST("energia primària no renovable" AS FLOAT)
-                                            ELSE 0
-                                        END
-                                    ) / NULLIF(SUM (
-                                        CASE
-                                            WHEN "qualificació de consum energia primaria no renovable" = "QualifMaxFreq"
-                                                THEN 1
-                                            ELSE 0
-                                        END), 0
-                                    )
-                                ) AS moda
-                            FROM {schema1}."Capa unida {entitat}_{fitxer}"
-                            GROUP BY "id"
-                        ) AS subquery
-                        WHERE c."id" = subquery."id"\n;
-                        '''
-                        cur.execute(sql)
-                        conn.commit()
-                        
-
-
-
-                if self.dlg.checkm2.isChecked() or (self.dlg.checkNumHabit.isChecked() and self.dlg.checkm2.isChecked()):
-                    sql = f'ALTER TABLE "Capa unida {entitat}_{fitxer}" DROP COLUMN IF EXISTS "maxConsum";\n'
-                    sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" DROP COLUMN IF EXISTS "QualifMaxSup";\n'
-                    cur.execute(sql)
-                    conn.commit()
-
-                    sql = f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "maxConsum" FLOAT;\n'
-                    sql += f'UPDATE "Capa unida {entitat}_{fitxer}" SET "maxConsum" = GREATEST("m2A", "m2B", "m2C", "m2D", "m2E", "m2F", "m2G");\n'
-                    sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "QualifMaxSup" VARCHAR;\n'
-                    sql += f'''UPDATE "Capa unida {entitat}_{fitxer}" SET "QualifMaxSup" =
-                        CASE
-                            WHEN "maxConsum" = "m2A" THEN 'A'
-                            WHEN "maxConsum" = "m2B" THEN 'B'
-                            WHEN "maxConsum" = "m2C" THEN 'C'
-                            WHEN "maxConsum" = "m2D" THEN 'D'
-                            WHEN "maxConsum" = "m2E" THEN 'E'
-                            WHEN "maxConsum" = "m2F" THEN 'F'
-                            ELSE 'G'
-                        END;
-                    '''
-                    cur.execute(sql)
-                    conn.commit()
-
-                    if entitat==llistaEntitats[1]:
-                        sql = f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "indexMODAsupConsum" FLOAT;\n'
-                        sql += f'''
-                        UPDATE "Capa unida {entitat}_{fitxer}" AS c
-                        SET "indexMODAsupConsum" = subquery.moda
-                        FROM (
-                            SELECT "UTM",
-                                (
-                                    SUM (
-                                        CASE
-                                            WHEN "qualificació de consum energia primaria no renovable" = "QualifMaxSup"
-                                                THEN CAST("energia primària no renovable" AS FLOAT) * CAST("metres_cadastre" AS FLOAT)
-                                            ELSE 0
-                                        END
-                                    ) / NULLIF(SUM (
-                                        CASE
-                                            WHEN "qualificació de consum energia primaria no renovable" = "QualifMaxSup"
-                                                THEN CAST("metres_cadastre" AS FLOAT)
-                                            ELSE 0
-                                        END), 0
-                                    )
-                                ) AS moda
-                            FROM {schema1}."Capa unida {entitat}_{fitxer}"
-                            GROUP BY "UTM"
-                        ) AS subquery
-                        WHERE c."UTM" = subquery."UTM"\n;
-                        '''
-                        cur.execute(sql)
-                        conn.commit()
-
-                    else:
-                        sql = f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "indexMODAsupConsum" FLOAT;\n'
-                        sql += f'''
-                        UPDATE "Capa unida {entitat}_{fitxer}" AS c
-                        SET "indexMODAsupConsum" = subquery.moda
-                        FROM (
-                            SELECT "id",
-                                (
-                                    SUM (
-                                        CASE
-                                            WHEN "qualificació de consum energia primaria no renovable" = "QualifMaxSup"
-                                                THEN CAST("energia primària no renovable" AS FLOAT) * CAST("metres_cadastre" AS FLOAT)
-                                            ELSE 0
-                                        END
-                                    ) / NULLIF(SUM (
-                                        CASE
-                                            WHEN "qualificació de consum energia primaria no renovable" = "QualifMaxSup"
-                                                THEN CAST("metres_cadastre" AS FLOAT)
-                                            ELSE 0
-                                        END), 0
-                                    )
-                                ) AS moda
-                            FROM {schema1}."Capa unida {entitat}_{fitxer}"
-                            GROUP BY "id"
-                        ) AS subquery
-                        WHERE c."id" = subquery."id"\n;
-                        '''
-                        cur.execute(sql)
-                        conn.commit()
-            except Exception as ex:
-                print ("Error fent calcul moda")
-                template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-                message = template.format(type(ex).__name__, ex.args)
-                print (message)
-                QMessageBox.critical(None, "Error", "Error fent calcul moda")
-                conn.rollback()
-                self.dlg.setEnabled(True)
-                return
-
-        if emissions:
-            try:
-                if self.dlg.checkNumHabit.isChecked() and not self.dlg.checkm2.isChecked():
-                    sql = f'ALTER TABLE "Capa unida {entitat}_{fitxer}" DROP COLUMN IF EXISTS "maxEmifreq";\n'
-                    sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" DROP COLUMN IF EXISTS "QualifMaxFreq";\n'
-                    cur.execute(sql)
-                    conn.commit()
-
-                    sql = f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "maxEmifreq" FLOAT;\n'
-                    sql += f'UPDATE "Capa unida {entitat}_{fitxer}" SET "maxEmifreq" = GREATEST("NumA", "NumB", "NumC", "NumD", "NumE", "NumF", "NumG");\n'
-                    sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "QualifMaxFreq" VARCHAR;\n'
-                    sql += f'''UPDATE "Capa unida {entitat}_{fitxer}" SET "QualifMaxFreq" =
-                        CASE
-                            WHEN "maxEmifreq" = "NumA" THEN 'A'
-                            WHEN "maxEmifreq" = "NumB" THEN 'B'
-                            WHEN "maxEmifreq" = "NumC" THEN 'C'
-                            WHEN "maxEmifreq" = "NumD" THEN 'D'
-                            WHEN "maxEmifreq" = "NumE" THEN 'E'
-                            WHEN "maxEmifreq" = "NumF" THEN 'F'
-                            ELSE 'G'
-                        END;
-                    '''
-                    cur.execute(sql)
-                    conn.commit()
-
-                    if entitat==llistaEntitats[1]:
-                        sql = f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "indexMODAhabEmissions" FLOAT;\n'
-                        sql += f'''
-                        UPDATE "Capa unida {entitat}_{fitxer}" AS c
-                        SET "indexMODAhabEmissions" = subquery.moda
-                        FROM (
-                            SELECT "UTM",
-                                (
-                                    SUM (
-                                        CASE
-                                            WHEN "qualificacio emissions de co2" = "QualifMaxFreq"
-                                                THEN CAST("emissions de co2" AS FLOAT)
-                                            ELSE 0
-                                        END
-                                    ) / NULLIF(SUM (
-                                        CASE
-                                            WHEN "qualificacio emissions de co2" = "QualifMaxFreq"
-                                                THEN 1
-                                            ELSE 0
-                                        END), 0
-                                    )
-                                ) AS moda
-                            FROM {schema1}."Capa unida {entitat}_{fitxer}"
-                            GROUP BY "UTM"
-                        ) AS subquery
-                        WHERE c."UTM" = subquery."UTM"\n;
-                        '''
-                        cur.execute(sql)
-                        conn.commit()
-
-                    else:
-                        sql = f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "indexMODAhabEmissions" FLOAT;\n'
-                        sql += f'''
-                        UPDATE "Capa unida {entitat}_{fitxer}" AS c
-                        SET "indexMODAhabEmissions" = subquery.moda
-                        FROM (
-                            SELECT "id",
-                                (
-                                    SUM (
-                                        CASE
-                                            WHEN "qualificacio emissions de co2" = "QualifMaxFreq"
-                                                THEN CAST("emissions de co2" AS FLOAT)
-                                            ELSE 0
-                                        END
-                                    ) / NULLIF(SUM (
-                                        CASE
-                                            WHEN "qualificacio emissions de co2" = "QualifMaxFreq"
-                                                THEN 1
-                                            ELSE 0
-                                        END), 0
-                                    )
-                                ) AS moda
-                            FROM {schema1}."Capa unida {entitat}_{fitxer}"
-                            GROUP BY "id"
-                        ) AS subquery
-                        WHERE c."id" = subquery."id"\n;
-                        '''
-                        cur.execute(sql)
-                        conn.commit()
-
-                if self.dlg.checkm2.isChecked() or (self.dlg.checkNumHabit.isChecked() and self.dlg.checkm2.isChecked()):
-                    sql = f'ALTER TABLE "Capa unida {entitat}_{fitxer}" DROP COLUMN IF EXISTS "maxEmissions";\n'
-                    sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" DROP COLUMN IF EXISTS "QualifMaxSup";\n'
-                    cur.execute(sql)
-                    conn.commit()
-
-                    sql = f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "maxEmissions" FLOAT;\n'
-                    sql += f'UPDATE "Capa unida {entitat}_{fitxer}" SET "maxEmissions" = GREATEST("m2A", "m2B", "m2C", "m2D", "m2E", "m2F", "m2G");\n'
-                    sql += f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "QualifMaxSup" VARCHAR;\n'
-                    sql += f'''UPDATE "Capa unida {entitat}_{fitxer}" SET "QualifMaxSup" =
-                        CASE
-                            WHEN "maxEmissions" = "m2A" THEN 'A'
-                            WHEN "maxEmissions" = "m2B" THEN 'B'
-                            WHEN "maxEmissions" = "m2C" THEN 'C'
-                            WHEN "maxEmissions" = "m2D" THEN 'D'
-                            WHEN "maxEmissions" = "m2E" THEN 'E'
-                            WHEN "maxEmissions" = "m2F" THEN 'F'
-                            ELSE 'G'
-                        END;
-                    '''
-                    cur.execute(sql)
-                    conn.commit()
-
-                    if entitat==llistaEntitats[1]:
-                        sql = f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "indexMODAsupEmissions" FLOAT;\n'
-                        sql += f'''
-                        UPDATE "Capa unida {entitat}_{fitxer}" AS c
-                        SET "indexMODAsupEmissions" = subquery.moda
-                        FROM (
-                            SELECT "UTM",
-                                (
-                                    SUM (
-                                        CASE
-                                            WHEN "qualificacio emissions de co2" = "QualifMaxSup"
-                                                THEN CAST("emissions de co2" AS FLOAT) * CAST("metres_cadastre" AS FLOAT)
-                                            ELSE 0
-                                        END
-                                    ) / NULLIF(SUM (
-                                        CASE
-                                            WHEN "qualificacio emissions de co2" = "QualifMaxSup"
-                                                THEN CAST("metres_cadastre" AS FLOAT)
-                                            ELSE 0
-                                        END), 0
-                                    )
-                                ) AS moda
-                            FROM {schema1}."Capa unida {entitat}_{fitxer}"
-                            GROUP BY "UTM"
-                        ) AS subquery
-                        WHERE c."UTM" = subquery."UTM"\n;
-                        '''
-                        cur.execute(sql)
-                        conn.commit()
-
-                    else:
-                        sql =   f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "indexMODAsupEmissions" FLOAT;\n'
-                        sql +=  f'''
-                        UPDATE "Capa unida {entitat}_{fitxer}" AS c
-                        SET "indexMODAsupEmissions" = subquery.moda
-                        FROM (
-                            SELECT "id",
-                                (
-                                    SUM (
-                                        CASE
-                                            WHEN "qualificacio emissions de co2" = "QualifMaxSup"
-                                                THEN CAST("emissions de co2" AS FLOAT) * CAST("metres_cadastre" AS FLOAT)
-                                            ELSE 0
-                                        END
-                                    ) / NULLIF(SUM (
-                                        CASE
-                                            WHEN "qualificacio emissions de co2" = "QualifMaxSup"
-                                                THEN CAST("metres_cadastre" AS FLOAT)
-                                            ELSE 0
-                                        END), 0
-                                    )
-                                ) AS moda
-                            FROM {schema1}."Capa unida {entitat}_{fitxer}"
-                            GROUP BY "id"
-                        ) AS subquery
-                        WHERE c."id" = subquery."id"\n;
-                        '''
-                        cur.execute(sql)
-                        conn.commit()    
-
-            except Exception as ex:
-                print ("Error fent calcul moda")
-                template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-                message = template.format(type(ex).__name__, ex.args)
-                print (message)
-                QMessageBox.critical(None, "Error", "Error fent calcul moda")
-                conn.rollback()
-                self.dlg.setEnabled(True)
-                return
-
-    def calculMediana(self):
-
-        if consum:
-            try:
-                if self.dlg.checkNumHabit.isChecked():
-                    sql = f'DELETE FROM "Capa unida {entitat}_{fitxer}" WHERE CAST("energia primària no renovable" AS FLOAT) = 0 OR "metres_cadastre" IS NULL;\n'
-                    if entitat==llistaEntitats[1]:
-                        sql += f'DELETE FROM "Capa unida {entitat}_{fitxer}" WHERE "UTM" IS NULL;\n'
-                    else:
-                        sql += f'DELETE FROM "Capa unida {entitat}_{fitxer}" WHERE "id" IS NULL;\n'
-                    cur.execute(sql)
-                    conn.commit()
-
-                    if entitat==llistaEntitats[1]:
-                        'Calcul diferent suggerit pel copilot'
-                        sql = f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "indexMEDIANAconsum" FLOAT;\n'
-                        sql += f'''
-                        UPDATE "Capa unida {entitat}_{fitxer}" AS c
-                        SET "indexMEDIANAconsum" = subquery.mediana
-                        FROM (
-                            SELECT "UTM",
-                                PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY CAST("energia primària no renovable" AS FLOAT)) AS mediana
-                            FROM {schema1}."Capa unida {entitat}_{fitxer}"
-                            GROUP BY "UTM"
-                        ) AS subquery
-                        WHERE c."UTM" = subquery."UTM"\n;
-                        '''
-                        cur.execute(sql)
-                        conn.commit()
-
-                    else:
-                        sql = f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "indexMEDIANAconsum" FLOAT;\n'
-                        sql += f'''
-                        UPDATE "Capa unida {entitat}_{fitxer}" AS c
-                        SET "indexMEDIANAconsum" = subquery.mediana
-                        FROM (
-                            SELECT "id",
-                                    PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY CAST("energia primària no renovable" AS FLOAT)) AS mediana
-                            FROM {schema1}."Capa unida {entitat}_{fitxer}"
-                            GROUP BY "id"
-                        ) AS subquery
-                        WHERE c."id" = subquery."id"\n;
-                        '''
-                        cur.execute(sql)
-                        conn.commit()
-
-            except Exception as ex:
-                print ("Error fent calcul mediana")
-                template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-                message = template.format(type(ex).__name__, ex.args)
-                print (message)
-                QMessageBox.critical(None, "Error", "Error fent calcul mediana")
-                conn.rollback()
-                self.dlg.setEnabled(True)
-                return
-            
-        if emissions:
-            try:
-                if self.dlg.checkNumHabit.isChecked():
-                    sql = f'DELETE FROM "Capa unida {entitat}_{fitxer}" WHERE CAST("emissions de co2" AS FLOAT) = 0 OR "metres_cadastre" IS NULL;\n'
-                    if entitat==llistaEntitats[1]:
-                        sql += f'DELETE FROM "Capa unida {entitat}_{fitxer}" WHERE "UTM" IS NULL;\n'
-                    else:
-                        sql += f'DELETE FROM "Capa unida {entitat}_{fitxer}" WHERE "id" IS NULL;\n'
-                    cur.execute(sql)
-                    conn.commit()
-
-                    if entitat==llistaEntitats[1]:
-                        sql = f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "indexMEDIANAemissions" FLOAT;\n'
-                        sql += f'''
-                        UPDATE "Capa unida {entitat}_{fitxer}" AS c
-                        SET "indexMEDIANAemissions" = subquery.mediana
-                        FROM (
-                            SELECT "UTM",
-                                    PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY CAST("emissions de co2" AS FLOAT)) AS mediana
-                            FROM {schema1}."Capa unida {entitat}_{fitxer}"
-                            GROUP BY "UTM"
-                        ) AS subquery
-                        WHERE c."UTM" = subquery."UTM"\n;
-                        '''
-                        cur.execute(sql)
-                        conn.commit()
-
-                    else:
-                        sql = f'ALTER TABLE "Capa unida {entitat}_{fitxer}" ADD COLUMN "indexMEDIANAemissions" FLOAT;\n'
-                        sql += f'''
-                        UPDATE "Capa unida {entitat}_{fitxer}" AS c
-                        SET "indexMEDIANAemissions" = subquery.mediana
-                        FROM (
-                            SELECT "id",
-                                PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY CAST("emissions de co2" AS FLOAT)) AS mediana
-                            FROM {schema1}."Capa unida {entitat}_{fitxer}"
-                            GROUP BY "id"
-                        ) AS subquery
-                        WHERE c."id" = subquery."id"\n;
-                        '''
-                        cur.execute(sql)
-                        conn.commit()
-
-            except Exception as ex:
-                print ("Error fent calcul mediana")
-                template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-                message = template.format(type(ex).__name__, ex.args)
-                print (message)
-                QMessageBox.critical(None, "Error", "Error fent calcul mediana")
-                conn.rollback()
-                self.dlg.setEnabled(True)
-                return
-        
-    def dropCapesUnides(self):
-        try:
-            sql = f'DROP TABLE IF EXISTS "Capa unida {entitat}_{fitxer}";'
-            cur.execute(sql)
-            conn.commit()
-        except Exception as ex:
-            print ("Error a drop table if exists de capes unides")
-            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-            message = template.format(type(ex).__name__, ex.args)
-            print (message)
-            QMessageBox.critical(None, "Error", "Error a drop table if exists de capes unides")
-            conn.rollback()
-            return
-    
-    def dropCapesReUnidesNumHabit(self):
-        try:
-            sql = f'''DROP TABLE IF EXISTS "{entitat} amb nombre d'habitatges segons categoria_{fitxer}";'''
-            cur.execute(sql)
-            conn.commit()
-        except Exception as ex:
-            print ("Error a drop table resum recompte NumHabit")
-            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-            message = template.format(type(ex).__name__, ex.args)
-            print (message)
-            QMessageBox.critical(None, "Error", "Error a drop table resum recompte NumHabit")
-            conn.rollback()
-            return
-        
-    def dropCapesReUnidesm2(self):
-        try:
-            sql = f'DROP TABLE IF EXISTS "{entitat} amb metres quadrats segons categoria_{fitxer}";'
-            cur.execute(sql)
-            conn.commit()
-        except Exception as ex:
-            print ("Error a drop table resum recompte m2")
-            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-            message = template.format(type(ex).__name__, ex.args)
-            print (message)
-            QMessageBox.critical(None, "Error", "Error a drop table resum recompte m2")
-            conn.rollback()
-            return
-        
-    def dropCapesReUnidesMitjana(self):
-        try:
-            sql = f'DROP TABLE IF EXISTS "Mitjana de {entitat}_{fitxer}";'
-            cur.execute(sql)
-            conn.commit()
-        except Exception as ex:
-            print ("Error a drop table resum recompte mitjana")
-            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-            message = template.format(type(ex).__name__, ex.args)
-            print (message)
-            QMessageBox.critical(None, "Error", "Error a drop table resum recompte mitjana")
-            conn.rollback()
-            return
-        
-    def dropCapesReUnidesModa(self):
-        try:
-            sql = f'DROP TABLE IF EXISTS "Moda de {entitat}_{fitxer}";'
-            cur.execute(sql)
-            conn.commit()
-        except Exception as ex:
-            print ("Error a drop table resum recompte moda")
-            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-            message = template.format(type(ex).__name__, ex.args)
-            print (message)
-            QMessageBox.critical(None, "Error", "Error a drop table resum recompte moda")
-            conn.rollback()
-            return
-
-    def dropCapesReUnidesMediana(self):
-        try:
-            sql = f'DROP TABLE IF EXISTS "Mediana de {entitat}_{fitxer}";'
-            cur.execute(sql)
-            conn.commit()
-        except Exception as ex:
-            print ("Error a drop table resum recompte mediana")
-            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-            message = template.format(type(ex).__name__, ex.args)
-            print (message)
-            QMessageBox.critical(None, "Error", "Error a drop table resum recompte mediana")
-            conn.rollback()
-            return
 
     def scroll_text(self):
         self.dlg.textEstat.moveCursor(QTextCursor.End)
@@ -1787,433 +1543,6 @@ class EficEnerg:
     def updateProgress(self, progress):
         self.dlg.progressBar.setValue(progress)
         QApplication.processEvents()
-
-    def unirCapes(self):
-        global uri
-        global entitatLayerJoined
-
-        if entitat == llistaEntitats[1]:
-            alg_params = {
-                "INPUT": entitatLayer,
-                "FIELD": "UTM",
-                "INPUT_2": habitatgesLayer,
-                "FIELD_2": "UTM",
-                "FIELDS_TO_COPY": ["referencia cadastral", "metres_cadastre", "qualificació de consum energia primaria no renovable", "energia primària no renovable", "qualificacio emissions de co2", "emissions de co2", "producte_con", "producte_emi"],
-                "METHOD": 0,
-                "OUTPUT": 'memory:'
-            }
-        else:
-            alg_params = {
-                "INPUT": entitatLayer,
-                "FIELD": "id",
-                "INPUT_2": habitatgesLayer,
-                "FIELD_2": f"{entitat}_id",
-                "FIELDS_TO_COPY": ["referencia cadastral", "metres_cadastre", "qualificació de consum energia primaria no renovable", "energia primària no renovable", "qualificacio emissions de co2", "emissions de co2", "producte_con", "producte_emi"],
-                "METHOD": 0,
-                "OUTPUT": 'memory:'
-            }
-        try:
-            result = processing.run("native:joinattributestable", alg_params)
-        except Exception as ex:
-            print ("Error al procés d'unir capes")
-            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-            message = template.format(type(ex).__name__, ex.args)
-            print (message)
-            QMessageBox.critical(None, "Error", "Error al procés d'unir capes")
-            return
-
-        capa_unida = result["OUTPUT"]
-        layerEntitat = capa_unida
-        if not layerEntitat.isValid():
-            print("ERROR LAYER UNIT")
-            return
-        layerEntitat.setName(f"Capa unida {entitat}_{fitxer}")
-        layerEntitat.setCrs(QgsCoordinateReferenceSystem("EPSG:25831"))
-
-        try:
-            uristr=f"""
-            dbname='{nomBD1}' host={host1} port={port1} user='{user1}' password='{password1}' table="Capa unida {entitat}_{fitxer}" (geom)
-            """
-            exporter = QgsVectorLayerExporter(uristr, provider='postgres', fields=layerEntitat.fields(), geometryType=QgsWkbTypes.MultiPolygon, crs=layerEntitat.crs(), overwrite=True)
-            exporter.addFeatures(layerEntitat.getFeatures())
-            QApplication.processEvents()
-
-        except Exception as ex:
-            print ("Error a creació de capes unides")
-            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-            message = template.format(type(ex).__name__, ex.args)
-            print (message)
-            QMessageBox.critical(None, "Error", "Error a creació de capes unides")
-            conn.rollback()
-            return
-
-    def carregarCapesMapa(self):
-        global entitatLayerJoined
-        try:
-            uri.setDataSource(schema1, f"Capa unida {entitat}_{fitxer}", 'geom')
-            entitatLayerJoined = QgsVectorLayer(uri.uri(), f"Capa unida {entitat}_{fitxer}", 'postgres')
-        except Exception as ex:
-            print ("Error a carregar capes al mapa")
-            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-            message = template.format(type(ex).__name__, ex.args)
-            print (message)
-            QMessageBox.critical(None, "Error", "Error a carregar capes al mapa")
-            conn.rollback()
-            return
-        QApplication.processEvents()
-
-    def reUnirCapesNumHabit(self):
-        global entitatLayerResumNumHabit
-
-        layer = entitatLayer
-        layerEntitat = entitatLayerJoined
-
-        global uri
-        if self.dlg.checkNumHabit.isChecked() or (self.dlg.checkNumHabit.isChecked() and self.dlg.checkm2.isChecked()):
-            alg_params = {
-                "INPUT": layer,
-                "FIELD": "id",
-                "INPUT_2": layerEntitat,
-                "FIELD_2": "id",
-                "FIELDS_TO_COPY": ['NumA', 'NumB', 'NumC', 'NumD', 'NumE', 'NumF', 'NumG', 'TotalEE'],
-                "METHOD": 1,
-                "OUTPUT": 'memory:'
-            }
-        try:
-            result = processing.run("native:joinattributestable", alg_params)
-        except Exception as ex:
-            print ("Error al procés d'unir capes NumHabit")
-            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-            message = template.format(type(ex).__name__, ex.args)
-            print (message)
-            QMessageBox.critical(None, "Error", "Error al procés d'unir capes NumHabit")
-            return
-        resumRecompte = result["OUTPUT"]
-        layerResum = resumRecompte
-        if not layerResum.isValid():
-            print("ERROR RESUM ENTITAT RECOMPTE")
-            return
-        if consum:
-            layerResum.setName(f"Consum de {entitat.upper()} amb nombre d'habitatges segons categoria")
-        if emissions:
-            layerResum.setName(f"Emissions de {entitat.upper()} amb nombre d'habitatges segons categoria")
-        layerResum.setCrs(QgsCoordinateReferenceSystem("EPSG:25831"))
-
-        entitatLayerResumNumHabit = layerResum
-
-        try:
-            uristr=f"""
-            dbname='{nomBD1}' host={host1} port={port1} user='{user1}' password='{password1}' table="{entitat} amb nombre d'habitatges segons categoria_{fitxer}" (geom)
-            """
-            exporter = QgsVectorLayerExporter(uristr, provider='postgres', fields=layerResum.fields(), geometryType=QgsWkbTypes.MultiPolygon, crs=layerResum.crs(), overwrite=True)
-            exporter.addFeatures(layerResum.getFeatures())
-            QApplication.processEvents()
-        except Exception as ex:
-            print ("Error a creació de capes unides")
-            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-            message = template.format(type(ex).__name__, ex.args)
-            print (message)
-            QMessageBox.critical(None, "Error", "Error a creació de capes unides")
-            conn.rollback()
-            return
-
-    def reUnirCapesm2(self):
-        global entitatLayerResumm2
-
-        layer = entitatLayer
-        layerEntitat = entitatLayerJoined
-
-        global uri
-        if self.dlg.checkm2.isChecked() or (self.dlg.checkNumHabit.isChecked() and self.dlg.checkm2.isChecked()):
-            alg_params = {
-                "INPUT": layer,
-                "FIELD": "id",
-                "INPUT_2": layerEntitat,
-                "FIELD_2": "id",
-                "FIELDS_TO_COPY": ['m2A', 'm2B', 'm2C', 'm2D', 'm2E', 'm2F', 'm2G', 'Totalm2'],
-                "METHOD": 1,
-                "OUTPUT": 'memory:'
-            }
-        try:
-            result = processing.run("native:joinattributestable", alg_params)
-        except Exception as ex:
-            print ("Error al procés d'unir capes m2")
-            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-            message = template.format(type(ex).__name__, ex.args)
-            print (message)
-            QMessageBox.critical(None, "Error", "Error al procés d'unir capes m2")
-            return
-        resumRecompte = result["OUTPUT"]
-        layerResum = resumRecompte
-        if not layerResum.isValid():
-            print("ERROR RESUM ENTITAT RECOMPTE")
-            return
-        if consum:
-            layerResum.setName(f"Consum de {entitat.upper()} amb metres quadrats segons categoria")
-        if emissions:
-            layerResum.setName(f"Emissions de {entitat.upper()} amb metres quadrats segons categoria")
-        layerResum.setCrs(QgsCoordinateReferenceSystem("EPSG:25831"))
-
-        entitatLayerResumm2 = layerResum
-
-        try:
-            uristr=f"""
-            dbname='{nomBD1}' host={host1} port={port1} user='{user1}' password='{password1}' table="{entitat} amb metres quadrats segons categoria_{fitxer}" (geom)
-            """
-            exporter = QgsVectorLayerExporter(uristr, provider='postgres', fields=layerResum.fields(), geometryType=QgsWkbTypes.MultiPolygon, crs=layerResum.crs(), overwrite=True)
-            exporter.addFeatures(layerResum.getFeatures())
-            QApplication.processEvents()
-        except Exception as ex:
-            print ("Error a creació de capes unides")
-            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-            message = template.format(type(ex).__name__, ex.args)
-            print (message)
-            QMessageBox.critical(None, "Error", "Error a creació de capes unides")
-            conn.rollback()
-            return
-
-    def reUnirCapesMitjana(self):
-        global entitatLayerResumMitjana
-
-        layer = entitatLayer
-        layerEntitat = entitatLayerJoined
-
-        global uri
-
-        if self.dlg.checkMitjana.isChecked():
-            if self.dlg.checkNumHabit.isChecked() and not self.dlg.checkm2.isChecked():
-                if consum:
-                    alg_params = {
-                        "INPUT": layer,
-                        "FIELD": "id",
-                        "INPUT_2": layerEntitat,
-                        "FIELD_2": "id",
-                        "FIELDS_TO_COPY": ['sum_consums', 'INDEX_consums_hab'],
-                        "METHOD": 1,
-                        "OUTPUT": 'memory:'
-                    }
-                if emissions:
-                    alg_params = {
-                        "INPUT": layer,
-                        "FIELD": "id",
-                        "INPUT_2": layerEntitat,
-                        "FIELD_2": "id",
-                        "FIELDS_TO_COPY": ['sum_emissions', 'INDEX_emissions_hab'],
-                        "METHOD": 1,
-                        "OUTPUT": 'memory:'
-                    }
-            if self.dlg.checkm2.isChecked() or (self.dlg.checkNumHabit.isChecked() and self.dlg.checkm2.isChecked()):
-                if consum:
-                    alg_params = {
-                        "INPUT": layer,
-                        "FIELD": "id",
-                        "INPUT_2": layerEntitat,
-                        "FIELD_2": "id",
-                        "FIELDS_TO_COPY": ['sum_producte_con', 'sum_m2', 'INDEX_consum'],
-                        "METHOD": 1,
-                        "OUTPUT": 'memory:'
-                    }
-                if emissions:
-                    alg_params = {
-                        "INPUT": layer,
-                        "FIELD": "id",
-                        "INPUT_2": layerEntitat,
-                        "FIELD_2": "id",
-                        "FIELDS_TO_COPY": ['sum_producte_emi', 'sum_m2', 'INDEX_emissions'],
-                        "METHOD": 1,
-                        "OUTPUT": 'memory:'
-                    }
-        try:
-            result = processing.run("native:joinattributestable", alg_params)
-        except Exception as ex:
-            print ("Error al procés d'unir capes mitjana")
-            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-            message = template.format(type(ex).__name__, ex.args)
-            print (message)
-            QMessageBox.critical(None, "Error", "Error al procés d'unir capes mitjana")
-            return
-        resumRecompte = result["OUTPUT"]
-        layerResum = resumRecompte
-        if not layerResum.isValid():
-            print("ERROR RESUM ENTITAT RECOMPTE")
-            return
-        if consum:
-            layerResum.setName(f"Mitjana de consum de {entitat.upper()}")
-        if emissions:
-            layerResum.setName(f"Mitjana de emissions de {entitat.upper()}")
-        layerResum.setCrs(QgsCoordinateReferenceSystem("EPSG:25831"))
-
-        entitatLayerResumMitjana = layerResum
-
-        try:
-            uristr=f"""
-            dbname='{nomBD1}' host={host1} port={port1} user='{user1}' password='{password1}' table="Mitjana de {entitat}_{fitxer}" (geom)
-            """
-            exporter = QgsVectorLayerExporter(uristr, provider='postgres', fields=layerResum.fields(), geometryType=QgsWkbTypes.MultiPolygon, crs=layerResum.crs(), overwrite=True)
-            exporter.addFeatures(layerResum.getFeatures())
-            QApplication.processEvents()
-        except Exception as ex:
-            print ("Error a creació de capes unides")
-            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-            message = template.format(type(ex).__name__, ex.args)
-            print (message)
-            QMessageBox.critical(None, "Error", "Error a creació de capes unides")
-            conn.rollback()
-            return
-        
-    def reUnirCapesModa(self):
-        global entitatLayerResumModa
-
-        layer = entitatLayer
-        layerEntitat = entitatLayerJoined
-
-        global uri
-        if self.dlg.checkModa.isChecked():
-            if self.dlg.checkNumHabit.isChecked() and not self.dlg.checkm2.isChecked():
-                if consum:
-                    alg_params = {
-                            "INPUT": layer,
-                            "FIELD": "id",
-                            "INPUT_2": layerEntitat,
-                            "FIELD_2": "id",
-                            "FIELDS_TO_COPY": ['maxConsfreq', 'QualifMaxFreq', 'indexMODAhabConsum'],
-                            "METHOD": 1,
-                            "OUTPUT": 'memory:'
-                        }
-                if emissions:
-                        alg_params = {
-                            "INPUT": layer,
-                            "FIELD": "id",
-                            "INPUT_2": layerEntitat,
-                            "FIELD_2": "id",
-                            "FIELDS_TO_COPY": ['maxEmifreq', 'QualifMaxFreq', 'indexMODAhabEmissions'],
-                            "METHOD": 1,
-                            "OUTPUT": 'memory:'
-                        }
-            if self.dlg.checkm2.isChecked() or (self.dlg.checkNumHabit.isChecked() and self.dlg.checkm2.isChecked()):
-                if consum:
-                    alg_params = {
-                            "INPUT": layer,
-                            "FIELD": "id",
-                            "INPUT_2": layerEntitat,
-                            "FIELD_2": "id",
-                            "FIELDS_TO_COPY": ['maxConsum', 'QualifMaxSup', 'indexMODAsupConsum'],
-                            "METHOD": 1,
-                            "OUTPUT": 'memory:'
-                        }
-                if emissions:
-                        alg_params = {
-                            "INPUT": layer,
-                            "FIELD": "id",
-                            "INPUT_2": layerEntitat,
-                            "FIELD_2": "id",
-                            "FIELDS_TO_COPY": ['maxEmissions', 'QualifMaxSup', 'indexMODAsupEmissions'],
-                            "METHOD": 1,
-                            "OUTPUT": 'memory:'
-                        }
-        try:
-            result = processing.run("native:joinattributestable", alg_params)
-        except Exception as ex:
-            print ("Error al procés d'unir capes moda")
-            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-            message = template.format(type(ex).__name__, ex.args)
-            print (message)
-            QMessageBox.critical(None, "Error", "Error al procés d'unir capes moda")
-            return
-        resumRecompte = result["OUTPUT"]
-        layerResum = resumRecompte
-        if not layerResum.isValid():
-            print("ERROR RESUM ENTITAT RECOMPTE")
-            return
-        if consum:
-            layerResum.setName(f"Moda de consum de {entitat.upper()}")
-        if emissions:
-            layerResum.setName(f"Moda de emissions de {entitat.upper()}")
-        layerResum.setCrs(QgsCoordinateReferenceSystem("EPSG:25831"))
-
-        entitatLayerResumModa = layerResum
-
-        try:
-            uristr=f"""
-            dbname='{nomBD1}' host={host1} port={port1} user='{user1}' password='{password1}' table="Moda de {entitat}_{fitxer}" (geom)
-            """
-            exporter = QgsVectorLayerExporter(uristr, provider='postgres', fields=layerResum.fields(), geometryType=QgsWkbTypes.MultiPolygon, crs=layerResum.crs(), overwrite=True)
-            exporter.addFeatures(layerResum.getFeatures())
-            QApplication.processEvents()
-        except Exception as ex:
-            print ("Error a creació de capes unides")
-            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-            message = template.format(type(ex).__name__, ex.args)
-            print (message)
-            QMessageBox.critical(None, "Error", "Error a creació de capes unides")
-            conn.rollback()
-            return
-
-    def reUnirCapesMediana(self):
-        global entitatLayerResumMediana
-
-        layer = entitatLayer
-        layerEntitat = entitatLayerJoined
-
-        global uri
-        if self.dlg.checkMediana.isChecked():
-            if consum:
-                alg_params = {
-                    "INPUT": layer,
-                    "FIELD": "id",
-                    "INPUT_2": layerEntitat,
-                    "FIELD_2": "id",
-                    "FIELDS_TO_COPY": ['indexMEDIANAconsum'],
-                    "METHOD": 1,
-                    "OUTPUT": 'memory:'
-                }
-            if emissions:
-                alg_params = {
-                    "INPUT": layer,
-                    "FIELD": "id",
-                    "INPUT_2": layerEntitat,
-                    "FIELD_2": "id",
-                    "FIELDS_TO_COPY": ['indexMEDIANAemissions'],
-                    "METHOD": 1,
-                    "OUTPUT": 'memory:'
-                }
-        try:
-            result = processing.run("native:joinattributestable", alg_params)
-        except Exception as ex:
-            print ("Error al procés d'unir capes mediana")
-            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-            message = template.format(type(ex).__name__, ex.args)
-            print (message)
-            QMessageBox.critical(None, "Error", "Error al procés d'unir capes mediana")
-            return
-        resumRecompte = result["OUTPUT"]
-        layerResum = resumRecompte
-        if not layerResum.isValid():
-            print("ERROR RESUM ENTITAT RECOMPTE")
-            return
-        if consum:
-            layerResum.setName(f"Mediana de consum de {entitat.upper()}")
-        if emissions:
-            layerResum.setName(f"Mediana de emissions de {entitat.upper()}")
-        layerResum.setCrs(QgsCoordinateReferenceSystem("EPSG:25831"))
-
-        entitatLayerResumMediana = layerResum
-
-        try:
-            uristr=f"""
-            dbname='{nomBD1}' host={host1} port={port1} user='{user1}' password='{password1}' table="Mediana de {entitat}_{fitxer}" (geom)
-            """
-            exporter = QgsVectorLayerExporter(uristr, provider='postgres', fields=layerResum.fields(), geometryType=QgsWkbTypes.MultiPolygon, crs=layerResum.crs(), overwrite=True)
-            exporter.addFeatures(layerResum.getFeatures())
-            QApplication.processEvents()
-        except Exception as ex:
-            print ("Error a creació de capes unides")
-            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-            message = template.format(type(ex).__name__, ex.args)
-            print (message)
-            QMessageBox.critical(None, "Error", "Error a creació de capes unides")
-            conn.rollback()
-            return
 
     def dropFinalCapesIColumnes(self):
         try:
@@ -2255,44 +1584,6 @@ class EficEnerg:
         self.dlg.lblEstatConn.setText('Connectant...')
         QApplication.processEvents()
 
-    def maxTotalEE(self):
-        global conn
-        global cur
-        try:
-            sql = f'''SELECT MAX("TotalEE") FROM "Capa unida {entitat}_{fitxer}";'''
-            cur.execute(sql)
-        except Exception as ex:
-            print ("Error fent maxTotalEE")
-            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-            message = template.format(type(ex).__name__, ex.args) 
-            print (message)
-            QMessageBox.critical(None, "Error", "Error trobant el nombre maxim d'habitatges")
-            conn.rollback()
-            self.dlg.setEnabled(True)
-            return
-        return cur.fetchone()[0]
-
-    def maxTotalm2(self):
-        global conn
-        global cur
-        try:
-            sql = f'''SELECT MAX("Totalm2"::float) FROM "Capa unida {entitat}_{fitxer}";'''
-            cur.execute(sql)
-            result = cur.fetchone()[0]
-        except Exception as ex:
-            print ("Error fent maxTotalm2")
-            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-            message = template.format(type(ex).__name__, ex.args) 
-            print (message)
-            QMessageBox.critical(None, "Error", "Error trobant el nombre maxim de metres quadrats")
-            conn.rollback()
-            self.dlg.setEnabled(True)
-            return
-        if (result == None):
-            return 0
-        else:
-            return float(result)
-
     def on_click_Sortir(self):
         if cur != None and conn != None:
             cur.close()
@@ -2332,7 +1623,14 @@ class EficEnerg:
         global colors
         global symbols
 
+        global outputs
+        global parameters
+
         fitxer = datetime.datetime.now().strftime("%Y%m%d%H%M%S%f")
+
+        total_start_time = time.time()
+
+        start_time = time.time()
 
         uri = QgsDataSourceUri()
         try:
@@ -2365,6 +1663,10 @@ class EficEnerg:
             conn.rollback()
             self.dlg.setEnabled(True)
             return
+        
+        finish_time = time.time()
+
+        print(f"Temps de connexió a la BBDD i comprovació d'errors: {finish_time - start_time} segons")
 
         self.updateProgress(10)
 
@@ -2376,705 +1678,70 @@ class EficEnerg:
         self.dlg.textEstat.setText(textBox)
         self.scroll_text()
 
+        start_time = time.time()
+
         ''' Crear copies capes originals '''
         self.crearCopiesCapesEntitats()
         QApplication.processEvents()
 
+        finish_time = time.time()
+
+        print(f"Temps de creació de copies de capes originals: {finish_time - start_time} segons")
+
         self.updateProgress(20)
 
-        ''' IDs Entitats '''
-
-        textBox += f"Calculant ID d'entitats seleccionades...\n"
-        self.dlg.textEstat.setText(textBox)
-        self.scroll_text()
-        self.calcularCampsHabitatges()
-        if not entitat==llistaEntitats[1]:
-            self.crearIDentitats()
-        QApplication.processEvents()
-
-        self.updateProgress(30)
-
-        ''' Unió capes '''
-
-        textBox += f"Unint capes seleccionades...\n"
-        self.dlg.textEstat.setText(textBox)
-        self.scroll_text()
-        self.dropCapesUnides()
-        self.unirCapes()
-        QApplication.processEvents()
-        
-        self.updateProgress(40)
-
-        ''' Agafem color i valors minim i maxim de visibilitat per escala '''
-
-        
-        if estandar:
-            color = QColor("#707070")
-            minimumValue = self.dlg.minScale.value()
-            maximumValue = self.dlg.maxScale.value()
-        if personalitzat:
-            #color = self.dlg.pushColorP.palette().color(1)
-            minimumValue = self.dlg.minScaleP.value()
-            maximumValue = self.dlg.maxScaleP.value()
-        
-
-        ''' Processament càlculs '''
-
-        'NumX habitatges per entitats'
-
-        if(self.dlg.checkNumHabit.isChecked()):
-            textBox += f"Calculant NumX d'habitatges...\n"
-            self.dlg.textEstat.setText(textBox)
-            self.scroll_text()
-            self.calculNumX()
-            QApplication.processEvents()
-        
-        'm2 habitatges per entitats'
-        
-        if(self.dlg.checkm2.isChecked()):
-            textBox += f"Calculant m2 d'habitatges...\n"
-            self.dlg.textEstat.setText(textBox)
-            self.scroll_text()
-            self.calculm2()
-            QApplication.processEvents()    
-        
-        'Mitjana habitatges per entitats'
-
-        if self.dlg.checkMitjana.isChecked():
-            textBox += f"Calculant mitjana de consum i emissions d'habitatges per entitats...\n"
-            self.dlg.textEstat.setText(textBox)
-            self.scroll_text()
-            self.calculMitjana()
-            QApplication.processEvents()
-
-        'Moda habitatges per entitats'
-
-        if self.dlg.checkModa.isChecked():
-            textBox += f"Calculant moda de consum i emissions d'habitatges per entitats...\n"
-            self.dlg.textEstat.setText(textBox)
-            self.scroll_text()
-            self.calculModa()
-            QApplication.processEvents()
-
-        'Mediana habitatges per entitats'
-
-        if self.dlg.checkMediana.isChecked():
-            textBox += f"Calculant mediana de consum i emissions d'habitatges per entitats...\n"
-            self.dlg.textEstat.setText(textBox)
-            self.scroll_text()
-            self.calculMediana()
-            QApplication.processEvents()
-
-        self.updateProgress(50)
-
-        'Carregar capes, fer drops i tornar a unir-les per alleugerir-les'
-        'per NumHabit'
-
+        self.calculIdEntitat()
         if self.dlg.checkNumHabit.isChecked():
-            self.carregarCapesMapa()
-            self.dropCapesReUnidesNumHabit()
-            self.reUnirCapesNumHabit()
-            QApplication.processEvents()      
-        
-        'per m2'
-
-        if self.dlg.checkm2.isChecked():
-            self.carregarCapesMapa()
-            self.dropCapesReUnidesm2()
-            self.reUnirCapesm2()
-            QApplication.processEvents()
-
-        'per mitjana'
-        if self.dlg.checkMitjana.isChecked():
-            self.carregarCapesMapa()
-            self.dropCapesReUnidesMitjana()
-            self.reUnirCapesMitjana()
-            QApplication.processEvents()
-
-        'per moda'
-
-        if self.dlg.checkModa.isChecked():
-            self.carregarCapesMapa()
-            self.dropCapesReUnidesModa()
-            self.reUnirCapesModa()
-            QApplication.processEvents()
-
-        'per mediana'
-
-        if self.dlg.checkMediana.isChecked():
-            self.carregarCapesMapa()
-            self.dropCapesReUnidesMediana()
-            self.reUnirCapesMediana()
-            QApplication.processEvents()
-
-        self.updateProgress(60)
-
-        ''' Diagrames de pie chart '''
-
-        if self.dlg.checkNumHabit.isChecked():
-            uri.setDataSource(schema1, f"{entitat} amb nombre d'habitatges segons categoria_{fitxer}", 'geom')
-            capaUnidaNumHabit = QgsVectorLayer(uri.uri(), f"{entitat} amb nombre d'habitatges segons categoria_{fitxer}", 'postgres')
-            capaUnidaNumHabit_temp_features = [feat for feat in capaUnidaNumHabit.getFeatures()]
             if consum:
-                capaUnidaNumHabit_temp = QgsVectorLayer("Polygon?crs=epsg:25831", f"Consum de {entitat.upper()} amb nombre d'habitatges segons categoria", "memory")
-            if emissions:
-                capaUnidaNumHabit_temp = QgsVectorLayer("Polygon?crs=epsg:25831", f"Emissions de {entitat.upper()} amb nombre d'habitatges segons categoria", "memory")
-            capaUnidaNumHabit_temp_data = capaUnidaNumHabit_temp.dataProvider()
-            attributes = capaUnidaNumHabit.dataProvider().fields().toList()
-            capaUnidaNumHabit_temp_data.addAttributes(attributes)
-            capaUnidaNumHabit_temp.updateFields()
-            capaUnidaNumHabit_temp_data.addFeatures(capaUnidaNumHabit_temp_features)
-            if capaUnidaNumHabit_temp.isValid():
-                QgsProject.instance().addMapLayer(capaUnidaNumHabit_temp)
-                QApplication.processEvents()
-            else:
-                print("No s'ha pogut afegir el layer de numhabit")
-
-            diagramNumHabit = QgsPieDiagram()
-            diagramNumHabitSettings = QgsDiagramSettings()
-            diagramNumHabitSettings.categoryColors = colors.values()
-            diagramNumHabitSettings.categoryAttributes = ['NumA', 'NumB', 'NumC', 'NumD', 'NumE', 'NumF', 'NumG']
-            diagramNumHabitSettings.scaleByArea = False
-            diagramNumHabitSettings.scaleBasedVisibility = True
-            diagramNumHabitSettings.size = QSizeF(15, 15)
-            diagramNumHabitSettings.minimumScale = minimumValue
-            diagramNumHabitSettings.maximumScale = maximumValue
-            diagramNumHabitSettings.categoryLabels = ["A", "B", "C", "D", "E", "F", "G"]
-            diagramNumHabitSettings.enabled = True
-
-            capaUnidaNumHabit_temp.renderer().symbol().setColor(color)
-
-            diagramNumHabitRenderer = QgsSingleCategoryDiagramRenderer()
-            diagramNumHabitRenderer.setDiagram(diagramNumHabit)
-            diagramNumHabitRenderer.setDiagramSettings(diagramNumHabitSettings)
-            
-            capaUnidaNumHabit_temp.setDiagramRenderer(diagramNumHabitRenderer)
-
-            propertyx = QgsProperty()
-            propertyx.setExpressionString("x(centroid($geometry))")
-            propertyx.setActive(True)
-
-            propertyy = QgsProperty()
-            propertyy.setExpressionString("y(centroid($geometry))")
-            propertyy.setActive(True)
-
-            propertyVisibilitat = QgsProperty()
-            propertyVisibilitat.setExpressionString("""CASE WHEN "TotalEE" = 0 THEN False WHEN "TotalEE" IS NULL THEN False ELSE True END """)
-            propertyVisibilitat.setActive(True)
-
-            propertyCollection = QgsPropertyCollection("Propietats")
-            propertyCollection.setProperty(3, propertyx)
-            propertyCollection.setProperty(4, propertyy)
-            propertyCollection.setProperty(9, propertyVisibilitat)
-
-            diagramNumHabitLayerSettings = QgsDiagramLayerSettings()
-            diagramNumHabitLayerSettings.setDataDefinedProperties(propertyCollection)
-                        
-            capaUnidaNumHabit_temp.setDiagramLayerSettings(diagramNumHabitLayerSettings)
-            
-            single_symbol_renderer = capaUnidaNumHabit_temp.renderer().clone()
-            symbol = single_symbol_renderer.symbol()
-            symbol_layer = QgsSimpleLineSymbolLayer()
-            symbol_layer.setWidth(0)
-            capaUnidaNumHabit_temp.setRenderer(single_symbol_renderer)
-
-            capaUnidaNumHabit_temp.triggerRepaint()
-            QApplication.processEvents()
-
-        if self.dlg.checkm2.isChecked():
-            uri.setDataSource(schema1, f"{entitat} amb metres quadrats segons categoria_{fitxer}", 'geom')
-            capaUnidam2 = QgsVectorLayer(uri.uri(), f"{entitat} amb metres quadrats segons categoria_{fitxer}", 'postgres')
-            capaUnidam2_temp_features = [feat for feat in capaUnidam2.getFeatures()]
-            if consum:
-                capaUnidam2_temp = QgsVectorLayer("Polygon?crs=epsg:25831", f"Consum de {entitat.upper()} amb metres quadrats segons categoria", "memory")
-            if emissions:
-                capaUnidam2_temp = QgsVectorLayer("Polygon?crs=epsg:25831", f"Emissions de {entitat.upper()} amb metres quadrats segons categoria", "memory")
-            capaUnidam2_temp_data = capaUnidam2_temp.dataProvider()
-            attributes = capaUnidam2.dataProvider().fields().toList()
-            capaUnidam2_temp_data.addAttributes(attributes)
-            capaUnidam2_temp.updateFields()
-            capaUnidam2_temp_data.addFeatures(capaUnidam2_temp_features)
-            if capaUnidam2_temp.isValid():
-                QgsProject.instance().addMapLayer(capaUnidam2_temp)
-                QApplication.processEvents()
-            else:
-                print("No s'ha pogut afegir el layer de m2")
-
-            diagramm2 = QgsPieDiagram()
-            diagramm2Settings = QgsDiagramSettings()
-            diagramm2Settings.categoryColors = colors.values()
-            diagramm2Settings.categoryAttributes = ['m2A', 'm2B', 'm2C', 'm2D', 'm2E', 'm2F', 'm2G']
-            diagramm2Settings.scaleByArea = False # Deixem en False el escalat per area de manera que no es descontrolin els tamanys amb els zooms
-            diagramm2Settings.scaleBasedVisibility = True
-            diagramm2Settings.size = QSizeF(15, 15)
-            diagramm2Settings.minimumScale = minimumValue
-            diagramm2Settings.maximumScale = maximumValue
-            
-            diagramm2Settings.categoryLabels = ["A", "B", "C", "D", "E", "F", "G"]
-            diagramm2Settings.enabled = True
-
-            capaUnidam2_temp.renderer().symbol().setColor(color)
-
-            diagramm2Renderer = QgsSingleCategoryDiagramRenderer()
-            diagramm2Renderer.setDiagram(diagramm2)
-            diagramm2Renderer.setDiagramSettings(diagramm2Settings)
-
-            capaUnidam2_temp.setDiagramRenderer(diagramm2Renderer)
-
-            diagramm2LayerSettings = QgsDiagramLayerSettings()
-
-            ' A partir de la informacio que he tret de la consola de Python podria fer que es quedessin estàtics els diagrames '
-
-            propertyx = QgsProperty()
-            propertyx.setExpressionString("x(centroid($geometry))")
-            propertyx.setActive(True)
-
-            propertyy = QgsProperty()
-            propertyy.setExpressionString("y(centroid($geometry))")
-            propertyy.setActive(True)
-
-            propertyVisibilitat = QgsProperty()
-            propertyVisibilitat.setExpressionString("""CASE WHEN "Totalm2" = 0 THEN False WHEN "Totalm2" IS NULL THEN False ELSE True END """)
-            propertyVisibilitat.setActive(True)
-
-            propertyCollection = QgsPropertyCollection("Coordenades")
-            propertyCollection.setProperty(3, propertyx)
-            propertyCollection.setProperty(4, propertyy)
-            propertyCollection.setProperty(9, propertyVisibilitat)
-
-            diagramm2LayerSettings.setDataDefinedProperties(propertyCollection)
-
-            capaUnidam2_temp.setDiagramLayerSettings(diagramm2LayerSettings)
-
-            single_symbol_renderer_m2 = capaUnidam2_temp.renderer().clone()
-            symbol_m2 = single_symbol_renderer_m2.symbol()
-            symbol_layer_m2 = QgsSimpleLineSymbolLayer()
-            symbol_layer_m2.setWidth(0)
-            capaUnidam2_temp.setRenderer(single_symbol_renderer_m2)
-
-            capaUnidam2_temp.triggerRepaint()
-            QApplication.processEvents()
-        
-        QgsProject.instance().reloadAllLayers()
-
-        self.updateProgress(70)
-
-        ''' Etiquetes de mitjana, mediana i moda '''
-
-
-        if self.dlg.checkMitjana.isChecked():
-            labelMitjana = QgsPalLayerSettings()
-            labelMitjana.enabled = True
-
-            if self.dlg.checkNumHabit.isChecked() and not self.dlg.checkm2.isChecked():
-                if consum:
-                    labelMitjana.fieldName = """
-                    CASE
-                        WHEN "INDEX_consums_hab" IS NOT NULL AND "INDEX_consums_hab" > 0 THEN '<div><b><font color="black">' || format_number("INDEX_consums_hab", 1) || '</font></b></div>'
-                        ELSE ''
-                    END
-                    """
-                if emissions:
-                    labelMitjana.fieldName = """
-                    CASE
-                        WHEN "INDEX_emissions_hab" IS NOT NULL AND "INDEX_emissions_hab" > 0 THEN '<div><b><font color="black">' || format_number("INDEX_emissions_hab", 1) || '</font></b></div>'
-                        ELSE ''
-                    END
-                    """
-            if self.dlg.checkm2.isChecked() or (self.dlg.checkNumHabit.isChecked() and self.dlg.checkm2.isChecked()):
-                if consum:
-                    labelMitjana.fieldName = """
-                    CASE
-                        WHEN "INDEX_consum" IS NOT NULL AND "INDEX_consum" > 0 THEN '<div><b><font color="black">' || format_number("INDEX_consum", 1) || '</font></b></div>'
-                        ELSE ''
-                    END
-                    """
-                if emissions:
-                    labelMitjana.fieldName = """
-                    CASE
-                        WHEN "INDEX_emissions" IS NOT NULL AND "INDEX_emissions" > 0 THEN '<div><b><font color="black">' || format_number("INDEX_emissions", 1) || '</font></b></div>'
-                        ELSE ''
-                    END
-                    """
-            labelMitjana.isExpression = True
-            labelMitjana.placement = QgsPalLayerSettings.AroundPoint
-
-            text_format = QgsTextFormat()
-            text_format.setAllowHtmlFormatting(True)
-
-            background_format = QgsTextBackgroundSettings()
-            background_format.setEnabled(True)
-            background_format.setType(QgsTextBackgroundSettings.ShapeRectangle)
-            background_format.setSizeType(QgsTextBackgroundSettings.SizeBuffer)
-            background_format.setSizeUnit(QgsUnitTypes.RenderMillimeters)
-            background_format.setSize(QSizeF(3, 3))
-            background_format.setRadiiUnit(QgsUnitTypes.RenderMillimeters)
-            background_format.setRadii(QSizeF(3, 3))
-            background_format.setFillColor(QColor("#ffffff"))
-            background_format.setStrokeColor(QColor("#808080"))
-            background_format.setStrokeWidthUnit(QgsUnitTypes.RenderMillimeters)
-            background_format.setStrokeWidth(1)
-
-            text_format.setBackground(background_format)
-
-            ' Nou renderer '
-
-            if consum:
-                if self.dlg.checkNumHabit.isChecked() and not self.dlg.checkm2.isChecked():
-                    symbology = QgsGraduatedSymbolRenderer("INDEX_consums_hab", ranges.values())
-                if self.dlg.checkm2.isChecked() or (self.dlg.checkNumHabit.isChecked() and self.dlg.checkm2.isChecked()):
-                    symbology = QgsGraduatedSymbolRenderer("INDEX_consum", ranges.values())
-
-                symbolA = QgsFillSymbol()
-                symbolA.setColor(colors["colorA"])
-                symbolB = QgsFillSymbol()
-                symbolB.setColor(colors["colorB"])
-                symbolC = QgsFillSymbol()
-                symbolC.setColor(colors["colorC"])
-                symbolD = QgsFillSymbol()
-                symbolD.setColor(colors["colorD"])
-                symbolE = QgsFillSymbol()
-                symbolE.setColor(colors["colorE"])
-                symbolF = QgsFillSymbol()
-                symbolF.setColor(colors["colorF"])
-                symbolG = QgsFillSymbol()
-                symbolG.setColor(colors["colorG"])
-
-                symbology.updateRangeSymbol(0, symbolA)
-                symbology.updateRangeSymbol(1, symbolB)
-                symbology.updateRangeSymbol(2, symbolC)
-                symbology.updateRangeSymbol(3, symbolD)
-                symbology.updateRangeSymbol(4, symbolE)
-                symbology.updateRangeSymbol(5, symbolF)
-                symbology.updateRangeSymbol(6, symbolG)
-            
-            if emissions:
-                if self.dlg.checkNumHabit.isChecked() and not self.dlg.checkm2.isChecked():
-                    symbology = QgsGraduatedSymbolRenderer("INDEX_emissions_hab", ranges.values())
-                if self.dlg.checkm2.isChecked() or (self.dlg.checkNumHabit.isChecked() and self.dlg.checkm2.isChecked()):
-                    symbology = QgsGraduatedSymbolRenderer("INDEX_emissions", ranges.values())
-
-                symbolA = QgsFillSymbol()
-                symbolA.setColor(colors["colorA"])
-                symbolB = QgsFillSymbol()
-                symbolB.setColor(colors["colorB"])
-                symbolC = QgsFillSymbol()
-                symbolC.setColor(colors["colorC"])
-                symbolD = QgsFillSymbol()
-                symbolD.setColor(colors["colorD"])
-                symbolE = QgsFillSymbol()
-                symbolE.setColor(colors["colorE"])
-                symbolF = QgsFillSymbol()
-                symbolF.setColor(colors["colorF"])
-                symbolG = QgsFillSymbol()
-                symbolG.setColor(colors["colorG"])
-
-                symbology.updateRangeSymbol(0, symbolA)
-                symbology.updateRangeSymbol(1, symbolB)
-                symbology.updateRangeSymbol(2, symbolC)
-                symbology.updateRangeSymbol(3, symbolD)
-                symbology.updateRangeSymbol(4, symbolE)
-                symbology.updateRangeSymbol(5, symbolF)
-                symbology.updateRangeSymbol(6, symbolG)
-
-            labelMitjana.setFormat(text_format)
-
-            propertyx = QgsProperty()
-            propertyx.setExpressionString("x(centroid($geometry))")
-            propertyx.setActive(True)
-
-            propertyy = QgsProperty()
-            propertyy.setExpressionString("y(centroid($geometry))")
-            propertyy.setActive(True)
-
-            propertyCollection = QgsPropertyCollection("Coordenades")
-            propertyCollection.setProperty(9, propertyx)
-            propertyCollection.setProperty(10, propertyy)
-
-            labelMitjana.setDataDefinedProperties(propertyCollection)
-
-            labelMitjana.minimumScale = minimumValue
-            labelMitjana.maximumScale = maximumValue
-            
-            labelMitjana.scaleVisibility = True
-
-            entitatLayerResumMitjana.setLabeling(QgsVectorLayerSimpleLabeling(labelMitjana))
-            entitatLayerResumMitjana.setLabelsEnabled(True)
-            entitatLayerResumMitjana.setRenderer(symbology)
-            entitatLayerResumMitjana.triggerRepaint()
-            QgsProject.instance().addMapLayer(entitatLayerResumMitjana)
-            QApplication.processEvents()
-        
-        if self.dlg.checkModa.isChecked():
-
-            labelModa = QgsPalLayerSettings()
-            labelModa.enabled = True
-            
-            if self.dlg.checkNumHabit.isChecked() and not self.dlg.checkm2.isChecked():
-                if consum:
-                    labelModa.fieldName = """
-                    CASE
-                        WHEN "indexMODAhabConsum" IS NOT NULL THEN '<div><b><font color="black">' || format_number("indexMODAhabConsum", 1) || '</font></b></div>'
-                        ELSE ''
-                    END
-                    """
-                if emissions:
-                    labelModa.fieldName = """
-                    CASE
-                        WHEN "indexMODAhabEmissions" IS NOT NULL THEN '<div><b><font color="black">' || format_number("indexMODAhabEmissions", 1) || '</font></b></div>'
-                        ELSE ''
-                    END
-                    """
-            if self.dlg.checkm2.isChecked() or (self.dlg.checkNumHabit.isChecked() and self.dlg.checkm2.isChecked()):
-                if consum:
-                    labelModa.fieldName = """
-                    CASE
-                        WHEN "indexMODAsupConsum" IS NOT NULL THEN '<div><b><font color="black">' || format_number("indexMODAsupConsum", 1) || '</font></b></div>'
-                        ELSE ''
-                    END
-                    """
-                if emissions:
-                    labelModa.fieldName = """
-                    CASE
-                        WHEN "indexMODAsupEmissions" IS NOT NULL THEN '<div><b><font color="black">' || format_number("indexMODAsupEmissions", 1) || '</font></b></div>'
-                        ELSE ''
-                    END
-                    """
-
-            labelModa.isExpression = True
-            labelModa.placement = QgsPalLayerSettings.AroundPoint
-
-            ''' * FORMAT DEL TEXT * '''
-
-            text_format = QgsTextFormat()
-            text_format.setAllowHtmlFormatting(True)
-
-            ''' * FORMAT DEL FONS DEL TEXT * '''
-
-            background_format = QgsTextBackgroundSettings()
-            background_format.setEnabled(True)
-            background_format.setType(QgsTextBackgroundSettings.ShapeRectangle)
-            background_format.setSizeType(QgsTextBackgroundSettings.SizeBuffer)
-            background_format.setSizeUnit(QgsUnitTypes.RenderMillimeters)
-            background_format.setSize(QSizeF(3, 3))
-            background_format.setRadiiUnit(QgsUnitTypes.RenderMillimeters)
-            background_format.setRadii(QSizeF(3, 3))
-            background_format.setFillColor(QColor("#ffffff"))
-            background_format.setStrokeColor(QColor("#808080"))
-            background_format.setStrokeWidthUnit(QgsUnitTypes.RenderMillimeters)
-            background_format.setStrokeWidth(1)
-
-            text_format.setBackground(background_format)
-
-            ''' * FORMAT DE LA SIMBOLOGIA DEL LAYER * '''
-
-            symbology = QgsCategorizedSymbolRenderer()
-
-            if self.dlg.checkNumHabit.isChecked() and not self.dlg.checkm2.isChecked():
-                symbology.setClassAttribute("QualifMaxFreq")
-                if consum:
-                    symbol = QgsSymbol.defaultSymbol(entitatLayerResumModa.geometryType())
-                    symbol.changeSymbolLayer(0, QgsSimpleFillSymbolLayer(QColor("#000000")))
-                    symbology.addCategory(QgsRendererCategory("xxx", symbol, "Consum (kWh/m²any)"))
-                if emissions: 
-                    symbol = QgsSymbol.defaultSymbol(entitatLayerResumModa.geometryType())
-                    symbol.changeSymbolLayer(0, QgsSimpleFillSymbolLayer(QColor("#707070")))
-                    symbology.addCategory(QgsRendererCategory("xxx", symbol, "Emissions (kgCO₂/m²any)"))
+                self.castConsum()
+                self.castm2() # Mirar de prescindir d'ell
+                self.joinEntitatHabitatges()
+                self.indexMITJANAhabIindexMEDIANAhab()
+                self.numsIindexMODAhab()
+                self.joinEstadistiques()
+                caparesultat = self.joinFinalNumHab()
                 
-                symbol = QgsSymbol.defaultSymbol(entitatLayerResumModa.geometryType())
-                symbol.changeSymbolLayer(0, QgsSimpleFillSymbolLayer(colors["colorA"]))
-                symbology.addCategory(QgsRendererCategory("A", symbol, "A"))
-
-                symbol = QgsSymbol.defaultSymbol(entitatLayerResumModa.geometryType())
-                symbol.changeSymbolLayer(0, QgsSimpleFillSymbolLayer(colors["colorB"]))
-                symbology.addCategory(QgsRendererCategory("B", symbol, "B"))
-
-                symbol = QgsSymbol.defaultSymbol(entitatLayerResumModa.geometryType())
-                symbol.changeSymbolLayer(0, QgsSimpleFillSymbolLayer(colors["colorC"]))
-                symbology.addCategory(QgsRendererCategory("C", symbol, "C"))
-
-                symbol = QgsSymbol.defaultSymbol(entitatLayerResumModa.geometryType())
-                symbol.changeSymbolLayer(0, QgsSimpleFillSymbolLayer(colors["colorD"]))
-                symbology.addCategory(QgsRendererCategory("D", symbol, "D"))
-
-                symbol = QgsSymbol.defaultSymbol(entitatLayerResumModa.geometryType())
-                symbol.changeSymbolLayer(0, QgsSimpleFillSymbolLayer(colors["colorE"]))
-                symbology.addCategory(QgsRendererCategory("E", symbol, "E"))
-
-                symbol = QgsSymbol.defaultSymbol(entitatLayerResumModa.geometryType())
-                symbol.changeSymbolLayer(0, QgsSimpleFillSymbolLayer(colors["colorF"]))
-                symbology.addCategory(QgsRendererCategory("F", symbol, "F"))
-
-                symbol = QgsSymbol.defaultSymbol(entitatLayerResumModa.geometryType())
-                symbol.changeSymbolLayer(0, QgsSimpleFillSymbolLayer(colors["colorG"]))
-                symbology.addCategory(QgsRendererCategory("G", symbol, "G"))
-
-            if self.dlg.checkm2.isChecked() or (self.dlg.checkNumHabit.isChecked() and self.dlg.checkm2.isChecked()):
-                symbology.setClassAttribute("QualifMaxSup")
-                if consum:
-                    symbol = QgsSymbol.defaultSymbol(entitatLayerResumModa.geometryType())
-                    symbol.changeSymbolLayer(0, QgsSimpleFillSymbolLayer(QColor("#000000")))
-                    symbology.addCategory(QgsRendererCategory("xxx", symbol, "Consum (kWh/m²any)"))
-                if emissions: 
-                    symbol = QgsSymbol.defaultSymbol(entitatLayerResumModa.geometryType())
-                    symbol.changeSymbolLayer(0, QgsSimpleFillSymbolLayer(QColor("#707070")))
-                    symbology.addCategory(QgsRendererCategory("xxx", symbol, "Emissions (kgCO₂/m²any)"))
-                
-                symbol = QgsSymbol.defaultSymbol(entitatLayerResumModa.geometryType())
-                symbol.changeSymbolLayer(0, QgsSimpleFillSymbolLayer(colors["colorA"]))
-                symbology.addCategory(QgsRendererCategory("A", symbol, "A"))
-
-                symbol = QgsSymbol.defaultSymbol(entitatLayerResumModa.geometryType())
-                symbol.changeSymbolLayer(0, QgsSimpleFillSymbolLayer(colors["colorB"]))
-                symbology.addCategory(QgsRendererCategory("B", symbol, "B"))
-
-                symbol = QgsSymbol.defaultSymbol(entitatLayerResumModa.geometryType())
-                symbol.changeSymbolLayer(0, QgsSimpleFillSymbolLayer(colors["colorC"]))
-                symbology.addCategory(QgsRendererCategory("C", symbol, "C"))
-
-                symbol = QgsSymbol.defaultSymbol(entitatLayerResumModa.geometryType())
-                symbol.changeSymbolLayer(0, QgsSimpleFillSymbolLayer(colors["colorD"]))
-                symbology.addCategory(QgsRendererCategory("D", symbol, "D"))
-
-                symbol = QgsSymbol.defaultSymbol(entitatLayerResumModa.geometryType())
-                symbol.changeSymbolLayer(0, QgsSimpleFillSymbolLayer(colors["colorE"]))
-                symbology.addCategory(QgsRendererCategory("E", symbol, "E"))
-
-                symbol = QgsSymbol.defaultSymbol(entitatLayerResumModa.geometryType())
-                symbol.changeSymbolLayer(0, QgsSimpleFillSymbolLayer(colors["colorF"]))
-                symbology.addCategory(QgsRendererCategory("F", symbol, "F"))
-
-                symbol = QgsSymbol.defaultSymbol(entitatLayerResumModa.geometryType())
-                symbol.changeSymbolLayer(0, QgsSimpleFillSymbolLayer(colors["colorG"]))
-                symbology.addCategory(QgsRendererCategory("G", symbol, "G"))
-
-            labelModa.setFormat(text_format)
-
-            propertyx = QgsProperty()
-            propertyx.setExpressionString("x(centroid($geometry))")
-            propertyx.setActive(True)
-
-            propertyy = QgsProperty()
-            propertyy.setExpressionString("y(centroid($geometry))")
-            propertyy.setActive(True)
-
-            propertyCollection = QgsPropertyCollection("Coordenades")
-            propertyCollection.setProperty(9, propertyx)
-            propertyCollection.setProperty(10, propertyy)
-
-            labelModa.setDataDefinedProperties(propertyCollection)
-
-            labelModa.minimumScale = minimumValue
-            labelModa.maximumScale = maximumValue
-
-            labelModa.scaleVisibility = True
-
-            entitatLayerResumModa.setLabeling(QgsVectorLayerSimpleLabeling(labelModa))
-            entitatLayerResumModa.setLabelsEnabled(True)
-            entitatLayerResumModa.setRenderer(symbology)
-            entitatLayerResumModa.triggerRepaint()
-            QgsProject.instance().addMapLayer(entitatLayerResumModa)
-            QApplication.processEvents()
-
-        if self.dlg.checkMediana.isChecked():
-            
-            labelMediana = QgsPalLayerSettings()
-            labelMediana.enabled = True
-            if self.dlg.checkNumHabit.isChecked():
-                if consum:
-                    labelMediana.fieldName = """
-                    CASE
-                        WHEN "indexMEDIANAconsum" IS NOT NULL THEN '<div><b><font color="black">' || format_number("indexMEDIANAconsum", 1) || '</font></b></div>'
-                        ELSE ''
-                    END
-                    """
-                if emissions:
-                    labelMediana.fieldName = """
-                    CASE
-                        WHEN "indexMEDIANAemissions" IS NOT NULL THEN '<div><b><font color="black">' || format_number("indexMEDIANAemissions", 1) || '</font></b></div>'
-                        ELSE ''
-                    END
-                    """
-            labelMediana.isExpression = True
-            labelMediana.placement = QgsPalLayerSettings.AroundPoint
-
-            text_format = QgsTextFormat()
-            text_format.setAllowHtmlFormatting(True)
-
-            background_format = QgsTextBackgroundSettings()
-            background_format.setEnabled(True)
-            background_format.setType(QgsTextBackgroundSettings.ShapeRectangle)
-            background_format.setSizeType(QgsTextBackgroundSettings.SizeBuffer)
-            background_format.setSizeUnit(QgsUnitTypes.RenderMillimeters)
-            background_format.setSize(QSizeF(3, 3))
-            background_format.setRadiiUnit(QgsUnitTypes.RenderMillimeters)
-            background_format.setRadii(QSizeF(3, 3))
-            background_format.setFillColor(QColor("#ffffff"))
-            background_format.setStrokeColor(QColor("#808080"))
-            background_format.setStrokeWidthUnit(QgsUnitTypes.RenderMillimeters)
-            background_format.setStrokeWidth(1)
-
-            text_format.setBackground(background_format)
-
-            if consum:
-                symbology = QgsGraduatedSymbolRenderer("indexMEDIANAconsum", ranges.values())
             if emissions:
-                symbology = QgsGraduatedSymbolRenderer("indexMEDIANAemissions", ranges.values())
+                self.castEmissions()
+                self.castm2() # Mirar de prescindir d'ell
+                self.joinEntitatHabitatges()
+                self.indexMITJANAhabIindexMEDIANAhab()
+                self.numsIindexMODAhab()
+                self.joinEstadistiques()
+                caparesultat = self.joinFinalNumHab()
+
+            capanum = QgsProject.instance().addMapLayer(caparesultat)
+            capanum.setName("Capa Resultat")
             
-            symbolA = QgsFillSymbol()
-            symbolA.setColor(colors["colorA"])
-            symbolB = QgsFillSymbol()
-            symbolB.setColor(colors["colorB"])
-            symbolC = QgsFillSymbol()
-            symbolC.setColor(colors["colorC"])
-            symbolD = QgsFillSymbol()
-            symbolD.setColor(colors["colorD"])
-            symbolE = QgsFillSymbol()
-            symbolE.setColor(colors["colorE"])
-            symbolF = QgsFillSymbol()
-            symbolF.setColor(colors["colorF"])
-            symbolG = QgsFillSymbol()
-            symbolG.setColor(colors["colorG"])
+        if self.dlg.checkm2.isChecked():
+            if consum:
+                self.castConsum()
+                self.castm2()
+                self.calcularProducteCon()
+            if emissions:
+                self.castEmissions()
+                self.castm2()
+                self.calcularProducteEmi()
+            self.sumProducteConEmi()
+            self.sum_m2()
+            self.cleanProducteConEmi()
+            self.cleanM2()
+            self.sumM2Net()
+            self.m2_fin()
+            self.sum_product_net()
+            self.producte_conemi_fin()
+            self.unirCapes()
+            self.moda()
+            self.pre_mitjana()
+            self.filtrarModa()
+            self.ordenarModa()
+            self.mitjana()
+            caparesultatm2 = self.unirAtributos()
 
-            symbology.updateRangeSymbol(0, symbolA)
-            symbology.updateRangeSymbol(1, symbolB)
-            symbology.updateRangeSymbol(2, symbolC)
-            symbology.updateRangeSymbol(3, symbolD)
-            symbology.updateRangeSymbol(4, symbolE)
-            symbology.updateRangeSymbol(5, symbolF)
-            symbology.updateRangeSymbol(6, symbolG)
+            capam2 = QgsProject.instance().addMapLayer(caparesultatm2)
+            capam2.setName("Capa Resultat m2")
 
-            labelMediana.setFormat(text_format)
 
-            propertyx = QgsProperty()
-            propertyx.setExpressionString("x(centroid($geometry))")
-            propertyx.setActive(True)
-
-            propertyy = QgsProperty()
-            propertyy.setExpressionString("y(centroid($geometry))")
-            propertyy.setActive(True)
-
-            propertyCollection = QgsPropertyCollection("Coordenades")
-            propertyCollection.setProperty(9, propertyx)
-            propertyCollection.setProperty(10, propertyy)
-
-            labelMediana.setDataDefinedProperties(propertyCollection)
-
-            labelMediana.minimumScale = minimumValue
-            labelMediana.maximumScale = maximumValue
-            
-            labelMediana.scaleVisibility = True
-
-            entitatLayerResumMediana.setLabeling(QgsVectorLayerSimpleLabeling(labelMediana))
-            entitatLayerResumMediana.setLabelsEnabled(True)
-            entitatLayerResumMediana.setRenderer(symbology)
-            entitatLayerResumMediana.triggerRepaint()
-            QgsProject.instance().addMapLayer(entitatLayerResumMediana)
-            QApplication.processEvents()
-
-        QgsProject.instance().reloadAllLayers()
-        self.updateProgress(80)
-        self.dropFinalCapesIColumnes()
         self.updateProgress(90)
         textBox += f"PROCÉS FINALITZAT!\n"
         self.dlg.textEstat.setText(textBox)
@@ -3085,6 +1752,8 @@ class EficEnerg:
         self.dlg.groupEntitats.setEnabled(True)
         self.updateProgress(100)
         self.estatFinalitzat()
+        total_finish_time = time.time()
+        print(f"Temps total de procés: {total_finish_time - total_start_time} segons")
         QMessageBox.information(None, "Procés finalitzat", f"El procés per a l'entitat {entitat} ha finalitzat.", QMessageBox.Ok)
         QApplication.processEvents()
 
