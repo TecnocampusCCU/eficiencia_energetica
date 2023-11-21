@@ -72,7 +72,7 @@ from .eficiencia_energetica_dialog import EficEnergDialog
 from .resources import *
 
 '''Varibles globals'''
-Versio_modul = "V_Q3.231120"
+Versio_modul = "V_Q3.231121"
 nomBD1 = ""
 password1 = ""
 host1 = ""
@@ -360,7 +360,7 @@ class EficEnerg:
                 conn = psycopg2.connect(estructura)
                 self.barraEstat_connectat()
                 textBox += f"\nConnectat a la base de dades {nomBD1}\n"
-                textBox += "\nSelecciona les entitats amb les que vulguis treballar i indica amb quines entitats treballaràs així com els camps que vols calcular i inicia el procés"
+                textBox += "\nSelecciona l'entitat amb la que vulguis treballar i indica els càlculs que vols realitzar sobre aquesta així com si vols els càlculs sobre el consum o les emissions.\n"
                 self.dlg.textEstat.setText(textBox)
                 self.scroll_text()
                 cur = conn.cursor()
@@ -486,7 +486,7 @@ class EficEnerg:
             self.dlg.checkModa.setEnabled(True)
             self.dlg.checkMediana.setEnabled(True)
             self.dlg.labelRestriccio.setVisible(True)
-            self.dlg.labelRestriccio.setText("La Mitjana, la Moda i la Mediana utilitzen en els seus càlculs la superfície dels habitatges.")
+            self.dlg.labelRestriccio.setText("La Mitjana i la Moda utilitzen en els seus càlculs la superfície dels habitatges.")
 
         if not self.dlg.checkNumHabit.isChecked() and not self.dlg.checkm2.isChecked():
             self.dlg.checkMitjana.setEnabled(False)
@@ -1470,32 +1470,17 @@ class EficEnerg:
         self.dlg.groupChecks.setEnabled(False)
         self.dlg.groupEntitats.setEnabled(False)
         textBox = f"INICIANT EL PROCÉS...\n"
+        textBox += f"---------------------\n"
         self.dlg.textEstat.setText(textBox)
         self.scroll_text()
 
         QApplication.processEvents()
 
-        start_time = time.time()
         self.calculIdEntitat()
-        finish_time = time.time()
-        print("Calcul ID entitat en " + str(finish_time - start_time) + " segons")
-        QApplication.processEvents()
-        start_time = time.time()
         self.castConsumEmissions()
-        finish_time = time.time()
-        print("Cast consum emissions en " + str(finish_time - start_time) + " segons")
-        QApplication.processEvents()
         if self.dlg.checkm2.isChecked():
-            start_time = time.time()
             self.castm2()
-            finish_time = time.time()
-            print("Cast m2 en " + str(finish_time - start_time) + " segons")
-            QApplication.processEvents()
-        start_time = time.time()
         self.joinEntitatHabitatges()
-        finish_time = time.time()
-        print("Join entitat habitatges en " + str(finish_time - start_time) + " segons")
-        QApplication.processEvents()
 
         textBox += f"Realitzats càlculs previs de {entitat.upper()}.\n"
         self.dlg.textEstat.setText(textBox)
@@ -1838,7 +1823,7 @@ class EficEnerg:
             labelMediana.enabled = True
             labelMediana.fieldName = """
             CASE
-                WHEN "indexMEDIANAhab" IS NOT NULL AND "indexMEDIANAhab" > 0 THEN '<div><b><font color="black">' || format_number("indexMEDIANAhab", 1) || '</font></b></div>'
+                WHEN "indexMEDIANA" IS NOT NULL AND "indexMEDIANA" > 0 THEN '<div><b><font color="black">' || format_number("indexMEDIANA", 1) || '</font></b></div>'
                 ELSE ''
             END
             """
@@ -1864,7 +1849,7 @@ class EficEnerg:
 
             text_format.setBackground(background_format)
 
-            symbology = QgsGraduatedSymbolRenderer("indexMEDIANAhab", ranges.values())
+            symbology = QgsGraduatedSymbolRenderer("indexMEDIANA", ranges.values())
 
             symbolA = QgsFillSymbol()
             symbolA.setColor(colors["colorA"])
@@ -1922,7 +1907,9 @@ class EficEnerg:
             self.updateProgress(95)
             QApplication.processEvents()
 
-        textBox += f"PROCÉS FINALITZAT!\n"
+        total_finish_time = time.time()
+        tempsFinal = round(total_finish_time - total_start_time)
+        textBox += f"\nPROCÉS FINALITZAT en {tempsFinal} segons.\n"
         self.dlg.textEstat.setText(textBox)
         self.scroll_text()
         self.dlg.setEnabled(True)
@@ -1931,8 +1918,7 @@ class EficEnerg:
         self.dlg.groupEntitats.setEnabled(True)
         self.updateProgress(100)
         self.estatFinalitzat()
-        total_finish_time = time.time()
-        print(f"Temps total de procés: {round(total_finish_time - total_start_time)} segons")
+        print(f"Temps total de procés: {tempsFinal} segons")
         QMessageBox.information(None, "Procés finalitzat", f"El procés per a l'entitat {entitat} ha finalitzat.", QMessageBox.Ok)
         QApplication.processEvents()
 

@@ -196,7 +196,7 @@
      <rect>
       <x>10</x>
       <y>20</y>
-      <width>120</width>
+      <width>131</width>
       <height>80</height>
      </rect>
     </property>
@@ -239,9 +239,9 @@
    <widget class="QGroupBox" name="groupBox_2">
     <property name="geometry">
      <rect>
-      <x>130</x>
+      <x>139</x>
       <y>19</y>
-      <width>120</width>
+      <width>111</width>
       <height>81</height>
      </rect>
     </property>
@@ -251,7 +251,7 @@
     <widget class="QRadioButton" name="consumButton">
      <property name="geometry">
       <rect>
-       <x>10</x>
+       <x>17</x>
        <y>20</y>
        <width>82</width>
        <height>17</height>
@@ -260,11 +260,14 @@
      <property name="text">
       <string>Consum</string>
      </property>
+     <property name="checked">
+      <bool>true</bool>
+     </property>
     </widget>
     <widget class="QRadioButton" name="emissionsButton">
      <property name="geometry">
       <rect>
-       <x>10</x>
+       <x>17</x>
        <y>50</y>
        <width>82</width>
        <height>17</height>
@@ -1367,7 +1370,7 @@
       <rect>
        <x>80</x>
        <y>65</y>
-       <width>62</width>
+       <width>81</width>
        <height>22</height>
       </rect>
      </property>
@@ -1389,7 +1392,7 @@
       <rect>
        <x>80</x>
        <y>90</y>
-       <width>62</width>
+       <width>81</width>
        <height>22</height>
       </rect>
      </property>
@@ -1429,7 +1432,7 @@
       <rect>
        <x>80</x>
        <y>90</y>
-       <width>62</width>
+       <width>81</width>
        <height>22</height>
       </rect>
      </property>
@@ -1477,7 +1480,7 @@
       <rect>
        <x>80</x>
        <y>65</y>
-       <width>62</width>
+       <width>81</width>
        <height>22</height>
       </rect>
      </property>
