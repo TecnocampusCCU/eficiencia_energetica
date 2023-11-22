@@ -651,6 +651,7 @@ class EficEnerg:
         self.dlg.pushColorP.setAutoFillBackground(True)
         self.dlg.minScaleP.setEnabled(True)
         self.dlg.maxScaleP.setEnabled(True)
+        self.dlg.consumButton.setChecked(True)
         textBox = "Selecciona una base de dades...\n"
         self.dlg.textEstat.setText(textBox)
         self.dlg.setEnabled(True)
