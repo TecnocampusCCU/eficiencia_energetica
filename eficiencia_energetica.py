@@ -896,6 +896,7 @@ class EficEnerg:
                 'OUTPUT' : 'TEMPORARY_OUTPUT'
             }
             entitatLayerResumm2 = processing.run('qgis:aggregate', alg_params)['OUTPUT']
+            QgsProject.instance().addMapLayer(entitatLayerResumm2)
             if consum:
                 entitatLayerResumm2.setName("Consum de " + entitat.upper() + " amb metres quadrats segons categoria")
             if emissions:
