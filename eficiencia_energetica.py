@@ -1051,51 +1051,107 @@ class EficEnerg:
                     alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat', 'qualificacio emissions de co2']
                 outputs['SumM2'] = processing.run('qgis:statisticsbycategories', alg_params)
 
-                ''' Aggregate producte '''
+                ''' Clean sum producte '''
                 alg_params = {
-                    'AGGREGATES': [{'aggregate': 'first_value', 'delimiter': ',', 'input': '\"idEntitat\"', 'length': 0, 'name': 'idEntitat', 'precision': 0, 'type': 2},
-                                   {'aggregate': 'sum', 'delimiter': ',', 'input': '\"count\"', 'length': 0, 'name': 'sum_producte', 'precision': 0, 'type': 6}],
-                    'GROUP_BY': 'idEntitat',
+                    'COLUMN': ['unique','min','max','range','mean','median','stddev','minority','majority','q1','q3','iqr'],
                     'INPUT': outputs['SumProducte']['OUTPUT'],
                     'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
                 }
-                outputs['sumproducteagg'] = processing.run('qgis:aggregate', alg_params)
+                outputs['cleanproducte'] = processing.run('qgis:deletecolumn', alg_params)
 
-                ''' Aggregate m2 '''
+                ''' Clean m2 '''
                 alg_params = {
-                    'AGGREGATES': [{'aggregate': 'first_value', 'delimiter': ',', 'input': '\"idEntitat\"', 'length': 0, 'name': 'idEntitat', 'precision': 0, 'type': 2},
-                                   {'aggregate': 'sum', 'delimiter': ',', 'input': '\"count\"', 'length': 0, 'name': 'sum_m2', 'precision': 0, 'type': 6}],
-                    'GROUP_BY': 'idEntitat',
+                    'COLUMN': ['unique','min','max','range','mean','median','stddev','minority','majority','q1','q3','iqr'],
                     'INPUT': outputs['SumM2']['OUTPUT'],
                     'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
                 }
-                outputs['summ2agg'] = processing.run('qgis:aggregate', alg_params)
+                outputs['cleanm2'] = processing.run('qgis:deletecolumn', alg_params)
+
+                ''' rename producte '''
+                alg_params = {
+                    'FIELD': 'sum',
+                    'INPUT': outputs['cleanproducte']['OUTPUT'],
+                    'NEW_NAME': 'sum_producte',
+                    'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+                }
+                outputs['renameproducte'] = processing.run('native:renametablefield', alg_params)
+
+                ''' rename m2 '''
+                alg_params = {
+                    'FIELD': 'sum',
+                    'INPUT': outputs['cleanm2']['OUTPUT'],
+                    'NEW_NAME': 'sum_m2',
+                    'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+                }
+                outputs['renamem2'] = processing.run('native:renametablefield', alg_params)
+
+                ''' id_qual per producte '''
+                alg_params = {
+                    'FIELD_LENGTH': 0,
+                    'FIELD_NAME': 'id_qual',
+                    'FIELD_PRECISION': 0,
+                    'FIELD_TYPE': 2,
+                    'FORMULA': None,
+                    'INPUT': outputs['renameproducte']['OUTPUT'],
+                    'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+                }
+                if consum:
+                    alg_params['FORMULA'] = 'concat(to_string(\"idEntitat\") , \'-\', \"qualificació de consum energia primaria no renovable\")'
+                if emissions:
+                    alg_params['FORMULA'] = 'concat(to_string(\"idEntitat\") , \'-\', \"qualificacio emissions de co2\")'
+                outputs['producte_fin'] = processing.run('qgis:fieldcalculator', alg_params)
+
+                ''' seccio_qual per m2 '''
+                alg_params = {
+                    'FIELD_LENGTH': 0,
+                    'FIELD_NAME': 'id_qual',
+                    'FIELD_PRECISION': 0,
+                    'FIELD_TYPE': 2,
+                    'FORMULA': None,
+                    'INPUT': outputs['renamem2']['OUTPUT'],
+                    'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+                }
+                if consum:
+                    alg_params['FORMULA'] = 'concat(to_string(\"idEntitat\") , \'-\', \"qualificació de consum energia primaria no renovable\")'
+                if emissions:
+                    alg_params['FORMULA'] = 'concat(to_string(\"idEntitat\") , \'-\', \"qualificacio emissions de co2\")'
+                outputs['m2_fin'] = processing.run('qgis:fieldcalculator', alg_params)
 
                 ''' Join 2 Aggregate '''
                 alg_params = {
                     'DISCARD_NONMATCHING': False,
-                    'FIELD': 'idEntitat',
-                    'FIELDS_TO_COPY': [''],
-                    'FIELD_2': 'idEntitat',
-                    'INPUT': outputs['sumproducteagg']['OUTPUT'],
-                    'INPUT_2': outputs['summ2agg']['OUTPUT'],
+                    'FIELD': 'id_qual',
+                    'FIELDS_TO_COPY': ['sum_m2'],
+                    'FIELD_2': 'id_qual',
+                    'INPUT': outputs['producte_fin']['OUTPUT'],
+                    'INPUT_2': outputs['m2_fin']['OUTPUT'],
                     'METHOD': 1,
                     'PREFIX': '',
                     'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
                 }
                 outputs['Join2Aggregate'] = processing.run('native:joinattributestable', alg_params)
 
-                ''' Mitjana '''
+                ''' Sum de Sum Producte i Sum de Sum m2 '''
                 alg_params = {
-                    'FIELD_LENGTH': 0,
-                    'FIELD_NAME': 'mitjana',
-                    'FIELD_PRECISION': 0,
-                    'FIELD_TYPE': 0,
-                    'FORMULA': '\"sum_producte\" / \"sum_m2\"',
-                    'INPUT': outputs['Join2Aggregate']['OUTPUT'],
-                    'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+                    'AGGREGATES' : [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
+                                    {'aggregate': 'sum','delimiter': ',','input': '\"sum_producte\"','length': 0,'name': 'sum_producte','precision': 0,'type': 6},
+                                    {'aggregate': 'sum','delimiter': ',','input': '\"sum_m2\"','length': 0,'name': 'sum_m2','precision': 0,'type': 6}],
+                    'GROUP_BY' : '\"idEntitat\"', 
+                    'INPUT' : outputs['Join2Aggregate']['OUTPUT'], 
+                    'OUTPUT' : QgsProcessing.TEMPORARY_OUTPUT
                 }
-                outputs['Mitjana'] = processing.run('qgis:fieldcalculator', alg_params)
+                outputs['SumDeSums'] = processing.run('qgis:aggregate', alg_params)
+
+                ''' Mitjana '''
+
+                alg_params = {
+                    'AGGREGATES' : [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
+                                    {'aggregate': 'first_value','delimiter': ',','input': '\"sum_producte\"/\"sum_m2\"','length': 0,'name': 'mitjana','precision': 0,'type': 6}],
+                    'GROUP_BY' : '\"idEntitat\"', 
+                    'INPUT' : outputs['SumDeSums']['OUTPUT'], 
+                    'OUTPUT' : QgsProcessing.TEMPORARY_OUTPUT
+                }
+                outputs['Mitjana'] = processing.run('qgis:aggregate', alg_params)
 
                 ''' Join Final '''
                 alg_params = {
@@ -1211,9 +1267,6 @@ class EficEnerg:
                 - 3. joinEntitatHabitatges fet abans
                 '''
 
-                QgsProject.instance().addMapLayer(entitatLayer).setName("castConsum i castm2")
-                QgsProject.instance().addMapLayer(joinEntitatHabitatges).setName("joinEntitatHabitatges")
-
                 ''' 4. Producte consum / emissions '''
                 alg_params = {
                     'FIELD_LENGTH': 0,
@@ -1229,7 +1282,6 @@ class EficEnerg:
                 if emissions:
                     alg_params['FORMULA'] = '\"emissions\" * \"m2\"'
                 outputs['Producte'] = processing.run('qgis:fieldcalculator', alg_params)
-                QgsProject.instance().addMapLayer(outputs['Producte']['OUTPUT']).setName("Producte")
 
                 ''' 5. Estadistiquesm2 sembla no ser necessari per la moda '''
 
@@ -1258,7 +1310,6 @@ class EficEnerg:
                 if emissions:
                     alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat', 'qualificacio emissions de co2']
                 outputs['SumProducte'] = processing.run('qgis:statisticsbycategories', alg_params)
-                QgsProject.instance().addMapLayer(outputs['SumProducte']['OUTPUT']).setName("SumProducte")
                 
                 ''' 7. sum m2 '''
                 alg_params = {
@@ -1272,7 +1323,6 @@ class EficEnerg:
                 if emissions:
                     alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat', 'qualificacio emissions de co2']
                 outputs['SumM2'] = processing.run('qgis:statisticsbycategories', alg_params)
-                QgsProject.instance().addMapLayer(outputs['SumM2']['OUTPUT']).setName("SumM2")
 
                 ''' 8. Clean producte '''
                 alg_params = {
@@ -1281,7 +1331,6 @@ class EficEnerg:
                     'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
                 }
                 outputs['cleanproducte'] = processing.run('qgis:deletecolumn', alg_params)
-                QgsProject.instance().addMapLayer(outputs['cleanproducte']['OUTPUT']).setName("cleanproducte")
 
                 ''' 9. Clean m2 '''
                 alg_params = {
@@ -1290,7 +1339,6 @@ class EficEnerg:
                     'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
                 }
                 outputs['cleanm2'] = processing.run('qgis:deletecolumn', alg_params)
-                QgsProject.instance().addMapLayer(outputs['cleanm2']['OUTPUT']).setName("cleanm2")
 
                 ''' 10. rename producte '''
                 alg_params = {
@@ -1300,7 +1348,6 @@ class EficEnerg:
                     'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
                 }
                 outputs['renameproducte'] = processing.run('native:renametablefield', alg_params)
-                QgsProject.instance().addMapLayer(outputs['renameproducte']['OUTPUT']).setName("renameproducte")
 
                 ''' 11. rename m2 '''
                 alg_params = {
@@ -1310,7 +1357,6 @@ class EficEnerg:
                     'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
                 }
                 outputs['renamem2'] = processing.run('native:renametablefield', alg_params)
-                QgsProject.instance().addMapLayer(outputs['renamem2']['OUTPUT']).setName("renamem2")
 
                 ''' 12 i 13 calculen seccio_qual, pero aixo no fa falta tenint idEntitat '''
                 
@@ -1329,7 +1375,6 @@ class EficEnerg:
                 if emissions:
                     alg_params['FORMULA'] = 'concat(to_string(\"idEntitat\") , \'-\', \"qualificacio emissions de co2\")'
                 outputs['producte_fin'] = processing.run('qgis:fieldcalculator', alg_params)
-                QgsProject.instance().addMapLayer(outputs['producte_fin']['OUTPUT']).setName("producte_fin")
 
                 ''' 13. seccio_qual per m2 '''
                 alg_params = {
@@ -1346,7 +1391,6 @@ class EficEnerg:
                 if emissions:
                     alg_params['FORMULA'] = 'concat(to_string(\"idEntitat\") , \'-\', \"qualificacio emissions de co2\")'
                 outputs['m2_fin'] = processing.run('qgis:fieldcalculator', alg_params)
-                QgsProject.instance().addMapLayer(outputs['m2_fin']['OUTPUT']).setName("m2_fin")
 
                 ''' 14. Join 2 Aggregate '''
                 alg_params = {
@@ -1361,7 +1405,6 @@ class EficEnerg:
                     'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
                 }
                 outputs['Join2Aggregate'] = processing.run('native:joinattributestable', alg_params)
-                QgsProject.instance().addMapLayer(outputs['Join2Aggregate']['OUTPUT']).setName("Join2Aggregate") # Aqui tinc per cada idEntitat B, els mateixos valors a sum_producte però diferents valors a sum_m2, SOLUCIONAT afegint id_qual
 
                 ''' 15. Moda '''
                 alg_params = {
@@ -1374,7 +1417,6 @@ class EficEnerg:
                     'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
                 }
                 outputs['Moda'] = processing.run('qgis:fieldcalculator', alg_params)
-                QgsProject.instance().addMapLayer(outputs['Moda']['OUTPUT']).setName("Moda")
 
                 ''' 16. Filtrat moda '''
                 alg_params = {
@@ -1395,7 +1437,6 @@ class EficEnerg:
                                                 {'aggregate': 'sum','delimiter': ',','input': 'if(\"sum_m2\"=maximum(\"sum_m2\",\"idEntitat\"),\"moda\",0)','length': 0,'name': 'moda','precision': 0,'type': 6}]
                     
                 outputs['Filtrarmoda'] = processing.run('qgis:aggregate', alg_params)
-                QgsProject.instance().addMapLayer(outputs['Filtrarmoda']['OUTPUT']).setName("Filtrarmoda")
 
                 """
                 Agregat QGIS FUNCIONAL
@@ -1448,7 +1489,6 @@ class EficEnerg:
                     'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
                 }
                 outputs['JoinFinal'] = processing.run('native:joinattributestable', alg_params)
-                QgsProject.instance().addMapLayer(outputs['JoinFinal']['OUTPUT']).setName("JoinFinal")
 
                 ''' 23. Aggregate Final Clean '''
                 alg_params = {
@@ -1488,10 +1528,10 @@ class EficEnerg:
                 'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
             }
             if consum:
-                alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat', 'qualificació de consum energia primaria no renovable']
+                alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat']
                 alg_params['VALUES_FIELD_NAME'] = 'consum'
             if emissions:
-                alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat', 'qualificacio emissions de co2']
+                alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat']
                 alg_params['VALUES_FIELD_NAME'] = 'emissions'
             outputs['Indexmediana'] = processing.run('qgis:statisticsbycategories', alg_params)
 
