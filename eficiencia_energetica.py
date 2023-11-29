@@ -71,8 +71,8 @@ from .eficiencia_energetica_dialog import EficEnergDialog
 # Initialize Qt resources from file resources.py
 from .resources import *
 
-'''Varibles globals'''
-Versio_modul = "V_Q3.231121"
+'''Variables globals'''
+Versio_modul = "V_Q3.231129"
 nomBD1 = ""
 password1 = ""
 host1 = ""
@@ -805,9 +805,25 @@ class EficEnerg:
                 'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
             }
             if consum:
-                alg_params['AGGREGATES'] = [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},{'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'A\', \"count\", 0)','length': 0,'name': 'NumA','precision': 0,'type': 2},{'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'B\', \"count\", 0)','length': 0,'name': 'NumB','precision': 0,'type': 2},{'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'C\', \"count\", 0)','length': 0,'name': 'NumC','precision': 0,'type': 2},{'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'D\', \"count\", 0)','length': 0,'name': 'NumD','precision': 0,'type': 2},{'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'E\', \"count\", 0)','length': 0,'name': 'NumE','precision': 0,'type': 2},{'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'F\', \"count\", 0)','length': 0,'name': 'NumF','precision': 0,'type': 2},{'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'G\', \"count\", 0)','length': 0,'name': 'NumG','precision': 0,'type': 2},{'aggregate': 'sum','delimiter': ',','input': '\"count\"','length': 0,'name': 'TotalEE','precision': 0,'type': 2}]
+                alg_params['AGGREGATES'] = [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
+                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'A\', \"count\", 0)','length': 0,'name': 'NumA','precision': 0,'type': 2},
+                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'B\', \"count\", 0)','length': 0,'name': 'NumB','precision': 0,'type': 2},
+                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'C\', \"count\", 0)','length': 0,'name': 'NumC','precision': 0,'type': 2},
+                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'D\', \"count\", 0)','length': 0,'name': 'NumD','precision': 0,'type': 2},
+                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'E\', \"count\", 0)','length': 0,'name': 'NumE','precision': 0,'type': 2},
+                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'F\', \"count\", 0)','length': 0,'name': 'NumF','precision': 0,'type': 2},
+                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'G\', \"count\", 0)','length': 0,'name': 'NumG','precision': 0,'type': 2},
+                                            {'aggregate': 'sum','delimiter': ',','input': '\"count\"','length': 0,'name': 'TotalEE','precision': 0,'type': 2}]
             if emissions:
-                alg_params['AGGREGATES'] = [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},{'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'A\', \"count\", 0)','length': 0,'name': 'NumA','precision': 0,'type': 2},{'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'B\', \"count\", 0)','length': 0,'name': 'NumB','precision': 0,'type': 2},{'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'C\', \"count\", 0)','length': 0,'name': 'NumC','precision': 0,'type': 2},{'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'D\', \"count\", 0)','length': 0,'name': 'NumD','precision': 0,'type': 2},{'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'E\', \"count\", 0)','length': 0,'name': 'NumE','precision': 0,'type': 2},{'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'F\', \"count\", 0)','length': 0,'name': 'NumF','precision': 0,'type': 2},{'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'G\', \"count\", 0)','length': 0,'name': 'NumG','precision': 0,'type': 2},{'aggregate': 'sum','delimiter': ',','input': '\"count\"','length': 0,'name': 'TotalEE','precision': 0,'type': 2}]
+                alg_params['AGGREGATES'] = [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
+                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'A\', \"count\", 0)','length': 0,'name': 'NumA','precision': 0,'type': 2},
+                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'B\', \"count\", 0)','length': 0,'name': 'NumB','precision': 0,'type': 2},
+                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'C\', \"count\", 0)','length': 0,'name': 'NumC','precision': 0,'type': 2},
+                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'D\', \"count\", 0)','length': 0,'name': 'NumD','precision': 0,'type': 2},
+                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'E\', \"count\", 0)','length': 0,'name': 'NumE','precision': 0,'type': 2},
+                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'F\', \"count\", 0)','length': 0,'name': 'NumF','precision': 0,'type': 2},
+                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'G\', \"count\", 0)','length': 0,'name': 'NumG','precision': 0,'type': 2},
+                                            {'aggregate': 'sum','delimiter': ',','input': '\"count\"','length': 0,'name': 'TotalEE','precision': 0,'type': 2}]
             outputs['Aggregate'] = processing.run('qgis:aggregate', alg_params)
 
             alg_params = {
@@ -824,7 +840,15 @@ class EficEnerg:
             outputs['JoinFinal'] = processing.run('native:joinattributestable', alg_params)
 
             alg_params = {
-                'AGGREGATES' : [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},{'aggregate': 'first_value','delimiter': ',','input': '\"NumA\"','length': 0,'name': 'NumA','precision': 0,'type': 2},{'aggregate': 'first_value','delimiter': ',','input': '\"NumB\"','length': 0,'name': 'NumB','precision': 0,'type': 2},{'aggregate': 'first_value','delimiter': ',','input': '\"NumC\"','length': 0,'name': 'NumC','precision': 0,'type': 2},{'aggregate': 'first_value','delimiter': ',','input': '\"NumD\"','length': 0,'name': 'NumD','precision': 0,'type': 2},{'aggregate': 'first_value','delimiter': ',','input': '\"NumE\"','length': 0,'name': 'NumE','precision': 0,'type': 2},{'aggregate': 'first_value','delimiter': ',','input': '\"NumF\"','length': 0,'name': 'NumF','precision': 0,'type': 2},{'aggregate': 'first_value','delimiter': ',','input': '\"NumG\"','length': 0,'name': 'NumG','precision': 0,'type': 2},{'aggregate': 'first_value','delimiter': ',','input': '\"TotalEE\"','length': 0,'name': 'TotalEE','precision': 0,'type': 2}], 
+                'AGGREGATES' : [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
+                                {'aggregate': 'first_value','delimiter': ',','input': '\"NumA\"','length': 0,'name': 'NumA','precision': 0,'type': 2},
+                                {'aggregate': 'first_value','delimiter': ',','input': '\"NumB\"','length': 0,'name': 'NumB','precision': 0,'type': 2},
+                                {'aggregate': 'first_value','delimiter': ',','input': '\"NumC\"','length': 0,'name': 'NumC','precision': 0,'type': 2},
+                                {'aggregate': 'first_value','delimiter': ',','input': '\"NumD\"','length': 0,'name': 'NumD','precision': 0,'type': 2},
+                                {'aggregate': 'first_value','delimiter': ',','input': '\"NumE\"','length': 0,'name': 'NumE','precision': 0,'type': 2},
+                                {'aggregate': 'first_value','delimiter': ',','input': '\"NumF\"','length': 0,'name': 'NumF','precision': 0,'type': 2},
+                                {'aggregate': 'first_value','delimiter': ',','input': '\"NumG\"','length': 0,'name': 'NumG','precision': 0,'type': 2},
+                                {'aggregate': 'first_value','delimiter': ',','input': '\"TotalEE\"','length': 0,'name': 'TotalEE','precision': 0,'type': 2}], 
                 'GROUP_BY' : '\"idEntitat\"', 
                 'INPUT' : outputs['JoinFinal']['OUTPUT'], 
                 'OUTPUT' : 'TEMPORARY_OUTPUT'
@@ -871,9 +895,25 @@ class EficEnerg:
                 'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
             }
             if consum:
-                alg_params['AGGREGATES'] = [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},{'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'A\', \"count\", 0)','length': 0,'name': 'm2A','precision': 0,'type': 2},{'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'B\', \"count\", 0)','length': 0,'name': 'm2B','precision': 0,'type': 2},{'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'C\', \"count\", 0)','length': 0,'name': 'm2C','precision': 0,'type': 2},{'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'D\', \"count\", 0)','length': 0,'name': 'm2D','precision': 0,'type': 2},{'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'E\', \"count\", 0)','length': 0,'name': 'm2E','precision': 0,'type': 2},{'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'F\', \"count\", 0)','length': 0,'name': 'm2F','precision': 0,'type': 2},{'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'G\', \"count\", 0)','length': 0,'name': 'm2G','precision': 0,'type': 2},{'aggregate': 'sum','delimiter': ',','input': '\"count\"','length': 0,'name': 'Totalm2','precision': 0,'type': 2}]
+                alg_params['AGGREGATES'] = [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
+                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'A\', \"count\", 0)','length': 0,'name': 'm2A','precision': 0,'type': 2},
+                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'B\', \"count\", 0)','length': 0,'name': 'm2B','precision': 0,'type': 2},
+                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'C\', \"count\", 0)','length': 0,'name': 'm2C','precision': 0,'type': 2},
+                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'D\', \"count\", 0)','length': 0,'name': 'm2D','precision': 0,'type': 2},
+                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'E\', \"count\", 0)','length': 0,'name': 'm2E','precision': 0,'type': 2},
+                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'F\', \"count\", 0)','length': 0,'name': 'm2F','precision': 0,'type': 2},
+                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'G\', \"count\", 0)','length': 0,'name': 'm2G','precision': 0,'type': 2},
+                                            {'aggregate': 'sum','delimiter': ',','input': '\"count\"','length': 0,'name': 'Totalm2','precision': 0,'type': 2}]
             if emissions:
-                alg_params['AGGREGATES'] = [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},{'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'A\', \"count\", 0)','length': 0,'name': 'm2A','precision': 0,'type': 2},{'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'B\', \"count\", 0)','length': 0,'name': 'm2B','precision': 0,'type': 2},{'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'C\', \"count\", 0)','length': 0,'name': 'm2C','precision': 0,'type': 2},{'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'D\', \"count\", 0)','length': 0,'name': 'm2D','precision': 0,'type': 2},{'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'E\', \"count\", 0)','length': 0,'name': 'm2E','precision': 0,'type': 2},{'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'F\', \"count\", 0)','length': 0,'name': 'm2F','precision': 0,'type': 2},{'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'G\', \"count\", 0)','length': 0,'name': 'm2G','precision': 0,'type': 2},{'aggregate': 'sum','delimiter': ',','input': '\"count\"','length': 0,'name': 'Totalm2','precision': 0,'type': 2}]
+                alg_params['AGGREGATES'] = [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
+                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'A\', \"count\", 0)','length': 0,'name': 'm2A','precision': 0,'type': 2},
+                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'B\', \"count\", 0)','length': 0,'name': 'm2B','precision': 0,'type': 2},
+                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'C\', \"count\", 0)','length': 0,'name': 'm2C','precision': 0,'type': 2},
+                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'D\', \"count\", 0)','length': 0,'name': 'm2D','precision': 0,'type': 2},
+                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'E\', \"count\", 0)','length': 0,'name': 'm2E','precision': 0,'type': 2},
+                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'F\', \"count\", 0)','length': 0,'name': 'm2F','precision': 0,'type': 2},
+                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'G\', \"count\", 0)','length': 0,'name': 'm2G','precision': 0,'type': 2},
+                                            {'aggregate': 'sum','delimiter': ',','input': '\"count\"','length': 0,'name': 'Totalm2','precision': 0,'type': 2}]
             outputs['Aggregatem2'] = processing.run('qgis:aggregate', alg_params)
 
             alg_params = {
@@ -890,7 +930,15 @@ class EficEnerg:
             outputs['JoinFinal'] = processing.run('native:joinattributestable', alg_params)
 
             alg_params = {
-                'AGGREGATES' : [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},{'aggregate': 'first_value','delimiter': ',','input': '\"m2A\"','length': 0,'name': 'm2A','precision': 0,'type': 2},{'aggregate': 'first_value','delimiter': ',','input': '\"m2B\"','length': 0,'name': 'm2B','precision': 0,'type': 2},{'aggregate': 'first_value','delimiter': ',','input': '\"m2C\"','length': 0,'name': 'm2C','precision': 0,'type': 2},{'aggregate': 'first_value','delimiter': ',','input': '\"m2D\"','length': 0,'name': 'm2D','precision': 0,'type': 2},{'aggregate': 'first_value','delimiter': ',','input': '\"m2E\"','length': 0,'name': 'm2E','precision': 0,'type': 2},{'aggregate': 'first_value','delimiter': ',','input': '\"m2F\"','length': 0,'name': 'm2F','precision': 0,'type': 2},{'aggregate': 'first_value','delimiter': ',','input': '\"m2G\"','length': 0,'name': 'm2G','precision': 0,'type': 2},{'aggregate': 'first_value','delimiter': ',','input': '\"Totalm2\"','length': 0,'name': 'Totalm2','precision': 0,'type': 2}], 
+                'AGGREGATES' : [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
+                                {'aggregate': 'first_value','delimiter': ',','input': '\"m2A\"','length': 0,'name': 'm2A','precision': 0,'type': 2},
+                                {'aggregate': 'first_value','delimiter': ',','input': '\"m2B\"','length': 0,'name': 'm2B','precision': 0,'type': 2},
+                                {'aggregate': 'first_value','delimiter': ',','input': '\"m2C\"','length': 0,'name': 'm2C','precision': 0,'type': 2},
+                                {'aggregate': 'first_value','delimiter': ',','input': '\"m2D\"','length': 0,'name': 'm2D','precision': 0,'type': 2},
+                                {'aggregate': 'first_value','delimiter': ',','input': '\"m2E\"','length': 0,'name': 'm2E','precision': 0,'type': 2},
+                                {'aggregate': 'first_value','delimiter': ',','input': '\"m2F\"','length': 0,'name': 'm2F','precision': 0,'type': 2},
+                                {'aggregate': 'first_value','delimiter': ',','input': '\"m2G\"','length': 0,'name': 'm2G','precision': 0,'type': 2},
+                                {'aggregate': 'first_value','delimiter': ',','input': '\"Totalm2\"','length': 0,'name': 'Totalm2','precision': 0,'type': 2}], 
                 'GROUP_BY' : '\"idEntitat\"', 
                 'INPUT' : outputs['JoinFinal']['OUTPUT'], 
                 'OUTPUT' : 'TEMPORARY_OUTPUT'
@@ -948,7 +996,8 @@ class EficEnerg:
 
                 ''' Clean Mitjana '''
                 alg_params = {
-                    'AGGREGATES': [{'aggregate': 'first_value', 'delimiter': ',', 'input': '\"idEntitat\"', 'length': 0, 'name': 'idEntitat', 'precision': 0, 'type': 10}, {'aggregate': 'first_value', 'delimiter': ',', 'input': '\"mean\"', 'length': 0, 'name': 'indexMITJANA', 'precision': 0, 'type': 6}],
+                    'AGGREGATES': [{'aggregate': 'first_value', 'delimiter': ',', 'input': '\"idEntitat\"', 'length': 0, 'name': 'idEntitat', 'precision': 0, 'type': 10},
+                                   {'aggregate': 'first_value', 'delimiter': ',', 'input': '\"mean\"', 'length': 0, 'name': 'indexMITJANA', 'precision': 0, 'type': 6}],
                     'GROUP_BY': 'idEntitat',
                     'INPUT': outputs['JoinFinal']['OUTPUT'],
                     'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
@@ -1004,7 +1053,8 @@ class EficEnerg:
 
                 ''' Aggregate producte '''
                 alg_params = {
-                    'AGGREGATES': [{'aggregate': 'first_value', 'delimiter': ',', 'input': '\"idEntitat\"', 'length': 0, 'name': 'idEntitat', 'precision': 0, 'type': 2}, {'aggregate': 'sum', 'delimiter': ',', 'input': '\"count\"', 'length': 0, 'name': 'sum_producte', 'precision': 0, 'type': 6}],
+                    'AGGREGATES': [{'aggregate': 'first_value', 'delimiter': ',', 'input': '\"idEntitat\"', 'length': 0, 'name': 'idEntitat', 'precision': 0, 'type': 2},
+                                   {'aggregate': 'sum', 'delimiter': ',', 'input': '\"count\"', 'length': 0, 'name': 'sum_producte', 'precision': 0, 'type': 6}],
                     'GROUP_BY': 'idEntitat',
                     'INPUT': outputs['SumProducte']['OUTPUT'],
                     'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
@@ -1013,7 +1063,8 @@ class EficEnerg:
 
                 ''' Aggregate m2 '''
                 alg_params = {
-                    'AGGREGATES': [{'aggregate': 'first_value', 'delimiter': ',', 'input': '\"idEntitat\"', 'length': 0, 'name': 'idEntitat', 'precision': 0, 'type': 2}, {'aggregate': 'sum', 'delimiter': ',', 'input': '\"count\"', 'length': 0, 'name': 'sum_m2', 'precision': 0, 'type': 6}],
+                    'AGGREGATES': [{'aggregate': 'first_value', 'delimiter': ',', 'input': '\"idEntitat\"', 'length': 0, 'name': 'idEntitat', 'precision': 0, 'type': 2},
+                                   {'aggregate': 'sum', 'delimiter': ',', 'input': '\"count\"', 'length': 0, 'name': 'sum_m2', 'precision': 0, 'type': 6}],
                     'GROUP_BY': 'idEntitat',
                     'INPUT': outputs['SumM2']['OUTPUT'],
                     'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
@@ -1062,7 +1113,8 @@ class EficEnerg:
 
                 ''' Aggregate Final Clean '''
                 alg_params = {
-                    'AGGREGATES': [{'aggregate': 'first_value', 'delimiter': ',', 'input': '\"idEntitat\"', 'length': 0, 'name': 'idEntitat', 'precision': 0, 'type': 2}, {'aggregate': 'first_value', 'delimiter': ',', 'input': '\"mitjana\"', 'length': 0, 'name': 'indexMITJANA', 'precision': 0, 'type': 6}],
+                    'AGGREGATES': [{'aggregate': 'first_value', 'delimiter': ',', 'input': '\"idEntitat\"', 'length': 0, 'name': 'idEntitat', 'precision': 0, 'type': 2},
+                                   {'aggregate': 'first_value', 'delimiter': ',', 'input': '\"mitjana\"', 'length': 0, 'name': 'indexMITJANA', 'precision': 0, 'type': 6}],
                     'GROUP_BY': 'idEntitat',
                     'INPUT': outputs['JoinFinal']['OUTPUT'],
                     'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
@@ -1113,9 +1165,15 @@ class EficEnerg:
                     'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
                 }
                 if consum:
-                    alg_params['AGGREGATES'] = [{'aggregate': 'first_value','delimiter': '','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},{'aggregate': 'maximum','delimiter': '','input': '\"count\"','length': 0,'name': 'MaxNum','precision': 0,'type': 2},{'aggregate': 'concatenate','delimiter': '','input': 'if(\"count\"=maximum(\"count\",\"idEntitat\"), \"qualificació de consum energia primaria no renovable\",\'\')','length': 0,'name': 'QualifMaxFreq','precision': 0,'type': 10},{'aggregate': 'sum','delimiter': '','input': 'if(\"qualificació de consum energia primaria no renovable\" = if(\"count\"=maximum(\"count\",\"idEntitat\"), \"qualificació de consum energia primaria no renovable\",\'\'), \"mean\", 0)','length': 0,'name': 'indexMODA','precision': 0,'type': 6}]
+                    alg_params['AGGREGATES'] = [{'aggregate': 'first_value','delimiter': '','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
+                                                {'aggregate': 'maximum','delimiter': '','input': '\"count\"','length': 0,'name': 'MaxNum','precision': 0,'type': 2},
+                                                {'aggregate': 'concatenate','delimiter': '','input': 'if(\"count\"=maximum(\"count\",\"idEntitat\"), \"qualificació de consum energia primaria no renovable\",\'\')','length': 0,'name': 'QualifMaxFreq','precision': 0,'type': 10},
+                                                {'aggregate': 'sum','delimiter': '','input': 'if(\"qualificació de consum energia primaria no renovable\" = if(\"count\"=maximum(\"count\",\"idEntitat\"), \"qualificació de consum energia primaria no renovable\",\'\'), \"mean\", 0)','length': 0,'name': 'indexMODA','precision': 0,'type': 6}]
                 if emissions:
-                    alg_params['AGGREGATES'] = [{'aggregate': 'first_value','delimiter': '','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},{'aggregate': 'maximum','delimiter': '','input': '\"count\"','length': 0,'name': 'MaxNum','precision': 0,'type': 2},{'aggregate': 'concatenate','delimiter': '','input': 'if(\"count\"=maximum(\"count\",\"idEntitat\"), \"qualificacio emissions de co2\",\'\')','length': 0,'name': 'QualifMaxFreq','precision': 0,'type': 10},{'aggregate': 'sum','delimiter': '','input': 'if(\"qualificacio emissions de co2\" = if(\"count\"=maximum(\"count\",\"idEntitat\"), \"qualificacio emissions de co2\",\'\'), \"mean\", 0)','length': 0,'name': 'indexMODA','precision': 0,'type': 6}]
+                    alg_params['AGGREGATES'] = [{'aggregate': 'first_value','delimiter': '','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
+                                                {'aggregate': 'maximum','delimiter': '','input': '\"count\"','length': 0,'name': 'MaxNum','precision': 0,'type': 2},
+                                                {'aggregate': 'concatenate','delimiter': '','input': 'if(\"count\"=maximum(\"count\",\"idEntitat\"), \"qualificacio emissions de co2\",\'\')','length': 0,'name': 'QualifMaxFreq','precision': 0,'type': 10},
+                                                {'aggregate': 'sum','delimiter': '','input': 'if(\"qualificacio emissions de co2\" = if(\"count\"=maximum(\"count\",\"idEntitat\"), \"qualificacio emissions de co2\",\'\'), \"mean\", 0)','length': 0,'name': 'indexMODA','precision': 0,'type': 6}]
                 outputs['AggregateModa'] = processing.run('qgis:aggregate', alg_params)
 
                 ''' Join Final Moda '''
@@ -1134,7 +1192,9 @@ class EficEnerg:
 
                 ''' Aggregate Final Clean Moda '''
                 alg_params = {
-                    'AGGREGATES': [{'aggregate': 'first_value', 'delimiter': ',', 'input': '\"idEntitat\"', 'length': 0, 'name': 'idEntitat', 'precision': 0, 'type': 2}, {'aggregate': 'first_value', 'delimiter': ',', 'input': '\"QualifMaxFreq\"', 'length': 0, 'name': 'QualifMaxFreq', 'precision': 0, 'type': 10}, {'aggregate': 'first_value', 'delimiter': ',', 'input': '\"indexMODA\"', 'length': 0, 'name': 'indexMODA', 'precision': 0, 'type': 6}],
+                    'AGGREGATES': [{'aggregate': 'first_value', 'delimiter': ',', 'input': '\"idEntitat\"', 'length': 0, 'name': 'idEntitat', 'precision': 0, 'type': 2},
+                                   {'aggregate': 'first_value', 'delimiter': ',', 'input': '\"QualifMaxFreq\"', 'length': 0, 'name': 'QualifMaxFreq', 'precision': 0, 'type': 10},
+                                   {'aggregate': 'first_value', 'delimiter': ',', 'input': '\"indexMODA\"', 'length': 0, 'name': 'indexMODA', 'precision': 0, 'type': 6}],
                     'GROUP_BY': 'idEntitat',
                     'INPUT': outputs['JoinFinalModa']['OUTPUT'],
                     'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
@@ -1145,7 +1205,16 @@ class EficEnerg:
                 if emissions:
                     entitatLayerResumModa.setName("Moda d'emissions de " + entitat.upper())
             if self.dlg.checkm2.isChecked():
-                ''' Producte consum / emissions '''
+                '''
+                - 1. castConsum / castEmissions fet abans
+                - 2. cast m2 fet abans
+                - 3. joinEntitatHabitatges fet abans
+                '''
+
+                QgsProject.instance().addMapLayer(entitatLayer).setName("castConsum i castm2")
+                QgsProject.instance().addMapLayer(joinEntitatHabitatges).setName("joinEntitatHabitatges")
+
+                ''' 4. Producte consum / emissions '''
                 alg_params = {
                     'FIELD_LENGTH': 0,
                     'FIELD_NAME': 'producte',
@@ -1160,8 +1229,24 @@ class EficEnerg:
                 if emissions:
                     alg_params['FORMULA'] = '\"emissions\" * \"m2\"'
                 outputs['Producte'] = processing.run('qgis:fieldcalculator', alg_params)
+                QgsProject.instance().addMapLayer(outputs['Producte']['OUTPUT']).setName("Producte")
 
-                ''' sum producte '''
+                ''' 5. Estadistiquesm2 sembla no ser necessari per la moda '''
+
+                ''' 5. Fare estadistiques per si de cas '''
+                alg_params = {
+                    'CATEGORIES_FIELD_NAME':    None,
+                    'INPUT': joinEntitatHabitatges,
+                    'VALUES_FIELD_NAME':        'm2',
+                    'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+                }
+                if consum:
+                    alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat','qualificació de consum energia primaria no renovable']
+                if emissions:
+                    alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat','qualificacio emissions de co2']
+                outputs['Estadistiquesm2'] = processing.run('qgis:statisticsbycategories', alg_params)
+
+                ''' 6. sum producte '''
                 alg_params = {
                     'CATEGORIES_FIELD_NAME':    None,
                     'INPUT': outputs['Producte']['OUTPUT'],
@@ -1173,11 +1258,12 @@ class EficEnerg:
                 if emissions:
                     alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat', 'qualificacio emissions de co2']
                 outputs['SumProducte'] = processing.run('qgis:statisticsbycategories', alg_params)
+                QgsProject.instance().addMapLayer(outputs['SumProducte']['OUTPUT']).setName("SumProducte")
                 
-                ''' sum m2 '''
+                ''' 7. sum m2 '''
                 alg_params = {
                     'CATEGORIES_FIELD_NAME':    None,
-                    'INPUT': joinEntitatHabitatges,
+                    'INPUT': outputs['Producte']['OUTPUT'],
                     'VALUES_FIELD_NAME':        'm2',
                     'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
                 }
@@ -1186,24 +1272,27 @@ class EficEnerg:
                 if emissions:
                     alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat', 'qualificacio emissions de co2']
                 outputs['SumM2'] = processing.run('qgis:statisticsbycategories', alg_params)
+                QgsProject.instance().addMapLayer(outputs['SumM2']['OUTPUT']).setName("SumM2")
 
-                ''' Clean producte '''
+                ''' 8. Clean producte '''
                 alg_params = {
                     'COLUMN': ['unique','min','max','range','mean','median','stddev','minority','majority','q1','q3','iqr'],
                     'INPUT': outputs['SumProducte']['OUTPUT'],
                     'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
                 }
                 outputs['cleanproducte'] = processing.run('qgis:deletecolumn', alg_params)
+                QgsProject.instance().addMapLayer(outputs['cleanproducte']['OUTPUT']).setName("cleanproducte")
 
-                ''' Clean m2 '''
+                ''' 9. Clean m2 '''
                 alg_params = {
                     'COLUMN': ['unique','min','max','range','mean','median','stddev','minority','majority','q1','q3','iqr'],
                     'INPUT': outputs['SumM2']['OUTPUT'],
                     'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
                 }
                 outputs['cleanm2'] = processing.run('qgis:deletecolumn', alg_params)
+                QgsProject.instance().addMapLayer(outputs['cleanm2']['OUTPUT']).setName("cleanm2")
 
-                ''' rename producte '''
+                ''' 10. rename producte '''
                 alg_params = {
                     'FIELD': 'sum',
                     'INPUT': outputs['cleanproducte']['OUTPUT'],
@@ -1211,8 +1300,9 @@ class EficEnerg:
                     'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
                 }
                 outputs['renameproducte'] = processing.run('native:renametablefield', alg_params)
+                QgsProject.instance().addMapLayer(outputs['renameproducte']['OUTPUT']).setName("renameproducte")
 
-                ''' rename m2 '''
+                ''' 11. rename m2 '''
                 alg_params = {
                     'FIELD': 'sum',
                     'INPUT': outputs['cleanm2']['OUTPUT'],
@@ -1220,22 +1310,60 @@ class EficEnerg:
                     'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
                 }
                 outputs['renamem2'] = processing.run('native:renametablefield', alg_params)
+                QgsProject.instance().addMapLayer(outputs['renamem2']['OUTPUT']).setName("renamem2")
 
-                ''' Join 2 Aggregate '''
+                ''' 12 i 13 calculen seccio_qual, pero aixo no fa falta tenint idEntitat '''
+                
+                ''' 12. seccio_qual per producte_con/emi '''
+                alg_params = {
+                    'FIELD_LENGTH': 0,
+                    'FIELD_NAME': 'id_qual',
+                    'FIELD_PRECISION': 0,
+                    'FIELD_TYPE': 2,
+                    'FORMULA': None,
+                    'INPUT': outputs['renameproducte']['OUTPUT'],
+                    'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+                }
+                if consum:
+                    alg_params['FORMULA'] = 'concat(to_string(\"idEntitat\") , \'-\', \"qualificació de consum energia primaria no renovable\")'
+                if emissions:
+                    alg_params['FORMULA'] = 'concat(to_string(\"idEntitat\") , \'-\', \"qualificacio emissions de co2\")'
+                outputs['producte_fin'] = processing.run('qgis:fieldcalculator', alg_params)
+                QgsProject.instance().addMapLayer(outputs['producte_fin']['OUTPUT']).setName("producte_fin")
+
+                ''' 13. seccio_qual per m2 '''
+                alg_params = {
+                    'FIELD_LENGTH': 0,
+                    'FIELD_NAME': 'id_qual',
+                    'FIELD_PRECISION': 0,
+                    'FIELD_TYPE': 2,
+                    'FORMULA': None,
+                    'INPUT': outputs['renamem2']['OUTPUT'],
+                    'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+                }
+                if consum:
+                    alg_params['FORMULA'] = 'concat(to_string(\"idEntitat\") , \'-\', \"qualificació de consum energia primaria no renovable\")'
+                if emissions:
+                    alg_params['FORMULA'] = 'concat(to_string(\"idEntitat\") , \'-\', \"qualificacio emissions de co2\")'
+                outputs['m2_fin'] = processing.run('qgis:fieldcalculator', alg_params)
+                QgsProject.instance().addMapLayer(outputs['m2_fin']['OUTPUT']).setName("m2_fin")
+
+                ''' 14. Join 2 Aggregate '''
                 alg_params = {
                     'DISCARD_NONMATCHING': False,
-                    'FIELD': 'idEntitat',
+                    'FIELD': 'id_qual',
                     'FIELDS_TO_COPY': ['sum_m2'],
-                    'FIELD_2': 'idEntitat',
-                    'INPUT': outputs['renameproducte']['OUTPUT'],
-                    'INPUT_2': outputs['renamem2']['OUTPUT'],
+                    'FIELD_2': 'id_qual',
+                    'INPUT': outputs['producte_fin']['OUTPUT'],
+                    'INPUT_2': outputs['m2_fin']['OUTPUT'],
                     'METHOD': 0,
                     'PREFIX': '',
                     'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
                 }
                 outputs['Join2Aggregate'] = processing.run('native:joinattributestable', alg_params)
+                QgsProject.instance().addMapLayer(outputs['Join2Aggregate']['OUTPUT']).setName("Join2Aggregate") # Aqui tinc per cada idEntitat B, els mateixos valors a sum_producte però diferents valors a sum_m2, SOLUCIONAT afegint id_qual
 
-                ''' Moda '''
+                ''' 15. Moda '''
                 alg_params = {
                     'FIELD_LENGTH': 0,
                     'FIELD_NAME': 'moda',
@@ -1246,8 +1374,9 @@ class EficEnerg:
                     'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
                 }
                 outputs['Moda'] = processing.run('qgis:fieldcalculator', alg_params)
+                QgsProject.instance().addMapLayer(outputs['Moda']['OUTPUT']).setName("Moda")
 
-                ''' Filtrat moda '''
+                ''' 16. Filtrat moda '''
                 alg_params = {
                     'AGGREGATES': None,
                     'GROUP_BY': '\"idEntitat\"',
@@ -1255,28 +1384,77 @@ class EficEnerg:
                     'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
                 }
                 if consum:
-                    alg_params['AGGREGATES'] = [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},{'aggregate': 'maximum','delimiter': ',','input': '\"count\"','length': 0,'name': 'count','precision': 0,'type': 2},{'aggregate': 'first_value','delimiter': ',','input': '\"moda\"','length': 0,'name': 'moda','precision': 0,'type': 6},{'aggregate': 'first_value','delimiter': ',','input': '\"qualificació de consum energia primaria no renovable\"','length': 0,'name': 'QualifMaxFreq','precision': 0,'type': 10},{'aggregate': 'first_value','delimiter': ',','input': '\"sum_producte\"','length': 0,'name': 'sum_producte','precision': 0,'type': 6},{'aggregate': 'first_value','delimiter': ',','input': '\"sum_m2\"','length': 0,'name': 'sum_m2','precision': 0,'type': 6}]
+                    alg_params['AGGREGATES'] = [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
+                                                {'aggregate': 'maximum','delimiter': ',','input': '\"count\"','length': 0,'name': 'MaxNum','precision': 0,'type': 2},
+                                                {'aggregate': 'concatenate','delimiter': '','input': 'if(\"sum_m2\"=maximum(\"sum_m2\",\"idEntitat\"),\"qualificació de consum energia primaria no renovable\",\'\')','length': 0,'name': 'QualifMaxFreq','precision': 0,'type': 10},
+                                                {'aggregate': 'sum','delimiter': ',','input': 'if(\"sum_m2\"=maximum(\"sum_m2\",\"idEntitat\"),\"moda\",0)','length': 0,'name': 'moda','precision': 0,'type': 6}]
                 if emissions:
-                    alg_params['AGGREGATES'] = [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},{'aggregate': 'maximum','delimiter': ',','input': '\"count\"','length': 0,'name': 'count','precision': 0,'type': 2},{'aggregate': 'first_value','delimiter': ',','input': '\"moda\"','length': 0,'name': 'moda','precision': 0,'type': 6},{'aggregate': 'first_value','delimiter': ',','input': '\"qualificacio emissions de co2\"','length': 0,'name': 'QualifMaxFreq','precision': 0,'type': 10},{'aggregate': 'first_value','delimiter': ',','input': '\"sum_producte\"','length': 0,'name': 'sum_producte','precision': 0,'type': 6},{'aggregate': 'first_value','delimiter': ',','input': '\"sum_m2\"','length': 0,'name': 'sum_m2','precision': 0,'type': 6}]
+                    alg_params['AGGREGATES'] = [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
+                                                {'aggregate': 'maximum','delimiter': ',','input': '\"count\"','length': 0,'name': 'MaxNum','precision': 0,'type': 2},
+                                                {'aggregate': 'concatenate','delimiter': '','input': 'if(\"sum_m2\"=maximum(\"sum_m2\",\"idEntitat\"),\"qualificacio emissions de co2\",\'\')','length': 0,'name': 'QualifMaxFreq','precision': 0,'type': 10},
+                                                {'aggregate': 'sum','delimiter': ',','input': 'if(\"sum_m2\"=maximum(\"sum_m2\",\"idEntitat\"),\"moda\",0)','length': 0,'name': 'moda','precision': 0,'type': 6}]
+                    
                 outputs['Filtrarmoda'] = processing.run('qgis:aggregate', alg_params)
+                QgsProject.instance().addMapLayer(outputs['Filtrarmoda']['OUTPUT']).setName("Filtrarmoda")
 
-                ''' Join Final '''
+                """
+                Agregat QGIS FUNCIONAL
+                Versión de QGIS: 3.16.16-Hannover
+                Revisión del código de QGIS: f5778a89df
+                Versión de Qt: 5.11.2
+                Versión de GDAL: 3.1.4
+                Versión de GEOS: 3.8.1-CAPI-1.13.3
+                Versión de PROJ: Rel. 6.3.2, May 1st, 2020
+                Procesando algoritmo...
+                Algoritmo 'Agregar' comenzando…
+                Parámetros de entrada:
+                { 'AGGREGATES' : [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},{'aggregate': 'maximum','delimiter': ',','input': '\"count\"','length': 0,'name': 'MaxNum','precision': 0,'type': 2},{'aggregate': 'concatenate','delimiter': '','input': 'if(\"count\"=maximum(\"count\",\"idEntitat\"),\"qualificacio emissions de co2\",\'\')','length': 0,'name': 'QualifMaxFreq','precision': 0,'type': 10},{'aggregate': 'sum','delimiter': ',','input': 'if(\"count\"=maximum(\"count\",\"idEntitat\"),\"moda\",0)','length': 0,'name': 'moda','precision': 0,'type': 6}], 'GROUP_BY' : '\"idEntitat\"', 'INPUT' : 'memory://NoGeometry?field=idEntitat:integer(0,0)&field=qualificacio%20emissions%20de%20co2:string(-1,0)&field=count:integer(0,0)&field=sum_producte:double(0,0)&field=id_qual:string(0,0)&field=sum_m2:double(0,0)&field=moda:double(0,0)&uid={9fdb8c9f-6564-4f0b-bf53-f946db7de232}', 'OUTPUT' : 'TEMPORARY_OUTPUT' }
+
+                Ejecución completada en 0.24 segundos
+                Resultados:
+                {'OUTPUT': 'Agregado_d0fdfd98_9a38_4f72_8e04_ba18837668c4'}
+
+                Cargando las capas resultantes
+                Algoritmo 'Agregar' finalizado
+                """
+
+
+                ''' 17. pre_mitjana no es necessari '''
+
+                ''' 18. Ordenar moda '''
+                alg_params = {
+                    'ASCENDING': True,
+                    'EXPRESSION': '\"idEntitat\"',
+                    'INPUT': outputs['Filtrarmoda']['OUTPUT'],
+                    'NULLS_FIRST': False,
+                    'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+                }
+                outputs['Ordenarmoda'] = processing.run('native:orderbyexpression', alg_params)
+
+                ''' 19. mitjanam2 no es necessari '''
+
+                ''' 20. Join de mitjana i moda no cal, 21. Join de ordenar_moda i aggregate de m2 NO HAURIA DE SER NECESSARI, aggregatem2 nomes servia per trobar m2A, m2B, m2C... '''
+
+                ''' 22. Join Final Moda '''
                 alg_params = {
                     'DISCARD_NONMATCHING': False,
                     'FIELD': 'idEntitat',
                     'FIELDS_TO_COPY': [''],
                     'FIELD_2': 'idEntitat',
                     'INPUT': entitatLayer,
-                    'INPUT_2': outputs['Filtrarmoda']['OUTPUT'],
+                    'INPUT_2': outputs['Ordenarmoda']['OUTPUT'],
                     'METHOD': 1,
                     'PREFIX': '',
                     'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
                 }
                 outputs['JoinFinal'] = processing.run('native:joinattributestable', alg_params)
+                QgsProject.instance().addMapLayer(outputs['JoinFinal']['OUTPUT']).setName("JoinFinal")
 
-                ''' Aggregate Final Clean '''
+                ''' 23. Aggregate Final Clean '''
                 alg_params = {
-                    'AGGREGATES': [{'aggregate': 'first_value', 'delimiter': ',', 'input': '\"idEntitat\"', 'length': 0, 'name': 'idEntitat', 'precision': 0, 'type': 2}, {'aggregate': 'first_value', 'delimiter': ',', 'input': '\"QualifMaxFreq\"', 'length': 0, 'name': 'QualifMaxFreq', 'precision': 0, 'type': 10},{'aggregate': 'first_value', 'delimiter': ',', 'input': '\"moda\"', 'length': 0, 'name': 'indexMODA', 'precision': 0, 'type': 6}],
+                    'AGGREGATES': [{'aggregate': 'first_value', 'delimiter': ',', 'input': '\"idEntitat\"', 'length': 0, 'name': 'idEntitat', 'precision': 0, 'type': 2}, 
+                                   {'aggregate': 'first_value', 'delimiter': ',', 'input': '\"QualifMaxFreq\"', 'length': 0, 'name': 'QualifMaxFreq', 'precision': 0, 'type': 10},
+                                   {'aggregate': 'first_value', 'delimiter': ',', 'input': '\"moda\"', 'length': 0, 'name': 'indexMODA', 'precision': 0, 'type': 6}],
                     'GROUP_BY': 'idEntitat',
                     'INPUT': outputs['JoinFinal']['OUTPUT'],
                     'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
@@ -1324,9 +1502,11 @@ class EficEnerg:
                 'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
             }
             if consum:
-                alg_params['AGGREGATES'] = [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},{'aggregate': 'first_value','delimiter': ',','input': '\"median\"','length': 0,'name': 'indexMEDIANA','precision': 0,'type': 6}]
+                alg_params['AGGREGATES'] = [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
+                                            {'aggregate': 'first_value','delimiter': ',','input': '\"median\"','length': 0,'name': 'indexMEDIANA','precision': 0,'type': 6}]
             if emissions:
-                alg_params['AGGREGATES'] = [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},{'aggregate': 'first_value','delimiter': ',','input': '\"median\"','length': 0,'name': 'indexMEDIANA','precision': 0,'type': 6}]
+                alg_params['AGGREGATES'] = [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
+                                            {'aggregate': 'first_value','delimiter': ',','input': '\"median\"','length': 0,'name': 'indexMEDIANA','precision': 0,'type': 6}]
             outputs['AggregateMediana'] = processing.run('qgis:aggregate', alg_params)
 
             alg_params = {
@@ -1343,7 +1523,8 @@ class EficEnerg:
             outputs['JoinFinalMediana'] = processing.run('native:joinattributestable', alg_params)
 
             alg_params = {
-                'AGGREGATES': [{'aggregate': 'first_value', 'delimiter': ',', 'input': '\"idEntitat\"', 'length': 0, 'name': 'idEntitat', 'precision': 0, 'type': 2}, {'aggregate': 'first_value', 'delimiter': ',', 'input': '\"indexMEDIANA\"', 'length': 0, 'name': 'indexMEDIANA', 'precision': 0, 'type': 6}],
+                'AGGREGATES': [{'aggregate': 'first_value', 'delimiter': ',', 'input': '\"idEntitat\"', 'length': 0, 'name': 'idEntitat', 'precision': 0, 'type': 2},
+                               {'aggregate': 'first_value', 'delimiter': ',', 'input': '\"indexMEDIANA\"', 'length': 0, 'name': 'indexMEDIANA', 'precision': 0, 'type': 6}],
                 'GROUP_BY': 'idEntitat',
                 'INPUT': outputs['JoinFinalMediana']['OUTPUT'],
                 'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
