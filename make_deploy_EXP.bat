@@ -31,7 +31,7 @@ for /f "delims=" %%a in ('%WINDIR%\System32\WindowsPowerShell\v1.0\powershell.ex
 rem cmd /k
 @echo off
 cd ..
-cmd /c "python compress.py ./%directory% .\ZZ_DEPLOY/%directory%.zip"
+cmd /c "python compress.py .\ZZ_DEPLOY/%directory% .\ZZ_DEPLOY/%directory%.zip"
 cd ZZ_DEPLOY
 rem erase %directory%.ZIP
 erase %directory_old%\metadata.txt
