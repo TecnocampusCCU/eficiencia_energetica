@@ -1521,9 +1521,17 @@ class EficEnerg:
         outputs = {}
 
         try:
+            QgsProject.instance().addMapLayer(joinEntitatHabitatges)
+            alg_params = {
+                'EXPRESSION': ' "consum" is not null and "consum" !=0 and "m2" is not null and "m2" !=0',
+                'INPUT': joinEntitatHabitatges,
+                'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+            }
+            outputs['joinEntitatHabitatges_nozero_nonull'] = processing.run('native:extractbyexpression', alg_params)
+            QgsProject.instance().addMapLayer(outputs['joinEntitatHabitatges_nozero_nonull']['OUTPUT'])
             alg_params = {
                 'CATEGORIES_FIELD_NAME': None,
-                'INPUT': joinEntitatHabitatges,
+                'INPUT': outputs['joinEntitatHabitatges_nozero_nonull']['OUTPUT'],
                 'VALUES_FIELD_NAME': None,
                 'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
             }
