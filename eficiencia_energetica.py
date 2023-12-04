@@ -72,7 +72,7 @@ from .eficiencia_energetica_dialog import EficEnergDialog
 from .resources import *
 
 '''Variables globals'''
-Versio_modul = "V_Q3.231201"
+Versio_modul = "V_Q3.231204"
 nomBD1 = ""
 password1 = ""
 host1 = ""
@@ -123,6 +123,8 @@ llistaEntitats = [
 
 
 colors = {
+    'colorConsum': QColor("#000000"),
+    'colorEmissions': QColor("#000000"),
     'colorA': QColor.fromCmykF(0.85, 0.15, 0.95, 0.30),
     'colorB': QColor.fromCmykF(0.80, 0.00, 1.00, 0.00),
     'colorC': QColor.fromCmykF(0.45, 0.00, 1.00, 0.00),
@@ -133,6 +135,8 @@ colors = {
 }
 
 symbols = {
+    'symbolConsum': QgsSymbol.defaultSymbol(QgsWkbTypes.GeometryType(QgsWkbTypes.LineString)),
+    'symbolEmissions': QgsSymbol.defaultSymbol(QgsWkbTypes.GeometryType(QgsWkbTypes.LineString)),
     'symbolA': QgsSymbol.defaultSymbol(QgsWkbTypes.GeometryType(QgsWkbTypes.LineString)),
     'symbolB': QgsSymbol.defaultSymbol(QgsWkbTypes.GeometryType(QgsWkbTypes.LineString)),
     'symbolC': QgsSymbol.defaultSymbol(QgsWkbTypes.GeometryType(QgsWkbTypes.LineString)),
@@ -142,7 +146,33 @@ symbols = {
     'symbolG': QgsSymbol.defaultSymbol(QgsWkbTypes.GeometryType(QgsWkbTypes.LineString))
 }
 
+'''
 ranges = {
+    'consum': QgsRendererRange(-1.0, -0.1, symbols['symbolConsum'], 'Consum (KWh/m²any)'),
+    'emissions': QgsRendererRange(-1.0, -0.1, symbols['symbolEmissions'], 'Emissions (kgCO₂/m²any)'),
+    'rangeA': QgsRendererRange(0.0, 34.1, symbols['symbolA'], 'A'),
+    'rangeB': QgsRendererRange(34.1, 55.5, symbols['symbolB'], 'B'),
+    'rangeC': QgsRendererRange(55.5, 85.4, symbols['symbolC'], 'C'),
+    'rangeD': QgsRendererRange(85.4, 111.6, symbols['symbolD'], 'D'),
+    'rangeE': QgsRendererRange(111.6, 136.6, symbols['symbolE'], 'E'),
+    'rangeF': QgsRendererRange(136.6, 170.7, symbols['symbolF'], 'F'),
+    'rangeG': QgsRendererRange(170.7, 9999999, symbols['symbolG'], 'G')
+}
+'''
+
+ranges_consum = {
+    'units': QgsRendererRange(-1.0, -0.1, symbols['symbolConsum'], 'Consum (KWh/m²any)'),
+    'rangeA': QgsRendererRange(0.0, 34.1, symbols['symbolA'], 'A'),
+    'rangeB': QgsRendererRange(34.1, 55.5, symbols['symbolB'], 'B'),
+    'rangeC': QgsRendererRange(55.5, 85.4, symbols['symbolC'], 'C'),
+    'rangeD': QgsRendererRange(85.4, 111.6, symbols['symbolD'], 'D'),
+    'rangeE': QgsRendererRange(111.6, 136.6, symbols['symbolE'], 'E'),
+    'rangeF': QgsRendererRange(136.6, 170.7, symbols['symbolF'], 'F'),
+    'rangeG': QgsRendererRange(170.7, 9999999, symbols['symbolG'], 'G')
+}
+
+ranges_emissions = {
+    'units': QgsRendererRange(-1.0, -0.1, symbols['symbolEmissions'], 'Emissions (kgCO₂/m²any)'),
     'rangeA': QgsRendererRange(0.0, 34.1, symbols['symbolA'], 'A'),
     'rangeB': QgsRendererRange(34.1, 55.5, symbols['symbolB'], 'B'),
     'rangeC': QgsRendererRange(55.5, 85.4, symbols['symbolC'], 'C'),
@@ -896,24 +926,24 @@ class EficEnerg:
             }
             if consum:
                 alg_params['AGGREGATES'] = [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
-                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'A\', \"count\", 0)','length': 0,'name': 'm2A','precision': 0,'type': 2},
-                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'B\', \"count\", 0)','length': 0,'name': 'm2B','precision': 0,'type': 2},
-                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'C\', \"count\", 0)','length': 0,'name': 'm2C','precision': 0,'type': 2},
-                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'D\', \"count\", 0)','length': 0,'name': 'm2D','precision': 0,'type': 2},
-                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'E\', \"count\", 0)','length': 0,'name': 'm2E','precision': 0,'type': 2},
-                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'F\', \"count\", 0)','length': 0,'name': 'm2F','precision': 0,'type': 2},
-                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'G\', \"count\", 0)','length': 0,'name': 'm2G','precision': 0,'type': 2},
-                                            {'aggregate': 'sum','delimiter': ',','input': '\"count\"','length': 0,'name': 'Totalm2','precision': 0,'type': 2}]
+                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'A\', \"sum\", 0)','length': 0,'name': 'm2A','precision': 0,'type': 6},
+                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'B\', \"sum\", 0)','length': 0,'name': 'm2B','precision': 0,'type': 6},
+                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'C\', \"sum\", 0)','length': 0,'name': 'm2C','precision': 0,'type': 6},
+                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'D\', \"sum\", 0)','length': 0,'name': 'm2D','precision': 0,'type': 6},
+                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'E\', \"sum\", 0)','length': 0,'name': 'm2E','precision': 0,'type': 6},
+                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'F\', \"sum\", 0)','length': 0,'name': 'm2F','precision': 0,'type': 6},
+                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'G\', \"sum\", 0)','length': 0,'name': 'm2G','precision': 0,'type': 6},
+                                            {'aggregate': 'sum','delimiter': ',','input': '\"sum\"','length': 0,'name': 'Totalm2','precision': 0,'type': 6}]
             if emissions:
                 alg_params['AGGREGATES'] = [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
-                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'A\', \"count\", 0)','length': 0,'name': 'm2A','precision': 0,'type': 2},
-                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'B\', \"count\", 0)','length': 0,'name': 'm2B','precision': 0,'type': 2},
-                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'C\', \"count\", 0)','length': 0,'name': 'm2C','precision': 0,'type': 2},
-                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'D\', \"count\", 0)','length': 0,'name': 'm2D','precision': 0,'type': 2},
-                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'E\', \"count\", 0)','length': 0,'name': 'm2E','precision': 0,'type': 2},
-                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'F\', \"count\", 0)','length': 0,'name': 'm2F','precision': 0,'type': 2},
-                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'G\', \"count\", 0)','length': 0,'name': 'm2G','precision': 0,'type': 2},
-                                            {'aggregate': 'sum','delimiter': ',','input': '\"count\"','length': 0,'name': 'Totalm2','precision': 0,'type': 2}]
+                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'A\', \"sum\", 0)','length': 0,'name': 'm2A','precision': 0,'type': 6},
+                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'B\', \"sum\", 0)','length': 0,'name': 'm2B','precision': 0,'type': 6},
+                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'C\', \"sum\", 0)','length': 0,'name': 'm2C','precision': 0,'type': 6},
+                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'D\', \"sum\", 0)','length': 0,'name': 'm2D','precision': 0,'type': 6},
+                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'E\', \"sum\", 0)','length': 0,'name': 'm2E','precision': 0,'type': 6},
+                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'F\', \"sum\", 0)','length': 0,'name': 'm2F','precision': 0,'type': 6},
+                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'G\', \"sum\", 0)','length': 0,'name': 'm2G','precision': 0,'type': 6},
+                                            {'aggregate': 'sum','delimiter': ',','input': '\"sum\"','length': 0,'name': 'Totalm2','precision': 0,'type': 6}]
             outputs['Aggregatem2'] = processing.run('qgis:aggregate', alg_params)
 
             alg_params = {
@@ -1521,14 +1551,16 @@ class EficEnerg:
         outputs = {}
 
         try:
-            QgsProject.instance().addMapLayer(joinEntitatHabitatges)
             alg_params = {
-                'EXPRESSION': ' "consum" is not null and "consum" !=0 and "m2" is not null and "m2" !=0',
+                'EXPRESSION': None,
                 'INPUT': joinEntitatHabitatges,
                 'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
             }
+            if consum:
+                alg_params['EXPRESSION'] = ' "consum" is not null and "consum" !=0 and "m2" is not null and "m2" !=0'
+            if emissions:
+                alg_params['EXPRESSION'] = ' "emissions" is not null and "emissions" !=0 and "m2" is not null and "m2" !=0'
             outputs['joinEntitatHabitatges_nozero_nonull'] = processing.run('native:extractbyexpression', alg_params)
-            QgsProject.instance().addMapLayer(outputs['joinEntitatHabitatges_nozero_nonull']['OUTPUT'])
             alg_params = {
                 'CATEGORIES_FIELD_NAME': None,
                 'INPUT': outputs['joinEntitatHabitatges_nozero_nonull']['OUTPUT'],
@@ -1652,7 +1684,8 @@ class EficEnerg:
         global entitatLayerResumModa
         global entitatLayerResumMediana
         global fitxer
-        global ranges
+        global ranges_consum
+        global ranges_emissions
         global colors
         global symbols
 
@@ -1701,7 +1734,7 @@ class EficEnerg:
         self.dlg.groupChecks.setEnabled(False)
         self.dlg.groupEntitats.setEnabled(False)
         textBox = f"INICIANT EL PROCÉS...\n"
-        textBox += f"---------------------\n"
+        textBox += f"----------------------------\n"
         self.dlg.textEstat.setText(textBox)
         self.scroll_text()
 
@@ -1725,7 +1758,12 @@ class EficEnerg:
             maximumValue = self.dlg.maxScale.value()
         if personalitzat:
             minimumValue = self.dlg.minScale.value()
-            maximumValue = self.dlg.maxScale.value()           
+            maximumValue = self.dlg.maxScale.value()   
+
+        if consum:
+            ranges = ranges_consum
+        if emissions:
+            ranges = ranges_emissions        
 
         # Diagrames NumHabit
         if self.dlg.checkNumHabit.isChecked():
@@ -1733,7 +1771,7 @@ class EficEnerg:
 
             diagramNumHabit = QgsPieDiagram()
             diagramNumHabitSettings = QgsDiagramSettings()
-            diagramNumHabitSettings.categoryColors = colors.values()
+            diagramNumHabitSettings.categoryColors = list(colors.values())[2:]
             diagramNumHabitSettings.categoryAttributes = ['NumA', 'NumB', 'NumC', 'NumD', 'NumE', 'NumF', 'NumG']
             diagramNumHabitSettings.scaleByArea = False
             diagramNumHabitSettings.scaleBasedVisibility = True
@@ -1793,7 +1831,7 @@ class EficEnerg:
 
             diagramm2 = QgsPieDiagram()
             diagramm2Settings = QgsDiagramSettings()
-            diagramm2Settings.categoryColors = colors.values()
+            diagramm2Settings.categoryColors = list(colors.values())[2:]
             diagramm2Settings.categoryAttributes = ['m2A', 'm2B', 'm2C', 'm2D', 'm2E', 'm2F', 'm2G']
             diagramm2Settings.scaleByArea = False
             diagramm2Settings.scaleBasedVisibility = True
@@ -1882,9 +1920,14 @@ class EficEnerg:
             background_format.setStrokeWidth(1)
 
             text_format.setBackground(background_format)
-
+            
             symbology = QgsGraduatedSymbolRenderer("indexMITJANA", ranges.values())
 
+            symbolUnits = QgsFillSymbol()
+            if consum:
+                symbolUnits.setColor(colors["colorConsum"])
+            if emissions:
+                symbolUnits.setColor(colors["colorEmissions"])
             symbolA = QgsFillSymbol()
             symbolA.setColor(colors["colorA"])
             symbolB = QgsFillSymbol()
@@ -1900,13 +1943,14 @@ class EficEnerg:
             symbolG = QgsFillSymbol()
             symbolG.setColor(colors["colorG"])
 
-            symbology.updateRangeSymbol(0, symbolA)
-            symbology.updateRangeSymbol(1, symbolB)
-            symbology.updateRangeSymbol(2, symbolC)
-            symbology.updateRangeSymbol(3, symbolD)
-            symbology.updateRangeSymbol(4, symbolE)
-            symbology.updateRangeSymbol(5, symbolF)
-            symbology.updateRangeSymbol(6, symbolG)
+            symbology.updateRangeSymbol(0, symbolUnits)
+            symbology.updateRangeSymbol(1, symbolA)
+            symbology.updateRangeSymbol(2, symbolB)
+            symbology.updateRangeSymbol(3, symbolC)
+            symbology.updateRangeSymbol(4, symbolD)
+            symbology.updateRangeSymbol(5, symbolE)
+            symbology.updateRangeSymbol(6, symbolF)
+            symbology.updateRangeSymbol(7, symbolG)
 
             labelMitjana.setFormat(text_format)
 
@@ -1980,9 +2024,14 @@ class EficEnerg:
             symbology = QgsCategorizedSymbolRenderer()
             symbology.setClassAttribute("QualifMaxFreq")
 
-            symbol = QgsSymbol.defaultSymbol(entitatLayerResumModa.geometryType())
-            symbol.changeSymbolLayer(0, QgsSimpleFillSymbolLayer(QColor("#000000")))
-            symbology.addCategory(QgsRendererCategory("xxx", symbol, "Consum (KWh/m²any)"))
+            if consum:
+                symbol = QgsSymbol.defaultSymbol(entitatLayerResumModa.geometryType())
+                symbol.changeSymbolLayer(0, QgsSimpleFillSymbolLayer(QColor("#000000")))
+                symbology.addCategory(QgsRendererCategory("xxx", symbol, "Consum (KWh/m²any)"))
+            if emissions:
+                symbol = QgsSymbol.defaultSymbol(entitatLayerResumModa.geometryType())
+                symbol.changeSymbolLayer(0, QgsSimpleFillSymbolLayer(QColor("#000000")))
+                symbology.addCategory(QgsRendererCategory("xxx", symbol,"Emissions (kgCO₂/m²any)"))
 
             symbol = QgsSymbol.defaultSymbol(entitatLayerResumModa.geometryType())
             symbol.changeSymbolLayer(0, QgsSimpleFillSymbolLayer(colors["colorA"]))
@@ -2082,6 +2131,11 @@ class EficEnerg:
 
             symbology = QgsGraduatedSymbolRenderer("indexMEDIANA", ranges.values())
 
+            symbolUnits = QgsFillSymbol()
+            if consum:
+                symbolUnits.setColor(colors["colorConsum"])
+            if emissions:
+                symbolUnits.setColor(colors["colorEmissions"])
             symbolA = QgsFillSymbol()
             symbolA.setColor(colors["colorA"])
             symbolB = QgsFillSymbol()
@@ -2097,13 +2151,14 @@ class EficEnerg:
             symbolG = QgsFillSymbol()
             symbolG.setColor(colors["colorG"])
 
-            symbology.updateRangeSymbol(0, symbolA)
-            symbology.updateRangeSymbol(1, symbolB)
-            symbology.updateRangeSymbol(2, symbolC)
-            symbology.updateRangeSymbol(3, symbolD)
-            symbology.updateRangeSymbol(4, symbolE)
-            symbology.updateRangeSymbol(5, symbolF)
-            symbology.updateRangeSymbol(6, symbolG)
+            symbology.updateRangeSymbol(0, symbolUnits)
+            symbology.updateRangeSymbol(1, symbolA)
+            symbology.updateRangeSymbol(2, symbolB)
+            symbology.updateRangeSymbol(3, symbolC)
+            symbology.updateRangeSymbol(4, symbolD)
+            symbology.updateRangeSymbol(5, symbolE)
+            symbology.updateRangeSymbol(6, symbolF)
+            symbology.updateRangeSymbol(7, symbolG)
 
             labelMediana.setFormat(text_format)
 
