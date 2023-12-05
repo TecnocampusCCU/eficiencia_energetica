@@ -20,13 +20,6 @@
  *   (at your option) any later version.                                   *
  *                                                                         *
  ***************************************************************************/
-
-/***************************************************************************
- *                                                                         *
- *   Per implementar encara [TODO] :                                       *
- *   - Al finalitzar tot, escriure un manual d'usuari del plugin.          *
- *                                                                         *
- ***************************************************************************/
  
 """
 
@@ -53,9 +46,9 @@ from PyQt5.QtWidgets import (QAction, QApplication, QColorDialog, QMessageBox,
 from qgis.core import (QgsCategorizedSymbolRenderer, QgsDataSourceUri,
                        QgsDiagramLayerSettings, QgsDiagramSettings,
                        QgsFillSymbol, QgsGraduatedSymbolRenderer,
-                       QgsPalLayerSettings, QgsPieDiagram, QgsProcessing,
+                       QgsLayerTreeLayer, QgsPalLayerSettings, QgsPieDiagram, QgsProcessing,
                        QgsProject, QgsProperty, QgsPropertyCollection,
-                       QgsRendererCategory, QgsRendererRange,
+                       QgsRasterLayer, QgsRendererCategory, QgsRendererRange,
                        QgsSimpleFillSymbolLayer, QgsSimpleLineSymbolLayer,
                        QgsSingleCategoryDiagramRenderer, QgsSymbol,
                        QgsTextBackgroundSettings, QgsTextFormat, QgsUnitTypes,
@@ -884,11 +877,7 @@ class EficEnerg:
                 'OUTPUT' : 'TEMPORARY_OUTPUT'
             }
             entitatLayerResumNumHabit = processing.run('qgis:aggregate', alg_params)['OUTPUT']
-            QgsProject.instance().addMapLayer(entitatLayerResumNumHabit)
-            if consum:
-                entitatLayerResumNumHabit.setName("Consum de " + entitat.upper() + " amb nombre d'habitatges segons categoria")
-            if emissions:
-                entitatLayerResumNumHabit.setName("Emissions de " + entitat.upper() + " amb nombre d'habitatges segons categoria")
+            QgsProject.instance().addMapLayer(entitatLayerResumNumHabit, False).setName("Classificació per nombre d'habitatges")
             QApplication.processEvents()
         except Exception as ex:
             print ("Error al calcular nombre d'habitatges per categoria de " + entitat)
@@ -974,11 +963,7 @@ class EficEnerg:
                 'OUTPUT' : 'TEMPORARY_OUTPUT'
             }
             entitatLayerResumm2 = processing.run('qgis:aggregate', alg_params)['OUTPUT']
-            QgsProject.instance().addMapLayer(entitatLayerResumm2)
-            if consum:
-                entitatLayerResumm2.setName("Consum de " + entitat.upper() + " amb metres quadrats segons categoria")
-            if emissions:
-                entitatLayerResumm2.setName("Emissions de " + entitat.upper() + " amb metres quadrats segons categoria")
+            QgsProject.instance().addMapLayer(entitatLayerResumm2, False).setName("Classificació per metres quadrats")
             QApplication.processEvents()
         except Exception as ex:
             print ("Error al calcular metres quadrats per categoria de " + entitat)
@@ -1033,10 +1018,7 @@ class EficEnerg:
                     'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
                 }
                 entitatLayerResumMitjana = processing.run('qgis:aggregate', alg_params)['OUTPUT']
-                if consum:
-                    entitatLayerResumMitjana.setName('Mitjana de consum de ' + entitat.upper())
-                if emissions:
-                    entitatLayerResumMitjana.setName('Mitjana d\'emissions de ' + entitat.upper())
+                entitatLayerResumMitjana.setName('Mitjana')
 
             if self.dlg.checkm2.isChecked():            
                 ''' Producte consum / emissions '''
@@ -1206,10 +1188,7 @@ class EficEnerg:
                     'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
                 }
                 entitatLayerResumMitjana = processing.run('qgis:aggregate', alg_params)['OUTPUT']
-                if consum:
-                    entitatLayerResumMitjana.setName("Mitjana de consum de " + entitat.upper())
-                if emissions:
-                    entitatLayerResumMitjana.setName("Mitjana d'emissions de " + entitat.upper())
+                entitatLayerResumMitjana.setName('Mitjana')
             QApplication.processEvents()
         except Exception as ex:
             print ("Error al calcular mitjana de " + entitat)
@@ -1286,10 +1265,7 @@ class EficEnerg:
                     'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
                 }
                 entitatLayerResumModa = processing.run('qgis:aggregate', alg_params)['OUTPUT']
-                if consum:
-                    entitatLayerResumModa.setName("Moda de consum de " + entitat.upper())
-                if emissions:
-                    entitatLayerResumModa.setName("Moda d'emissions de " + entitat.upper())
+                entitatLayerResumModa.setName('Moda')
             if self.dlg.checkm2.isChecked():
                 '''
                 - 1. castConsum / castEmissions fet abans
@@ -1530,10 +1506,7 @@ class EficEnerg:
                     'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
                 }
                 entitatLayerResumModa = processing.run('qgis:aggregate', alg_params)['OUTPUT']
-                if consum:
-                    entitatLayerResumModa.setName("Moda de consum de " + entitat.upper())
-                if emissions:
-                    entitatLayerResumModa.setName("Moda d'emissions de " + entitat.upper())
+                entitatLayerResumModa.setName('Moda')
             QApplication.processEvents()
         except Exception as ex:
             print ("Error al calcular moda de " + entitat)
@@ -1556,10 +1529,16 @@ class EficEnerg:
                 'INPUT': joinEntitatHabitatges,
                 'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
             }
-            if consum:
-                alg_params['EXPRESSION'] = ' "consum" is not null and "consum" !=0 and "m2" is not null and "m2" !=0'
-            if emissions:
-                alg_params['EXPRESSION'] = ' "emissions" is not null and "emissions" !=0 and "m2" is not null and "m2" !=0'
+            if self.dlg.checkNumHabit.isChecked() and not self.dlg.checkm2.isChecked():
+                if consum:
+                    alg_params['EXPRESSION'] = ' "consum" is not null and "consum" !=0'
+                if emissions:
+                    alg_params['EXPRESSION'] = ' "emissions" is not null and "emissions" !=0'
+            if self.dlg.checkm2.isChecked():
+                if consum:
+                    alg_params['EXPRESSION'] = ' "consum" is not null and "consum" !=0 and "m2" is not null and "m2" !=0'
+                if emissions:
+                    alg_params['EXPRESSION'] = ' "emissions" is not null and "emissions" !=0 and "m2" is not null and "m2" !=0'
             outputs['joinEntitatHabitatges_nozero_nonull'] = processing.run('native:extractbyexpression', alg_params)
             alg_params = {
                 'CATEGORIES_FIELD_NAME': None,
@@ -1610,10 +1589,7 @@ class EficEnerg:
                 'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
             }
             entitatLayerResumMediana = processing.run('qgis:aggregate', alg_params)['OUTPUT']
-            if consum:
-                entitatLayerResumMediana.setName("Mediana de consum de " + entitat.upper())
-            if emissions:
-                entitatLayerResumMediana.setName("Mediana d'emissions de " + entitat.upper())
+            entitatLayerResumMediana.setName('Mediana')
             QApplication.processEvents()
         except Exception as ex:
             print ("Error al calcular mediana de " + entitat)
@@ -1694,6 +1670,49 @@ class EficEnerg:
         fitxer = datetime.datetime.now().strftime("%Y%m%d%H%M%S%f")
 
         total_start_time = time.time()
+
+        try:
+            root = QgsProject.instance().layerTreeRoot()
+        except:
+            root = self.iface.layerTreeCanvasBridge().rootGroup()   
+        
+        if consum:
+            group = root.insertGroup(0, f"Consum de {entitat.upper()}")
+        if emissions:
+            group = root.insertGroup(0, f"Emissions de {entitat.upper()}")
+
+        llegenda = QgsVectorLayer("MultiPolygon?crs=epsg:25831", "Llegenda", "memory")
+        QgsProject.instance().addMapLayer(llegenda, False)
+        diagramLlegenda = QgsPieDiagram()
+        diagramLlegendaSettings = QgsDiagramSettings()
+        diagramLlegendaSettings.categoryColors = list(colors.values())[2:]
+        diagramLlegendaSettings.categoryAttributes = ['A', 'B', 'C', 'D', 'E', 'F', 'G']
+        diagramLlegendaSettings.scaleByArea = False
+        diagramLlegendaSettings.scaleBasedVisibility = True
+        diagramLlegendaSettings.size = QSizeF(15, 15)
+        diagramLlegendaSettings.minimumScale = minimumValue
+        diagramLlegendaSettings.maximumScale = maximumValue
+        diagramLlegendaSettings.categoryLabels = ['A', 'B', 'C', 'D', 'E', 'F', 'G']
+        diagramLlegendaSettings.enabled = True
+        llegenda.renderer().symbol().setColor(color)
+        diagramLlegendaRenderer = QgsSingleCategoryDiagramRenderer()
+        diagramLlegendaRenderer.setDiagram(diagramLlegenda)
+        diagramLlegendaRenderer.setDiagramSettings(diagramLlegendaSettings)
+        diagramLlegendaRenderer.setAttributeLegend(True)
+        llegenda.setDiagramRenderer(diagramLlegendaRenderer)
+        single_symbol_renderer = llegenda.renderer().clone()
+        symbol = single_symbol_renderer.symbol()
+        symbol_layer = QgsSimpleLineSymbolLayer()
+        symbol_layer.setWidth(0)
+        llegenda.setRenderer(single_symbol_renderer)
+        llegenda.triggerRepaint()
+        group.insertChildNode(5, QgsLayerTreeLayer(llegenda))
+        llegenda.triggerRepaint()
+        QApplication.processEvents()
+
+        # Fer grup de capes amb totes capes resultats que es digui "Consum de ENTITAT" o "Emissions de ENTITAT"
+        # Canviar noms perque es diguin nombre d'habitatges segons categoria, metres quadrats segons categoria, mitjana, moda i mediana
+        # Canviar noms num i m2 a "Classificació per nombre d'habitatges" i "Classificació per metres quadrats"
 
         uri = QgsDataSourceUri()
         try:
@@ -1786,6 +1805,7 @@ class EficEnerg:
             diagramNumHabitRenderer = QgsSingleCategoryDiagramRenderer()
             diagramNumHabitRenderer.setDiagram(diagramNumHabit)
             diagramNumHabitRenderer.setDiagramSettings(diagramNumHabitSettings)
+            diagramNumHabitRenderer.setAttributeLegend(False)
 
             entitatLayerResumNumHabit.setDiagramRenderer(diagramNumHabitRenderer)
 
@@ -1818,6 +1838,9 @@ class EficEnerg:
             entitatLayerResumNumHabit.setRenderer(single_symbol_renderer)
 
             entitatLayerResumNumHabit.triggerRepaint()
+            node = QgsLayerTreeLayer(entitatLayerResumNumHabit)
+            node.setExpanded(False)
+            group.insertChildNode(0, node)
             QApplication.processEvents()
 
             textBox += f"Realitzat càlcul de NumHabit de {entitat.upper()}.\n"
@@ -1846,6 +1869,7 @@ class EficEnerg:
             diagramm2Renderer = QgsSingleCategoryDiagramRenderer()
             diagramm2Renderer.setDiagram(diagramm2)
             diagramm2Renderer.setDiagramSettings(diagramm2Settings)
+            diagramm2Renderer.setAttributeLegend(False)
 
             entitatLayerResumm2.setDiagramRenderer(diagramm2Renderer)
 
@@ -1878,6 +1902,10 @@ class EficEnerg:
             entitatLayerResumm2.setRenderer(single_symbol_renderer)
 
             entitatLayerResumm2.triggerRepaint()
+            node = QgsLayerTreeLayer(entitatLayerResumm2)
+            node.setExpanded(False)
+            group.insertChildNode(1, node)
+            QApplication.processEvents()
             
             textBox += f"Realitzat càlcul de m2 de {entitat.upper()}.\n"
             self.dlg.textEstat.setText(textBox)
@@ -1977,7 +2005,10 @@ class EficEnerg:
             entitatLayerResumMitjana.setLabelsEnabled(True)
             entitatLayerResumMitjana.setRenderer(symbology)
             entitatLayerResumMitjana.triggerRepaint()
-            QgsProject.instance().addMapLayer(entitatLayerResumMitjana)
+            QgsProject.instance().addMapLayer(entitatLayerResumMitjana, False)
+            node = QgsLayerTreeLayer(entitatLayerResumMitjana)
+            node.setExpanded(False)
+            group.insertChildNode(2, node)
             
             textBox += f"Realitzat càlcul de mitjana de {entitat.upper()}.\n"
             self.dlg.textEstat.setText(textBox)
@@ -2086,7 +2117,10 @@ class EficEnerg:
             entitatLayerResumModa.setLabelsEnabled(True)
             entitatLayerResumModa.setRenderer(symbology)
             entitatLayerResumModa.triggerRepaint()
-            QgsProject.instance().addMapLayer(entitatLayerResumModa)
+            QgsProject.instance().addMapLayer(entitatLayerResumModa, False)
+            node = QgsLayerTreeLayer(entitatLayerResumModa)
+            node.setExpanded(False)
+            group.insertChildNode(3, node)
             
             textBox += f"Realitzat càlcul de moda de {entitat.upper()}.\n"
             self.dlg.textEstat.setText(textBox)
@@ -2185,7 +2219,10 @@ class EficEnerg:
             entitatLayerResumMediana.setLabelsEnabled(True)
             entitatLayerResumMediana.setRenderer(symbology)
             entitatLayerResumMediana.triggerRepaint()
-            QgsProject.instance().addMapLayer(entitatLayerResumMediana)
+            QgsProject.instance().addMapLayer(entitatLayerResumMediana, False)
+            node = QgsLayerTreeLayer(entitatLayerResumMediana)
+            node.setExpanded(False)
+            group.insertChildNode(4, node)
             
             textBox += f"Realitzat càlcul de mediana de {entitat.upper()}.\n"
             self.dlg.textEstat.setText(textBox)
