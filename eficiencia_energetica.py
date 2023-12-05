@@ -65,7 +65,7 @@ from .eficiencia_energetica_dialog import EficEnergDialog
 from .resources import *
 
 '''Variables globals'''
-Versio_modul = "V_Q3.231204"
+Versio_modul = "V_Q3.231205"
 nomBD1 = ""
 password1 = ""
 host1 = ""
@@ -139,10 +139,8 @@ symbols = {
     'symbolG': QgsSymbol.defaultSymbol(QgsWkbTypes.GeometryType(QgsWkbTypes.LineString))
 }
 
-'''
+
 ranges = {
-    'consum': QgsRendererRange(-1.0, -0.1, symbols['symbolConsum'], 'Consum (KWh/m²any)'),
-    'emissions': QgsRendererRange(-1.0, -0.1, symbols['symbolEmissions'], 'Emissions (kgCO₂/m²any)'),
     'rangeA': QgsRendererRange(0.0, 34.1, symbols['symbolA'], 'A'),
     'rangeB': QgsRendererRange(34.1, 55.5, symbols['symbolB'], 'B'),
     'rangeC': QgsRendererRange(55.5, 85.4, symbols['symbolC'], 'C'),
@@ -151,8 +149,8 @@ ranges = {
     'rangeF': QgsRendererRange(136.6, 170.7, symbols['symbolF'], 'F'),
     'rangeG': QgsRendererRange(170.7, 9999999, symbols['symbolG'], 'G')
 }
-'''
 
+'''
 ranges_consum = {
     'units': QgsRendererRange(-1.0, -0.1, symbols['symbolConsum'], 'Consum (KWh/m²any)'),
     'rangeA': QgsRendererRange(0.0, 34.1, symbols['symbolA'], 'A'),
@@ -174,6 +172,7 @@ ranges_emissions = {
     'rangeF': QgsRendererRange(136.6, 170.7, symbols['symbolF'], 'F'),
     'rangeG': QgsRendererRange(170.7, 9999999, symbols['symbolG'], 'G')
 }
+'''
 
 class EficEnerg:
     """QGIS Plugin Implementation."""
@@ -1660,8 +1659,7 @@ class EficEnerg:
         global entitatLayerResumModa
         global entitatLayerResumMediana
         global fitxer
-        global ranges_consum
-        global ranges_emissions
+        global ranges
         global colors
         global symbols
 
@@ -1677,22 +1675,28 @@ class EficEnerg:
             root = self.iface.layerTreeCanvasBridge().rootGroup()   
         
         if consum:
-            group = root.insertGroup(0, f"Consum de {entitat.upper()}")
+            group = root.insertGroup(0, f"Consum de {entitat.upper()} (KWh/m²any)")
         if emissions:
-            group = root.insertGroup(0, f"Emissions de {entitat.upper()}")
+            group = root.insertGroup(0, f"Emissions de {entitat.upper()} (kgCO₂/m²any)")
 
         llegenda = QgsVectorLayer("MultiPolygon?crs=epsg:25831", "Llegenda", "memory")
         QgsProject.instance().addMapLayer(llegenda, False)
         diagramLlegenda = QgsPieDiagram()
         diagramLlegendaSettings = QgsDiagramSettings()
         diagramLlegendaSettings.categoryColors = list(colors.values())[2:]
-        diagramLlegendaSettings.categoryAttributes = ['A', 'B', 'C', 'D', 'E', 'F', 'G']
+        diagramLlegendaSettings.categoryAttributes = ['m2A', 'm2B', 'm2C', 'm2D', 'm2E', 'm2F', 'm2G']
         diagramLlegendaSettings.scaleByArea = False
         diagramLlegendaSettings.scaleBasedVisibility = True
         diagramLlegendaSettings.size = QSizeF(15, 15)
         diagramLlegendaSettings.minimumScale = minimumValue
         diagramLlegendaSettings.maximumScale = maximumValue
-        diagramLlegendaSettings.categoryLabels = ['A', 'B', 'C', 'D', 'E', 'F', 'G']
+        diagramLlegendaSettings.categoryLabels = ['A (Menys de 34,1)', 
+                                                  'B (34,1 - 55,5)', 
+                                                  'C (55,5 - 85,4)', 
+                                                  'D (85,4 - 111,6)', 
+                                                  'E (111,6 - 136,6)', 
+                                                  'F (136,6 - 170,7)', 
+                                                  'G (Més de 170,7)']
         diagramLlegendaSettings.enabled = True
         llegenda.renderer().symbol().setColor(color)
         diagramLlegendaRenderer = QgsSingleCategoryDiagramRenderer()
@@ -1700,13 +1704,32 @@ class EficEnerg:
         diagramLlegendaRenderer.setDiagramSettings(diagramLlegendaSettings)
         diagramLlegendaRenderer.setAttributeLegend(True)
         llegenda.setDiagramRenderer(diagramLlegendaRenderer)
+        llegenda.triggerRepaint()
+        propertyx = QgsProperty()
+        propertyx.setExpressionString("x(centroid($geometry))")
+        propertyx.setActive(True)
+        propertyy = QgsProperty()
+        propertyy.setExpressionString("y(centroid($geometry))")
+        propertyy.setActive(True)
+        propertyVisibility = QgsProperty()
+        propertyVisibility.setExpressionString("scale() > " + str(minimumValue) + " AND scale() < " + str(maximumValue))
+        propertyVisibility.setActive(True)
+        propertyCollection = QgsPropertyCollection("Diagram Properties")
+        propertyCollection.setProperty(3, propertyx)
+        propertyCollection.setProperty(4, propertyy)
+        propertyCollection.setProperty(9, propertyVisibility)
+        diagramLlegendaLayerSettings = QgsDiagramLayerSettings()
+        diagramLlegendaLayerSettings.setDataDefinedProperties(propertyCollection)
+        llegenda.setDiagramLayerSettings(diagramLlegendaLayerSettings)
         single_symbol_renderer = llegenda.renderer().clone()
         symbol = single_symbol_renderer.symbol()
         symbol_layer = QgsSimpleLineSymbolLayer()
         symbol_layer.setWidth(0)
         llegenda.setRenderer(single_symbol_renderer)
         llegenda.triggerRepaint()
-        group.insertChildNode(5, QgsLayerTreeLayer(llegenda))
+        node = QgsLayerTreeLayer(llegenda)
+        node.setExpanded(True)
+        group.insertChildNode(0, node)
         llegenda.triggerRepaint()
         QApplication.processEvents()
 
@@ -1779,11 +1802,13 @@ class EficEnerg:
             minimumValue = self.dlg.minScale.value()
             maximumValue = self.dlg.maxScale.value()   
 
+        '''
         if consum:
             ranges = ranges_consum
         if emissions:
             ranges = ranges_emissions        
-
+        '''
+        
         # Diagrames NumHabit
         if self.dlg.checkNumHabit.isChecked():
             self.calculNumHabit()
@@ -1840,7 +1865,7 @@ class EficEnerg:
             entitatLayerResumNumHabit.triggerRepaint()
             node = QgsLayerTreeLayer(entitatLayerResumNumHabit)
             node.setExpanded(False)
-            group.insertChildNode(0, node)
+            group.insertChildNode(1, node)
             QApplication.processEvents()
 
             textBox += f"Realitzat càlcul de NumHabit de {entitat.upper()}.\n"
@@ -1904,7 +1929,7 @@ class EficEnerg:
             entitatLayerResumm2.triggerRepaint()
             node = QgsLayerTreeLayer(entitatLayerResumm2)
             node.setExpanded(False)
-            group.insertChildNode(1, node)
+            group.insertChildNode(2, node)
             QApplication.processEvents()
             
             textBox += f"Realitzat càlcul de m2 de {entitat.upper()}.\n"
@@ -1950,12 +1975,13 @@ class EficEnerg:
             text_format.setBackground(background_format)
             
             symbology = QgsGraduatedSymbolRenderer("indexMITJANA", ranges.values())
-
+            '''
             symbolUnits = QgsFillSymbol()
             if consum:
                 symbolUnits.setColor(colors["colorConsum"])
             if emissions:
                 symbolUnits.setColor(colors["colorEmissions"])
+            '''
             symbolA = QgsFillSymbol()
             symbolA.setColor(colors["colorA"])
             symbolB = QgsFillSymbol()
@@ -1971,14 +1997,14 @@ class EficEnerg:
             symbolG = QgsFillSymbol()
             symbolG.setColor(colors["colorG"])
 
-            symbology.updateRangeSymbol(0, symbolUnits)
-            symbology.updateRangeSymbol(1, symbolA)
-            symbology.updateRangeSymbol(2, symbolB)
-            symbology.updateRangeSymbol(3, symbolC)
-            symbology.updateRangeSymbol(4, symbolD)
-            symbology.updateRangeSymbol(5, symbolE)
-            symbology.updateRangeSymbol(6, symbolF)
-            symbology.updateRangeSymbol(7, symbolG)
+            #symbology.updateRangeSymbol(0, symbolUnits)
+            symbology.updateRangeSymbol(0, symbolA)
+            symbology.updateRangeSymbol(1, symbolB)
+            symbology.updateRangeSymbol(2, symbolC)
+            symbology.updateRangeSymbol(3, symbolD)
+            symbology.updateRangeSymbol(4, symbolE)
+            symbology.updateRangeSymbol(5, symbolF)
+            symbology.updateRangeSymbol(6, symbolG)
 
             labelMitjana.setFormat(text_format)
 
@@ -2008,7 +2034,7 @@ class EficEnerg:
             QgsProject.instance().addMapLayer(entitatLayerResumMitjana, False)
             node = QgsLayerTreeLayer(entitatLayerResumMitjana)
             node.setExpanded(False)
-            group.insertChildNode(2, node)
+            group.insertChildNode(3, node)
             
             textBox += f"Realitzat càlcul de mitjana de {entitat.upper()}.\n"
             self.dlg.textEstat.setText(textBox)
@@ -2054,7 +2080,7 @@ class EficEnerg:
 
             symbology = QgsCategorizedSymbolRenderer()
             symbology.setClassAttribute("QualifMaxFreq")
-
+            '''
             if consum:
                 symbol = QgsSymbol.defaultSymbol(entitatLayerResumModa.geometryType())
                 symbol.changeSymbolLayer(0, QgsSimpleFillSymbolLayer(QColor("#000000")))
@@ -2063,7 +2089,7 @@ class EficEnerg:
                 symbol = QgsSymbol.defaultSymbol(entitatLayerResumModa.geometryType())
                 symbol.changeSymbolLayer(0, QgsSimpleFillSymbolLayer(QColor("#000000")))
                 symbology.addCategory(QgsRendererCategory("xxx", symbol,"Emissions (kgCO₂/m²any)"))
-
+            '''
             symbol = QgsSymbol.defaultSymbol(entitatLayerResumModa.geometryType())
             symbol.changeSymbolLayer(0, QgsSimpleFillSymbolLayer(colors["colorA"]))
             symbology.addCategory(QgsRendererCategory("A", symbol, "A"))
@@ -2120,7 +2146,7 @@ class EficEnerg:
             QgsProject.instance().addMapLayer(entitatLayerResumModa, False)
             node = QgsLayerTreeLayer(entitatLayerResumModa)
             node.setExpanded(False)
-            group.insertChildNode(3, node)
+            group.insertChildNode(4, node)
             
             textBox += f"Realitzat càlcul de moda de {entitat.upper()}.\n"
             self.dlg.textEstat.setText(textBox)
@@ -2164,12 +2190,13 @@ class EficEnerg:
             text_format.setBackground(background_format)
 
             symbology = QgsGraduatedSymbolRenderer("indexMEDIANA", ranges.values())
-
+            '''
             symbolUnits = QgsFillSymbol()
             if consum:
                 symbolUnits.setColor(colors["colorConsum"])
             if emissions:
                 symbolUnits.setColor(colors["colorEmissions"])
+            '''
             symbolA = QgsFillSymbol()
             symbolA.setColor(colors["colorA"])
             symbolB = QgsFillSymbol()
@@ -2185,14 +2212,14 @@ class EficEnerg:
             symbolG = QgsFillSymbol()
             symbolG.setColor(colors["colorG"])
 
-            symbology.updateRangeSymbol(0, symbolUnits)
-            symbology.updateRangeSymbol(1, symbolA)
-            symbology.updateRangeSymbol(2, symbolB)
-            symbology.updateRangeSymbol(3, symbolC)
-            symbology.updateRangeSymbol(4, symbolD)
-            symbology.updateRangeSymbol(5, symbolE)
-            symbology.updateRangeSymbol(6, symbolF)
-            symbology.updateRangeSymbol(7, symbolG)
+            #symbology.updateRangeSymbol(0, symbolUnits)
+            symbology.updateRangeSymbol(0, symbolA)
+            symbology.updateRangeSymbol(1, symbolB)
+            symbology.updateRangeSymbol(2, symbolC)
+            symbology.updateRangeSymbol(3, symbolD)
+            symbology.updateRangeSymbol(4, symbolE)
+            symbology.updateRangeSymbol(5, symbolF)
+            symbology.updateRangeSymbol(6, symbolG)
 
             labelMediana.setFormat(text_format)
 
@@ -2222,7 +2249,7 @@ class EficEnerg:
             QgsProject.instance().addMapLayer(entitatLayerResumMediana, False)
             node = QgsLayerTreeLayer(entitatLayerResumMediana)
             node.setExpanded(False)
-            group.insertChildNode(4, node)
+            group.insertChildNode(5, node)
             
             textBox += f"Realitzat càlcul de mediana de {entitat.upper()}.\n"
             self.dlg.textEstat.setText(textBox)
