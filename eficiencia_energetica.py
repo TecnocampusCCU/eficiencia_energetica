@@ -9,7 +9,7 @@
         begin                : 2023-05-23
         git sha              : $Format:%H$
         copyright            : (C) 2023 by Miquel Rodriguez
-        email                : mrodriguezj@edu.tecnocampus.cat
+        email                : miquel.rodriguezj@tecnocampus.cat
  ***************************************************************************/
 
 /***************************************************************************
@@ -46,9 +46,10 @@ from PyQt5.QtWidgets import (QAction, QApplication, QColorDialog, QMessageBox,
 from qgis.core import (QgsCategorizedSymbolRenderer, QgsDataSourceUri,
                        QgsDiagramLayerSettings, QgsDiagramSettings,
                        QgsFillSymbol, QgsGraduatedSymbolRenderer,
-                       QgsLayerTreeLayer, QgsPalLayerSettings, QgsPieDiagram, QgsProcessing,
-                       QgsProject, QgsProperty, QgsPropertyCollection,
-                       QgsRasterLayer, QgsRendererCategory, QgsRendererRange,
+                       QgsLayerTreeLayer, QgsPalLayerSettings, QgsPieDiagram,
+                       QgsProcessing, QgsProject, QgsProperty,
+                       QgsPropertyCollection, QgsRasterLayer,
+                       QgsRendererCategory, QgsRendererRange,
                        QgsSimpleFillSymbolLayer, QgsSimpleLineSymbolLayer,
                        QgsSingleCategoryDiagramRenderer, QgsSymbol,
                        QgsTextBackgroundSettings, QgsTextFormat, QgsUnitTypes,
@@ -65,7 +66,7 @@ from .eficiencia_energetica_dialog import EficEnergDialog
 from .resources import *
 
 '''Variables globals'''
-Versio_modul = "V_Q3.231205"
+Versio_modul = "V_Q3.240514"
 nomBD1 = ""
 password1 = ""
 host1 = ""
@@ -87,6 +88,8 @@ personalitzat = False
 consum = False
 emissions = False
 
+versioBD = ""
+
 habitatges = "cert_efi_energ_edif_mataro_geom"
 habitatgesLayer = None
 entitat = None
@@ -105,12 +108,12 @@ joinEntitatHabitatges = None
 
 llistaEntitats = [
     None, # Entitat per defecte, ha de donar error
-    "parcel",
-    "ILLES",
-    "Seccions",
-    "Barris",
-    "DistrictesPostals",
-    "Districtes"
+    "parcel_temp",
+    "zone",
+    "seccions",
+    "barris",
+    "districtes_postals",
+    "districtes"
 ]
 
 
@@ -389,6 +392,7 @@ class EficEnerg:
                 uri = QgsDataSourceUri()
                 uri.setConnection(host1, port1, nomBD1, user1, password1)
                 #schema1 = "public"
+                self.detect_database_version()
 
                 self.dlg.groupEntitats.setEnabled(True)
                 self.dlg.comboEntitat.setEnabled(True)
@@ -422,6 +426,75 @@ class EficEnerg:
         else:
             self.barraEstat_noConnectat()
     
+    def detect_database_version(self):
+        global cur
+        global conn
+        global textBox
+        global versioBD
+
+        sql_versio = "select taula from config where variable = 'versio';"
+        cur.execute(sql_versio)
+        versioBD = cur.fetchone()[0]
+
+        if versioBD == '1.0':
+            if textBox is not None or textBox != "":
+                textBox += "\nVersió de la base de dades: 1.0\n"
+                self.dlg.textEstat.setText(textBox)
+                self.scroll_text()
+            else:
+                self.dlg.textEstat.setText("Versió de la base de dades: 1.0\n")
+            
+            try:
+                sql = "SELECT taula FROM config WHERE variable = 'parceles';"
+                cur.execute(sql)
+                parcel_name = cur.fetchone()[0]
+                sql = "SELECT taula FROM config WHERE variable = 'illes';"
+                cur.execute(sql)
+                illes_name = cur.fetchone()[0]
+            except:
+                print("Error al llegir la configuració de la base de dades")
+                QMessageBox.information(None, "Error", "Error al llegir la configuració de la base de dades")
+                return
+            try:
+                cur.execute(f"""
+                            DROP TABLE IF EXISTS parcel_temp;
+                            CREATE LOCAL TEMP TABLE parcel_temp (
+                                id_parcel,
+                                geom,
+                                cadastral_reference
+                            ) AS SELECT "id", "geom", "utm_total" FROM "{parcel_name}";
+                            """)
+                conn.commit()
+                cur.execute(f"""
+                            DROP TABLE IF EXISTS zone;
+                            CREATE LOCAL TEMP TABLE zone (
+                                id_zone,
+                                geom,
+                                cadastral_zoning_reference
+                            ) AS SELECT "id", "geom", "D_S_I" FROM "{illes_name}";
+                            """)
+                conn.commit()
+            except:
+                print("Error al crear les taules temporals")
+                QMessageBox.information(None, "Error", "Error al crear les taules temporals")
+                return
+        else:
+            if textBox is not None or textBox != "":
+                textBox += "\nVersió de la base de dades: 2.0\n"
+                self.dlg.textEstat.setText(textBox)
+                self.scroll_text()
+            else:
+                self.dlg.textEstat.setText("Versió de la base de dades: 2.0\n")
+            try:
+                sql = "DROP TABLE IF EXISTS parcel_temp;\n"
+                sql += "CREATE TABLE parcel_temp AS SELECT * FROM parcel;"
+                cur.execute(sql)
+                conn.commit()
+            except:
+                print("Error al crear la taula temporal")
+                QMessageBox.information(None, "Error", "Error al crear la taula temporal")
+                return
+
     def on_change_comboEntitat(self):
         global uri
         global schema1
@@ -688,12 +761,20 @@ class EficEnerg:
 
     def calculIdEntitat(self):
         global entitatLayer
+
+        if entitat == llistaEntitats[1]:
+            camp_id = "id_parcel"
+        elif entitat == llistaEntitats[2]:
+            camp_id = "id_zone"
+        else:
+            camp_id = "id"
+
         alg_params = {
             'FIELD_LENGTH': 0,
             'FIELD_NAME': 'idEntitat',
             'FIELD_PRECISION': 0,
             'FIELD_TYPE': 1,
-            'FORMULA': '\"id\"',
+            'FORMULA': f'{camp_id}',
             'INPUT': entitatLayer,
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
@@ -1740,6 +1821,7 @@ class EficEnerg:
         uri = QgsDataSourceUri()
         try:
             uri.setConnection(host1, port1, nomBD1, user1, password1)
+            self.detect_database_version()
         except Exception as ex:
             print ("Error a la connexio")
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
@@ -2262,6 +2344,7 @@ class EficEnerg:
         textBox += f"\nPROCÉS FINALITZAT en {tempsFinal} segons.\n"
         self.dlg.textEstat.setText(textBox)
         self.scroll_text()
+        self.dropFinalTables()
         self.dlg.setEnabled(True)
         self.dlg.groupBD.setEnabled(True)
         self.dlg.groupChecks.setEnabled(True)
@@ -2271,6 +2354,36 @@ class EficEnerg:
         print(f"Temps total de procés: {tempsFinal} segons")
         QMessageBox.information(None, "Procés finalitzat", f"El procés per a l'entitat {entitat} ha finalitzat.", QMessageBox.Ok)
         QApplication.processEvents()
+
+    def dropFinalTables(self):
+        global cur
+        global conn
+
+        if versioBD == '1.0':
+            try:
+                cur.execute("DROP TABLE IF EXISTS zone;")
+                conn.commit()
+            except Exception as ex:
+                print ("Error al eliminar la taula zone")
+                template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+                message = template.format(type(ex).__name__, ex.args)
+                print (message)
+                QMessageBox.critical(None, "Error", "Error al eliminar la taula zone")
+                conn.rollback()
+                self.dlg.setEnabled(True)
+                return
+        try:
+            cur.execute("DROP TABLE IF EXISTS parcel_temp;")
+            conn.commit()
+        except Exception as ex:
+            print ("Error al eliminar la taula parcel_temp")
+            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            message = template.format(type(ex).__name__, ex.args)
+            print (message)
+            QMessageBox.critical(None, "Error", "Error al eliminar la taula parcel_temp")
+            conn.rollback()
+            self.dlg.setEnabled(True)
+            return
 
     def populateComboBox(self, combo, list, predef, sort):
         """Procediment per omplir el combo especificat amb la llista subministrada"""
