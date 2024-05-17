@@ -66,7 +66,7 @@ from .eficiencia_energetica_dialog import EficEnergDialog
 from .resources import *
 
 '''Variables globals'''
-Versio_modul = "V_Q3.240517"
+Versio_modul = "V_Q3.240514"
 nomBD1 = ""
 password1 = ""
 host1 = ""
@@ -106,7 +106,15 @@ parameters = {}
 
 joinEntitatHabitatges = None
 
-llistaEntitats = []
+llistaEntitats = [
+    None, # Entitat per defecte, ha de donar error
+    "parcel_temp",
+    "zone",
+    "seccions",
+    "barris",
+    "districtes_postals",
+    "districtes"
+]
 
 
 
@@ -449,8 +457,8 @@ class EficEnerg:
                 return
             try:
                 cur.execute(f"""
-                            DROP TABLE IF EXISTS parcel_{fitxer};
-                            CREATE TABLE parcel_{fitxer} (
+                            DROP TABLE IF EXISTS parcel_temp;
+                            CREATE LOCAL TEMP TABLE parcel_temp (
                                 id_parcel,
                                 geom,
                                 cadastral_reference
@@ -458,8 +466,8 @@ class EficEnerg:
                             """)
                 conn.commit()
                 cur.execute(f"""
-                            DROP TABLE IF EXISTS zone{fitxer};
-                            CREATE TABLE zone{fitxer} (
+                            DROP TABLE IF EXISTS zone;
+                            CREATE LOCAL TEMP TABLE zone (
                                 id_zone,
                                 geom,
                                 cadastral_zoning_reference
@@ -478,8 +486,8 @@ class EficEnerg:
             else:
                 self.dlg.textEstat.setText("Versió de la base de dades: 2.0\n")
             try:
-                sql = f"DROP TABLE IF EXISTS parcel_{fitxer};\n"
-                sql += f"CREATE TABLE parcel_{fitxer} AS SELECT * FROM parcel;"
+                sql = "DROP TABLE IF EXISTS parcel_temp;\n"
+                sql += "CREATE TABLE parcel_temp AS SELECT * FROM parcel;"
                 cur.execute(sql)
                 conn.commit()
             except:
@@ -1731,11 +1739,14 @@ class EficEnerg:
         global entitatLayerResumMitjana
         global entitatLayerResumModa
         global entitatLayerResumMediana
+        global fitxer
         global ranges
         global colors
         global symbols
 
         global parameters
+
+        fitxer = datetime.datetime.now().strftime("%Y%m%d%H%M%S%f")
 
         total_start_time = time.time()
 
@@ -2350,26 +2361,26 @@ class EficEnerg:
 
         if versioBD == '1.0':
             try:
-                cur.execute(f"DROP TABLE IF EXISTS zone{fitxer};")
+                cur.execute("DROP TABLE IF EXISTS zone;")
                 conn.commit()
             except Exception as ex:
-                print (f"Error al eliminar la taula zone{fitxer}")
+                print ("Error al eliminar la taula zone")
                 template = "An exception of type {0} occurred. Arguments:\n{1!r}"
                 message = template.format(type(ex).__name__, ex.args)
                 print (message)
-                QMessageBox.critical(None, "Error", f"Error al eliminar la taula zone{fitxer}")
+                QMessageBox.critical(None, "Error", "Error al eliminar la taula zone")
                 conn.rollback()
                 self.dlg.setEnabled(True)
                 return
         try:
-            cur.execute(f"DROP TABLE IF EXISTS parcel_{fitxer};")
+            cur.execute("DROP TABLE IF EXISTS parcel_temp;")
             conn.commit()
         except Exception as ex:
-            print (f"Error al eliminar la taula parcel_{fitxer}")
+            print ("Error al eliminar la taula parcel_temp")
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             message = template.format(type(ex).__name__, ex.args)
             print (message)
-            QMessageBox.critical(None, "Error", f"Error al eliminar la taula parcel_{fitxer}")
+            QMessageBox.critical(None, "Error", "Error al eliminar la taula parcel_temp")
             conn.rollback()
             self.dlg.setEnabled(True)
             return
@@ -2409,8 +2420,6 @@ class EficEnerg:
             self.toolbar.removeAction(action)
 
     def run(self):
-        global fitxer
-        global llistaEntitats
         """Run method that performs all the real work"""
         # show the dialog
         self.estatInicial()
@@ -2418,16 +2427,6 @@ class EficEnerg:
         conn=self.getConnections()
         # Run the dialog event loop
         self.populateComboBox(self.dlg.comboBD, conn, 'Selecciona connexió', True)
-        fitxer = datetime.datetime.now().strftime("%Y%m%d%H%M%S%f")
-        llistaEntitats = [
-            None, # Entitat per defecte, ha de donar error
-            f"parcel_{fitxer}",
-            f"zone{fitxer}",
-            "seccions",
-            "barris",
-            "districtes_postals",
-            "districtes"
-        ]
         result = self.dlg.exec_()
         # See if OK was pressed
         if result:
