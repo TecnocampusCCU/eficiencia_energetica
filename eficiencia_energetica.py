@@ -66,7 +66,7 @@ from .eficiencia_energetica_dialog import EficEnergDialog
 from .resources import *
 
 '''Variables globals'''
-Versio_modul = "V_Q3.240514"
+Versio_modul = "V_Q3.240625"
 nomBD1 = ""
 password1 = ""
 host1 = ""
@@ -93,6 +93,7 @@ versioBD = ""
 habitatges = "cert_efi_energ_edif_mataro_geom"
 habitatgesLayer = None
 entitat = None
+nomEntitat = ""
 entitatLayer = None
 entitatLayerJoined = None
 entitatLayerResumNumHabit = None
@@ -458,7 +459,7 @@ class EficEnerg:
             try:
                 cur.execute(f"""
                             DROP TABLE IF EXISTS parcel_temp;
-                            CREATE LOCAL TEMP TABLE parcel_temp (
+                            CREATE TABLE parcel_temp (
                                 id_parcel,
                                 geom,
                                 cadastral_reference
@@ -467,7 +468,7 @@ class EficEnerg:
                 conn.commit()
                 cur.execute(f"""
                             DROP TABLE IF EXISTS zone;
-                            CREATE LOCAL TEMP TABLE zone (
+                            CREATE TABLE zone (
                                 id_zone,
                                 geom,
                                 cadastral_zoning_reference
@@ -502,7 +503,10 @@ class EficEnerg:
         global entitatLayer
         global llistaEntitats
         global habitatgesLayer
+        global nomEntitat
+
         entitat = llistaEntitats[self.dlg.comboEntitat.currentIndex()]
+        nomEntitat = self.dlg.comboEntitat.currentText()
         schema1 = "public"
         try:
             uri.setDataSource(schema1, entitat, 'geom')
@@ -960,11 +964,11 @@ class EficEnerg:
             QgsProject.instance().addMapLayer(entitatLayerResumNumHabit, False).setName("Classificació per nombre d'habitatges")
             QApplication.processEvents()
         except Exception as ex:
-            print ("Error al calcular nombre d'habitatges per categoria de " + entitat)
+            print ("Error al calcular nombre d'habitatges per categoria de " + nomEntitat)
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             message = template.format(type(ex).__name__, ex.args)
             print (message)
-            QMessageBox.critical(None, "Error", "Error al calcular nombre d'habitatges per categoria de " + entitat)
+            QMessageBox.critical(None, "Error", "Error al calcular nombre d'habitatges per categoria de " + nomEntitat)
             self.dlg.setEnabled(True)
             return
 
@@ -1046,11 +1050,11 @@ class EficEnerg:
             QgsProject.instance().addMapLayer(entitatLayerResumm2, False).setName("Classificació per metres quadrats")
             QApplication.processEvents()
         except Exception as ex:
-            print ("Error al calcular metres quadrats per categoria de " + entitat)
+            print ("Error al calcular metres quadrats per categoria de " + nomEntitat)
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             message = template.format(type(ex).__name__, ex.args)
             print (message)
-            QMessageBox.critical(None, "Error", "Error al calcular metres quadrats per categoria de " + entitat)
+            QMessageBox.critical(None, "Error", "Error al calcular metres quadrats per categoria de " + nomEntitat)
             self.dlg.setEnabled(True)
             return
 
@@ -1271,11 +1275,11 @@ class EficEnerg:
                 entitatLayerResumMitjana.setName('Mitjana')
             QApplication.processEvents()
         except Exception as ex:
-            print ("Error al calcular mitjana de " + entitat)
+            print ("Error al calcular mitjana de " + nomEntitat)
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             message = template.format(type(ex).__name__, ex.args)
             print (message)
-            QMessageBox.critical(None, "Error", "Error al calcular mitjana de " + entitat)
+            QMessageBox.critical(None, "Error", "Error al calcular mitjana de " + nomEntitat)
             self.dlg.setEnabled(True)
             return
 
@@ -1589,11 +1593,11 @@ class EficEnerg:
                 entitatLayerResumModa.setName('Moda')
             QApplication.processEvents()
         except Exception as ex:
-            print ("Error al calcular moda de " + entitat)
+            print ("Error al calcular moda de " + nomEntitat)
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             message = template.format(type(ex).__name__, ex.args)
             print (message)
-            QMessageBox.critical(None, "Error", "Error al calcular moda de " + entitat)
+            QMessageBox.critical(None, "Error", "Error al calcular moda de " + nomEntitat)
             self.dlg.setEnabled(True)
             return
 
@@ -1672,11 +1676,11 @@ class EficEnerg:
             entitatLayerResumMediana.setName('Mediana')
             QApplication.processEvents()
         except Exception as ex:
-            print ("Error al calcular mediana de " + entitat)
+            print ("Error al calcular mediana de " + nomEntitat)
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             message = template.format(type(ex).__name__, ex.args)
             print (message)
-            QMessageBox.critical(None, "Error", "Error al calcular mediana de " + entitat)
+            QMessageBox.critical(None, "Error", "Error al calcular mediana de " + nomEntitat)
             self.dlg.setEnabled(True)
             return
 
@@ -1756,9 +1760,9 @@ class EficEnerg:
             root = self.iface.layerTreeCanvasBridge().rootGroup()   
         
         if consum:
-            group = root.insertGroup(0, f"Consum de {entitat.upper()} (KWh/m²any)")
+            group = root.insertGroup(0, f"Consum de {nomEntitat.upper()} (KWh/m²any)")
         if emissions:
-            group = root.insertGroup(0, f"Emissions de {entitat.upper()} (kgCO₂/m²any)")
+            group = root.insertGroup(0, f"Emissions de {nomEntitat.upper()} (kgCO₂/m²any)")
 
         llegenda = QgsVectorLayer("MultiPolygon?crs=epsg:25831", "Llegenda", "memory")
         QgsProject.instance().addMapLayer(llegenda, False)
@@ -1870,7 +1874,7 @@ class EficEnerg:
             self.castm2()
         self.joinEntitatHabitatges()
 
-        textBox += f"Realitzats càlculs previs de {entitat.upper()}.\n"
+        textBox += f"Realitzats càlculs previs de {nomEntitat}.\n"
         self.dlg.textEstat.setText(textBox)
         self.scroll_text()
         self.updateProgress(20)
@@ -1950,7 +1954,7 @@ class EficEnerg:
             group.insertChildNode(1, node)
             QApplication.processEvents()
 
-            textBox += f"Realitzat càlcul de NumHabit de {entitat.upper()}.\n"
+            textBox += f"Realitzat càlcul de NumHabit de {nomEntitat}.\n"
             self.dlg.textEstat.setText(textBox)
             self.scroll_text()
             self.updateProgress(35)
@@ -2014,7 +2018,7 @@ class EficEnerg:
             group.insertChildNode(2, node)
             QApplication.processEvents()
             
-            textBox += f"Realitzat càlcul de m2 de {entitat.upper()}.\n"
+            textBox += f"Realitzat càlcul de m2 de {nomEntitat}.\n"
             self.dlg.textEstat.setText(textBox)
             self.scroll_text()
             self.updateProgress(50)
@@ -2118,7 +2122,7 @@ class EficEnerg:
             node.setExpanded(False)
             group.insertChildNode(3, node)
             
-            textBox += f"Realitzat càlcul de mitjana de {entitat.upper()}.\n"
+            textBox += f"Realitzat càlcul de mitjana de {nomEntitat}.\n"
             self.dlg.textEstat.setText(textBox)
             self.scroll_text()
             self.updateProgress(65)
@@ -2230,7 +2234,7 @@ class EficEnerg:
             node.setExpanded(False)
             group.insertChildNode(4, node)
             
-            textBox += f"Realitzat càlcul de moda de {entitat.upper()}.\n"
+            textBox += f"Realitzat càlcul de moda de {nomEntitat}.\n"
             self.dlg.textEstat.setText(textBox)
             self.scroll_text()
             self.updateProgress(80)
@@ -2333,7 +2337,7 @@ class EficEnerg:
             node.setExpanded(False)
             group.insertChildNode(5, node)
             
-            textBox += f"Realitzat càlcul de mediana de {entitat.upper()}.\n"
+            textBox += f"Realitzat càlcul de mediana de {nomEntitat}.\n"
             self.dlg.textEstat.setText(textBox)
             self.scroll_text()
             self.updateProgress(95)
@@ -2352,7 +2356,7 @@ class EficEnerg:
         self.updateProgress(100)
         self.estatFinalitzat()
         print(f"Temps total de procés: {tempsFinal} segons")
-        QMessageBox.information(None, "Procés finalitzat", f"El procés per a l'entitat {entitat} ha finalitzat.", QMessageBox.Ok)
+        QMessageBox.information(None, "Procés finalitzat", f"El procés per a l'entitat {nomEntitat} ha finalitzat.", QMessageBox.Ok)
         QApplication.processEvents()
 
     def dropFinalTables(self):
