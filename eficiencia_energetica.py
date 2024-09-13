@@ -24,14 +24,10 @@
 """
 
 
-import collections
 import datetime
 import os
 import os.path
-import sys
 import time
-import unicodedata
-from os.path import expanduser
 
 import processing
 import psycopg2
@@ -66,7 +62,7 @@ from .eficiencia_energetica_dialog import EficEnergDialog
 from .resources import *
 
 '''Variables globals'''
-Versio_modul = "V_Q3.240625"
+Versio_modul = "V_Q3.240913"
 nomBD1 = ""
 password1 = ""
 host1 = ""
@@ -109,8 +105,8 @@ joinEntitatHabitatges = None
 
 llistaEntitats = [
     None, # Entitat per defecte, ha de donar error
-    "parcel_temp",
-    "zone",
+    f"parcel_temp_{fitxer}",
+    f"zone_{fitxer}",
     "seccions",
     "barris",
     "districtes_postals",
@@ -458,8 +454,8 @@ class EficEnerg:
                 return
             try:
                 cur.execute(f"""
-                            DROP TABLE IF EXISTS parcel_temp;
-                            CREATE TABLE parcel_temp (
+                            DROP TABLE IF EXISTS parcel_temp_{fitxer};
+                            CREATE TABLE parcel_temp_{fitxer} (
                                 id_parcel,
                                 geom,
                                 cadastral_reference
@@ -467,8 +463,8 @@ class EficEnerg:
                             """)
                 conn.commit()
                 cur.execute(f"""
-                            DROP TABLE IF EXISTS zone;
-                            CREATE TABLE zone (
+                            DROP TABLE IF EXISTS zone_{fitxer};
+                            CREATE TABLE zone_{fitxer} (
                                 id_zone,
                                 geom,
                                 cadastral_zoning_reference
@@ -487,8 +483,8 @@ class EficEnerg:
             else:
                 self.dlg.textEstat.setText("Versió de la base de dades: 2.0\n")
             try:
-                sql = "DROP TABLE IF EXISTS parcel_temp;\n"
-                sql += "CREATE TABLE parcel_temp AS SELECT * FROM parcel;"
+                sql = f"DROP TABLE IF EXISTS parcel_temp_{fitxer};\n"
+                sql += f"CREATE TABLE parcel_temp_{fitxer} AS SELECT * FROM parcel;"
                 cur.execute(sql)
                 conn.commit()
             except:
@@ -1750,8 +1746,6 @@ class EficEnerg:
 
         global parameters
 
-        fitxer = datetime.datetime.now().strftime("%Y%m%d%H%M%S%f")
-
         total_start_time = time.time()
 
         try:
@@ -2362,22 +2356,11 @@ class EficEnerg:
     def dropFinalTables(self):
         global cur
         global conn
-
-        if versioBD == '1.0':
-            try:
-                cur.execute("DROP TABLE IF EXISTS zone;")
-                conn.commit()
-            except Exception as ex:
-                print ("Error al eliminar la taula zone")
-                template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-                message = template.format(type(ex).__name__, ex.args)
-                print (message)
-                QMessageBox.critical(None, "Error", "Error al eliminar la taula zone")
-                conn.rollback()
-                self.dlg.setEnabled(True)
-                return
+        
         try:
-            cur.execute("DROP TABLE IF EXISTS parcel_temp;")
+            cur.execute(f"DROP TABLE IF EXISTS parcel_temp_{fitxer};")
+            conn.commit()
+            cur.execute(f"DROP TABLE IF EXISTS zone_{fitxer};")
             conn.commit()
         except Exception as ex:
             print ("Error al eliminar la taula parcel_temp")
@@ -2424,9 +2407,11 @@ class EficEnerg:
             self.toolbar.removeAction(action)
 
     def run(self):
+        global fitxer
         """Run method that performs all the real work"""
         # show the dialog
         self.estatInicial()
+        fitxer = datetime.datetime.now().strftime("%Y%m%d%H%M%S%f")
         self.dlg.show()
         conn=self.getConnections()
         # Run the dialog event loop
