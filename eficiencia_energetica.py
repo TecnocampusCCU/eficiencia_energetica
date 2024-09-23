@@ -62,7 +62,7 @@ from .eficiencia_energetica_dialog import EficEnergDialog
 from .resources import *
 
 '''Variables globals'''
-Versio_modul = "V_Q3.240913"
+Versio_modul = "V_Q3.240923"
 nomBD1 = ""
 password1 = ""
 host1 = ""
@@ -76,6 +76,7 @@ uri = None
 numOperacions = 0
 numEntitats = 0
 fitxer = ""
+connexioFeta = False
 color = QColor(0,0,0)
 minimumValue = 0
 maximumValue = 0
@@ -226,6 +227,8 @@ class EficEnerg:
         self.dlg.checkModa.stateChanged.connect(self.on_change_entitatsIOperacions)
         self.dlg.checkMediana.stateChanged.connect(self.on_change_entitatsIOperacions)
 
+        self.dlg.rejected.connect(self.on_click_Sortir)
+
         # Declare instance attributes
         self.actions = []
         self.menu = self.tr(u'&CCU')
@@ -349,6 +352,7 @@ class EficEnerg:
         global conn
         global textBox
         global uri
+        global connexioFeta
         s = QSettings()
         select = 'Selecciona connexió'
         nom_conn = self.dlg.comboBD.currentText()
@@ -381,6 +385,7 @@ class EficEnerg:
                 estructura = "dbname='"+ nomBD.decode("utf-8") + "' user='" + user.decode("utf-8") +"' host='" + server.decode("utf-8") +"' password='" + password.decode("utf-8") + "'" # + "'schema='" + schema.decode("utf-8") + "'"
                 conn = psycopg2.connect(estructura)
                 self.barraEstat_connectat()
+                connexioFeta = True
                 textBox += f"\nConnectat a la base de dades {nomBD1}\n"
                 textBox += "\nSelecciona l'entitat amb la que vulguis treballar i indica els càlculs que vols realitzar sobre aquesta així com si vols els càlculs sobre el consum o les emissions.\n"
                 self.dlg.textEstat.setText(textBox)
@@ -485,6 +490,21 @@ class EficEnerg:
             try:
                 sql = f"DROP TABLE IF EXISTS parcel_temp_{fitxer};\n"
                 sql += f"CREATE TABLE parcel_temp_{fitxer} AS SELECT * FROM parcel;"
+                cur.execute(sql)
+                conn.commit()
+            except:
+                print("Error al crear la taula temporal")
+                QMessageBox.information(None, "Error", "Error al crear la taula temporal")
+                return
+            if textBox is not None or textBox != "":
+                textBox += "\nVersió de la base de dades: 2.0\n"
+                self.dlg.textEstat.setText(textBox)
+                self.scroll_text()
+            else:
+                self.dlg.textEstat.setText("Versió de la base de dades: 2.0\n")
+            try:
+                sql = f"DROP TABLE IF EXISTS zone_{fitxer};\n"
+                sql += f"CREATE TABLE zone_{fitxer} AS SELECT * FROM zone;"
                 cur.execute(sql)
                 conn.commit()
             except:
@@ -1706,9 +1726,12 @@ class EficEnerg:
         QApplication.processEvents()
 
     def on_click_Sortir(self):
-        if cur != None and conn != None:
+        global connexioFeta
+        if connexioFeta:
+            self.dropFinalTables()
             cur.close()
             conn.close()
+            connexioFeta = False
         self.estatInicial()
         self.dlg.close()
 
@@ -2408,10 +2431,20 @@ class EficEnerg:
 
     def run(self):
         global fitxer
+        global llistaEntitats
         """Run method that performs all the real work"""
         # show the dialog
         self.estatInicial()
         fitxer = datetime.datetime.now().strftime("%Y%m%d%H%M%S%f")
+        llistaEntitats = [
+            None, # Entitat per defecte, ha de donar error
+            f"parcel_temp_{fitxer}",
+            f"zone_{fitxer}",
+            "seccions",
+            "barris",
+            "districtes_postals",
+            "districtes"
+        ]
         self.dlg.show()
         conn=self.getConnections()
         # Run the dialog event loop
