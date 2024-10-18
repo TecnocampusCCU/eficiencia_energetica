@@ -62,7 +62,7 @@ from .eficiencia_energetica_dialog import EficEnergDialog
 from .resources import *
 
 '''Variables globals'''
-Versio_modul = "V_Q3.240923"
+Versio_modul = "V_Q3.241018"
 nomBD1 = ""
 password1 = ""
 host1 = ""
@@ -2435,7 +2435,7 @@ class EficEnerg:
         """Run method that performs all the real work"""
         # show the dialog
         self.estatInicial()
-        fitxer = "_ccu_temp"+datetime.datetime.now().strftime("%Y%m%d%H%M%S%f")
+        fitxer = "ccu_temp"+datetime.datetime.now().strftime("%Y%m%d%H%M%S%f")
         llistaEntitats = [
             None, # Entitat per defecte, ha de donar error
             f"parcel_temp_{fitxer}",
