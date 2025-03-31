@@ -62,7 +62,7 @@ from .eficiencia_energetica_dialog import EficEnergDialog
 from .resources import *
 
 '''Variables globals'''
-Versio_modul = "V_Q3.241018"
+Versio_modul = "V_Q3.250331"
 nomBD1 = ""
 password1 = ""
 host1 = ""
@@ -84,6 +84,9 @@ estandar = True
 personalitzat = False
 consum = False
 emissions = False
+consumElectric = False
+consumGas = False
+any = 0
 
 versioBD = ""
 
@@ -114,8 +117,6 @@ llistaEntitats = [
     "districtes"
 ]
 
-
-
 colors = {
     'colorConsum': QColor("#000000"),
     'colorEmissions': QColor("#000000"),
@@ -139,7 +140,6 @@ symbols = {
     'symbolF': QgsSymbol.defaultSymbol(QgsWkbTypes.GeometryType(QgsWkbTypes.LineString)),
     'symbolG': QgsSymbol.defaultSymbol(QgsWkbTypes.GeometryType(QgsWkbTypes.LineString))
 }
-
 
 ranges = {
     'rangeA': QgsRendererRange(0.0, 34.1, symbols['symbolA'], 'A'),
@@ -174,6 +174,24 @@ ranges_emissions = {
     'rangeG': QgsRendererRange(170.7, 9999999, symbols['symbolG'], 'G')
 }
 '''
+
+llistaAnysElectric = [
+    '2016',
+    '2017',
+    '2018',
+    '2019',
+    '2020'
+]
+
+llistaAnysGas = [
+    '2016',
+    '2017',
+    '2018',
+    '2019',
+    '2020',
+    '2021',
+    '2022'
+]
 
 class EficEnerg:
     """QGIS Plugin Implementation."""
@@ -218,6 +236,7 @@ class EficEnerg:
         self.dlg.checkMediana.stateChanged.connect(self.on_change_checkMediana)
         self.dlg.pushColorP.clicked.connect(self.on_click_color)
         self.dlg.tabPersonalitzacio.currentChanged.connect(self.on_currentChanged_tabPersonalitzacio)
+
         self.dlg.consumButton.toggled.connect(self.on_change_consum)
         self.dlg.emissionsButton.toggled.connect(self.on_change_emissions)
 
@@ -226,6 +245,23 @@ class EficEnerg:
         self.dlg.checkMitjana.stateChanged.connect(self.on_change_entitatsIOperacions)
         self.dlg.checkModa.stateChanged.connect(self.on_change_entitatsIOperacions)
         self.dlg.checkMediana.stateChanged.connect(self.on_change_entitatsIOperacions)
+
+        self.dlg.consumElectricButton.toggled.connect(self.on_change_consumElectric)
+        self.dlg.consumGasButton.toggled.connect(self.on_change_consumGas)
+
+        self.dlg.checkNumHabit_2.stateChanged.connect(self.on_change_checkNumHabit_checkm2_2)
+        self.dlg.checkm2_2.stateChanged.connect(self.on_change_checkNumHabit_checkm2_2)
+        self.dlg.checkMitjana_2.stateChanged.connect(self.on_change_checkMitjana_2)
+        self.dlg.checkModa_2.stateChanged.connect(self.on_change_checkModa_2)
+        self.dlg.checkMediana_2.stateChanged.connect(self.on_change_checkMediana_2)
+
+        self.dlg.checkNumHabit_2.stateChanged.connect(self.on_change_entitatsIOperacions)
+        self.dlg.checkm2_2.stateChanged.connect(self.on_change_entitatsIOperacions)
+        self.dlg.checkMitjana_2.stateChanged.connect(self.on_change_entitatsIOperacions)
+        self.dlg.checkModa_2.stateChanged.connect(self.on_change_entitatsIOperacions)
+        self.dlg.checkMediana_2.stateChanged.connect(self.on_change_entitatsIOperacions)
+
+        self.dlg.tabCalculs.currentChanged.connect(self.on_currentChanged_tabCalculs)
 
         self.dlg.rejected.connect(self.on_click_Sortir)
 
@@ -518,12 +554,22 @@ class EficEnerg:
         global entitat
         global entitatLayer
         global llistaEntitats
+        global habitatges
         global habitatgesLayer
         global nomEntitat
 
         entitat = llistaEntitats[self.dlg.comboEntitat.currentIndex()]
         nomEntitat = self.dlg.comboEntitat.currentText()
         schema1 = "public"
+
+        if self.dlg.tabCalculs.currentIndex() == 0:
+            habitatges = "cert_efi_energ_edif_mataro_geom"
+        if self.dlg.tabCalculs.currentIndex() == 1:
+            if self.dlg.consumElectricButton.isChecked():
+                habitatges = "consums_mataro_llum"
+            if self.dlg.consumGasButton.isChecked():
+                habitatges = "consums_mataro_gas"
+
         try:
             uri.setDataSource(schema1, entitat, 'geom')
             entitatLayer = QgsVectorLayer(uri.uri(), entitat, 'postgres')
@@ -644,6 +690,85 @@ class EficEnerg:
         else:
             numOperacions -= 1
 
+    def on_change_checkNumHabit_checkm2_2(self):
+        global numOperacions
+
+        self.dlg.labelRestriccio.setFont(QFont("MS Shell Dlg 2", 7))
+
+        if self.dlg.checkNumHabit_2.isChecked() and not self.dlg.checkm2_2.isChecked():
+            self.dlg.checkMitjana_2.setEnabled(True)
+            self.dlg.checkModa_2.setEnabled(True)
+            self.dlg.checkMediana_2.setEnabled(True)
+            self.dlg.labelRestriccio.setVisible(True)
+            self.dlg.labelRestriccio.setText("Al calcular la Mitjana, la Moda i la Mediana no es tenen en compte les superfícies dels habitatges.")
+
+        if not self.dlg.checkNumHabit_2.isChecked() and self.dlg.checkm2_2.isChecked():
+            self.dlg.checkMitjana_2.setEnabled(True)
+            self.dlg.checkModa_2.setEnabled(True)
+            self.dlg.checkMediana_2.setEnabled(False)
+            self.dlg.checkMediana_2.setChecked(False)
+            self.dlg.labelRestriccio.setVisible(True)
+            self.dlg.labelRestriccio.setText("Els càlculs de la Mitjana i la Moda estan ponderats per la superfície dels habitatges.")
+
+        if self.dlg.checkNumHabit_2.isChecked() and self.dlg.checkm2_2.isChecked():
+            self.dlg.checkMitjana_2.setEnabled(True)
+            self.dlg.checkModa_2.setEnabled(True)
+            self.dlg.checkMediana_2.setEnabled(True)
+            self.dlg.labelRestriccio.setVisible(True)
+            self.dlg.labelRestriccio.setText("La Mitjana i la Moda utilitzen en els seus càlculs la superfície dels habitatges.")
+
+        if not self.dlg.checkNumHabit_2.isChecked() and not self.dlg.checkm2_2.isChecked():
+            self.dlg.checkMitjana_2.setEnabled(False)
+            self.dlg.checkMitjana_2.setChecked(False)
+            self.dlg.checkModa_2.setEnabled(False)
+            self.dlg.checkModa_2.setChecked(False)
+            self.dlg.checkMediana_2.setEnabled(False)
+            self.dlg.checkMediana_2.setChecked(False)
+            self.dlg.labelRestriccio.setVisible(False)
+            self.dlg.labelRestriccio.setText(" ")
+
+        if self.dlg.checkNumHabit_2.isChecked():
+            numOperacions += 1
+        if not self.dlg.checkNumHabit_2.isChecked():
+            numOperacions -= 1
+
+    def on_change_checkMitjana_2(self):
+        global numOperacions
+        if self.dlg.checkMitjana_2.isChecked():
+            numOperacions += 1
+        else:
+            numOperacions -= 1
+
+    def on_change_checkModa_2(self):
+        global numOperacions
+        if self.dlg.checkModa_2.isChecked():
+            numOperacions += 1
+        else:
+            numOperacions -= 1
+
+    def on_change_checkMediana_2(self):
+        global numOperacions
+        if self.dlg.checkMediana_2.isChecked():
+            numOperacions += 1
+        else:
+            numOperacions -= 1
+
+    def on_currentChanged_tabCalculs(self):
+        global numOperacions
+        numOperacions = 0
+        self.dlg.checkNumHabit.setChecked(False)
+        self.dlg.checkm2.setChecked(False)
+        self.dlg.checkMitjana.setChecked(False)
+        self.dlg.checkModa.setChecked(False)
+        self.dlg.checkMediana.setChecked(False)
+        self.dlg.checkNumHabit_2.setChecked(False)
+        self.dlg.checkm2_2.setChecked(False)
+        self.dlg.checkMitjana_2.setChecked(False)
+        self.dlg.checkModa_2.setChecked(False)
+        self.dlg.checkMediana_2.setChecked(False)
+        self.dlg.labelRestriccio.setVisible(False)
+        self.dlg.labelRestriccio.setText(" ")            
+
     def on_click_color(self):
         global color
         try:
@@ -695,6 +820,38 @@ class EficEnerg:
             emissions = False
             consum = True
 
+    def on_change_consumElectric(self):
+        global consumElectric
+        global consumGas
+        if self.dlg.consumElectricButton.isChecked():
+            consumElectric = True
+            consumGas = False
+            self.dlg.comboAny.clear()
+            self.dlg.comboAny.addItems(llistaAnysElectric)
+            self.dlg.poderCalorLine.setEnabled(False)
+        else:
+            consumElectric = False
+            consumGas = True
+            self.dlg.comboAny.clear()
+            self.dlg.comboAny.addItems(llistaAnysGas)
+            self.dlg.poderCalorLine.setEnabled(True)
+
+    def on_change_consumGas(self):
+        global consumElectric
+        global consumGas
+        if self.dlg.consumGasButton.isChecked():
+            consumGas = True
+            consumElectric = False
+            self.dlg.comboAny.clear()
+            self.dlg.comboAny.addItems(llistaAnysGas)
+            self.dlg.poderCalorLine.setEnabled(True)
+        else:
+            consumGas = False
+            consumElectric = True
+            self.dlg.comboAny.clear()
+            self.dlg.comboAny.addItems(llistaAnysElectric)
+            self.dlg.poderCalorLine.setEnabled(False)
+
     def ompleCombos(self, combo, llista, predef, sort):
         combo.blockSignals(True)
         combo.clear()
@@ -741,6 +898,12 @@ class EficEnerg:
         self.dlg.checkMitjana.setChecked(False)
         self.dlg.checkModa.setChecked(False)
         self.dlg.checkMediana.setChecked(False)
+        self.dlg.checkNumHabit_2.setChecked(False)
+        self.dlg.checkm2_2.setChecked(False)
+        self.dlg.checkMitjana_2.setChecked(False)
+        self.dlg.checkModa_2.setChecked(False)
+        self.dlg.checkMediana_2.setChecked(False)
+        self.dlg.poderCalorLine.setEnabled(False)
         self.dlg.textEstat.clear()
         self.dlg.versio.setText(Versio_modul)
         self.dlg.groupEntitats.setEnabled(False)
@@ -810,6 +973,68 @@ class EficEnerg:
             QMessageBox.critical(None, "Error", "Error al calcular idEntitat")
             self.dlg.setEnabled(True)
             return
+        
+    def calculQualificacio(self):
+        # Aquest mètode només serveix per al consum elèctric i de gas,
+        # el consum d'energia primaria no renovable i les emissions de CO2 provenen d'una taula on tenim la qualificació donada
+        global habitatgesLayer
+
+        if consumGas:
+            if not self.dlg.poderCalorLine.text() == "" and not self.dlg.poderCalorLine.text() == "0" and not self.dlg.poderCalorLine.text() == "0.0" and not self.dlg.poderCalorLine.text() == "0.00":
+                if "," in self.dlg.poderCalorLine.text():
+                    poderCalor = self.dlg.poderCalorLine.text().replace(",",".")
+                else:
+                    poderCalor = self.dlg.poderCalorLine.text()
+            else:
+                QMessageBox.critical(None, "Error", "Error al calcular consum de gas")
+                self.dlg.setEnabled(True)
+                return
+
+        alg_params = {
+            'FIELD_LENGTH': 0,
+            'FIELD_NAME': 'qualificacio',
+            'FIELD_PRECISION': 0,
+            'FIELD_TYPE': 2,
+            'FORMULA':  f'''
+                        CASE
+                            WHEN ("CONSUMO_{any}"/"metres_cadastre") < 34.1 THEN 'A'
+                            WHEN ("CONSUMO_{any}"/"metres_cadastre") >= 34.1 AND ("CONSUMO_{any}"/"metres_cadastre") < 55.5 THEN 'B'
+                            WHEN ("CONSUMO_{any}"/"metres_cadastre") >= 55.5 AND ("CONSUMO_{any}"/"metres_cadastre") < 85.4 THEN 'C'
+                            WHEN ("CONSUMO_{any}"/"metres_cadastre") >= 85.4 AND ("CONSUMO_{any}"/"metres_cadastre") < 111.6 THEN 'D'
+                            WHEN ("CONSUMO_{any}"/"metres_cadastre") >= 111.6 AND ("CONSUMO_{any}"/"metres_cadastre") < 136.6 THEN 'E'
+                            WHEN ("CONSUMO_{any}"/"metres_cadastre") >= 136.6 AND ("CONSUMO_{any}"/"metres_cadastre") < 170.7 THEN 'F'
+                            ELSE 'G'
+                        END
+                        ''',
+            'INPUT': habitatgesLayer,
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+
+        if consumGas:
+            alg_params['FORMULA'] = f'''
+                        CASE
+                            WHEN ("CONSUMO_{any}"*{poderCalor}/"metres_cadastre") < 34.1 THEN 'A'
+                            WHEN ("CONSUMO_{any}"*{poderCalor}/"metres_cadastre") >= 34.1 AND ("CONSUMO_{any}"*{poderCalor}/"metres_cadastre") < 55.5 THEN 'B'
+                            WHEN ("CONSUMO_{any}"*{poderCalor}/"metres_cadastre") >= 55.5 AND ("CONSUMO_{any}"*{poderCalor}/"metres_cadastre") < 85.4 THEN 'C'
+                            WHEN ("CONSUMO_{any}"*{poderCalor}/"metres_cadastre") >= 85.4 AND ("CONSUMO_{any}"*{poderCalor}/"metres_cadastre") < 111.6 THEN 'D'
+                            WHEN ("CONSUMO_{any}"*{poderCalor}/"metres_cadastre") >= 111.6 AND ("CONSUMO_{any}"*{poderCalor}/"metres_cadastre") < 136.6 THEN 'E'
+                            WHEN ("CONSUMO_{any}"*{poderCalor}/"metres_cadastre") >= 136.6 AND ("CONSUMO_{any}"*{poderCalor}/"metres_cadastre") < 170.7 THEN 'F'
+                            ELSE 'G'
+                        END
+                        '''
+
+        try:
+            result = processing.run('qgis:fieldcalculator', alg_params)
+            habitatgesLayer = result['OUTPUT']
+            QApplication.processEvents()
+        except Exception as ex:
+            print ("Error al calcular qualificació")
+            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            message = template.format(type(ex).__name__, ex.args)
+            print (message)
+            QMessageBox.critical(None, "Error", "Error al calcular qualificació")
+            self.dlg.setEnabled(True)
+            return
 
     def castConsumEmissions(self):
         global habitatgesLayer
@@ -828,6 +1053,22 @@ class EficEnerg:
         if emissions:
             alg_params['FIELD_NAME'] = 'emissions'
             alg_params['FORMULA'] = '\"emissions de co2\"'
+        if consumElectric:
+            alg_params['FIELD_NAME'] = 'consum'
+            alg_params['FORMULA'] = f'\"CONSUMO_{any}\"'
+        if consumGas:
+            if not self.dlg.poderCalorLine.text() == "" and not self.dlg.poderCalorLine.text() == "0" and not self.dlg.poderCalorLine.text() == "0.0" and not self.dlg.poderCalorLine.text() == "0.00":
+                if "," in self.dlg.poderCalorLine.text():
+                    poderCalor = self.dlg.poderCalorLine.text().replace(",",".")
+                else:
+                    poderCalor = self.dlg.poderCalorLine.text()
+                alg_params['FIELD_NAME'] = 'consum'
+                alg_params['FORMULA'] = f'\"CONSUMO_{any}\"*{poderCalor}'
+            else:
+                QMessageBox.critical(None, "Error", "Error al calcular consum de gas")
+                self.dlg.setEnabled(True)
+                return
+
         try:
             result = processing.run('qgis:fieldcalculator', alg_params)
             habitatgesLayer = result['OUTPUT']
@@ -887,6 +1128,12 @@ class EficEnerg:
             alg_params['JOIN_FIELDS'] = ['id','referencia cadastral','qualificació de consum energia primaria no renovable','energia primària no renovable','consum','m2']
         if emissions and self.dlg.checkm2.isChecked():
             alg_params['JOIN_FIELDS'] = ['id','referencia cadastral','qualificacio emissions de co2','emissions de co2','emissions','m2']
+        
+        if (consumElectric or consumGas) and not self.dlg.checkm2_2.isChecked():
+            alg_params['JOIN_FIELDS'] = ['id',f'CONSUMO_{any}','cadastral_reference','qualificacio','consum']
+        if (consumElectric or consumGas) and self.dlg.checkm2_2.isChecked():
+            alg_params['JOIN_FIELDS'] = ['id',f'CONSUMO_{any}','cadastral_reference','qualificacio','consum','m2']
+
         try:
             result = processing.run('native:joinattributesbylocation', alg_params)
             joinEntitatHabitatges = result['OUTPUT']
@@ -919,6 +1166,9 @@ class EficEnerg:
             if emissions:
                 alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat','qualificacio emissions de co2']
                 alg_params['VALUES_FIELD_NAME'] = 'emissions'
+            if consumElectric or consumGas:
+                alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat','qualificacio']
+                alg_params['VALUES_FIELD_NAME'] = 'consum'
             outputs['Estadistiques'] = processing.run('qgis:statisticsbycategories', alg_params)
 
             alg_params = {
@@ -947,6 +1197,17 @@ class EficEnerg:
                                             {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'F\', \"count\", 0)','length': 0,'name': 'NumF','precision': 0,'type': 2},
                                             {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'G\', \"count\", 0)','length': 0,'name': 'NumG','precision': 0,'type': 2},
                                             {'aggregate': 'sum','delimiter': ',','input': '\"count\"','length': 0,'name': 'TotalEE','precision': 0,'type': 2}]
+            if consumElectric or consumGas:
+                alg_params['AGGREGATES'] = [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
+                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio\" = \'A\', \"count\", 0)','length': 0,'name': 'NumA','precision': 0,'type': 2},
+                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio\" = \'B\', \"count\", 0)','length': 0,'name': 'NumB','precision': 0,'type': 2},
+                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio\" = \'C\', \"count\", 0)','length': 0,'name': 'NumC','precision': 0,'type': 2},
+                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio\" = \'D\', \"count\", 0)','length': 0,'name': 'NumD','precision': 0,'type': 2},
+                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio\" = \'E\', \"count\", 0)','length': 0,'name': 'NumE','precision': 0,'type': 2},
+                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio\" = \'F\', \"count\", 0)','length': 0,'name': 'NumF','precision': 0,'type': 2},
+                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio\" = \'G\', \"count\", 0)','length': 0,'name': 'NumG','precision': 0,'type': 2},
+                                            {'aggregate': 'sum','delimiter': ',','input': '\"count\"','length': 0,'name': 'TotalEE','precision': 0,'type': 2}]
+            
             outputs['Aggregate'] = processing.run('qgis:aggregate', alg_params)
 
             alg_params = {
@@ -1005,7 +1266,10 @@ class EficEnerg:
                 alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat','qualificació de consum energia primaria no renovable']
             if emissions:
                 alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat','qualificacio emissions de co2']
+            if consumElectric or consumGas:
+                alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat','qualificacio']
             outputs['Estadistiques'] = processing.run('qgis:statisticsbycategories', alg_params)
+            QgsProject.instance().addMapLayer(outputs['Estadistiques']['OUTPUT'], False).setName("Estadistiques")
 
             alg_params = {
                 'AGGREGATES': None,
@@ -1032,6 +1296,16 @@ class EficEnerg:
                                             {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'E\', \"sum\", 0)','length': 0,'name': 'm2E','precision': 0,'type': 6},
                                             {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'F\', \"sum\", 0)','length': 0,'name': 'm2F','precision': 0,'type': 6},
                                             {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'G\', \"sum\", 0)','length': 0,'name': 'm2G','precision': 0,'type': 6},
+                                            {'aggregate': 'sum','delimiter': ',','input': '\"sum\"','length': 0,'name': 'Totalm2','precision': 0,'type': 6}]
+            if consumElectric or consumGas:
+                alg_params['AGGREGATES'] = [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
+                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio\" = \'A\', \"sum\", 0)','length': 0,'name': 'm2A','precision': 0,'type': 6},
+                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio\" = \'B\', \"sum\", 0)','length': 0,'name': 'm2B','precision': 0,'type': 6},
+                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio\" = \'C\', \"sum\", 0)','length': 0,'name': 'm2C','precision': 0,'type': 6},
+                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio\" = \'D\', \"sum\", 0)','length': 0,'name': 'm2D','precision': 0,'type': 6},
+                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio\" = \'E\', \"sum\", 0)','length': 0,'name': 'm2E','precision': 0,'type': 6},
+                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio\" = \'F\', \"sum\", 0)','length': 0,'name': 'm2F','precision': 0,'type': 6},
+                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio\" = \'G\', \"sum\", 0)','length': 0,'name': 'm2G','precision': 0,'type': 6},
                                             {'aggregate': 'sum','delimiter': ',','input': '\"sum\"','length': 0,'name': 'Totalm2','precision': 0,'type': 6}]
             outputs['Aggregatem2'] = processing.run('qgis:aggregate', alg_params)
 
@@ -1081,7 +1355,7 @@ class EficEnerg:
         outputs = {}
 
         try:
-            if self.dlg.checkNumHabit.isChecked() and not self.dlg.checkm2.isChecked():
+            if (self.dlg.checkNumHabit.isChecked() and not self.dlg.checkm2.isChecked()) or (self.dlg.checkNumHabit_2.isChecked() and not self.dlg.checkm2.isChecked()):
                 ''' indexMITJANAhab '''
                 alg_params = {
                     'CATEGORIES_FIELD_NAME':    ['idEntitat'],
@@ -1093,6 +1367,8 @@ class EficEnerg:
                     alg_params['VALUES_FIELD_NAME'] = 'consum'
                 if emissions:
                     alg_params['VALUES_FIELD_NAME'] = 'emissions'
+                if consumElectric or consumGas:
+                    alg_params['VALUES_FIELD_NAME'] = 'consum'
                 outputs['Indexmitjana'] = processing.run('qgis:statisticsbycategories', alg_params)
 
                 ''' Join Entitat - Mitjana '''
@@ -1120,7 +1396,7 @@ class EficEnerg:
                 entitatLayerResumMitjana = processing.run('qgis:aggregate', alg_params)['OUTPUT']
                 entitatLayerResumMitjana.setName('Mitjana')
 
-            if self.dlg.checkm2.isChecked():            
+            if self.dlg.checkm2.isChecked() or self.dlg.checkm2_2.isChecked():            
                 ''' Producte consum / emissions '''
                 alg_params = {
                     'FIELD_LENGTH': 0,
@@ -1135,6 +1411,8 @@ class EficEnerg:
                     alg_params['FORMULA'] = '\"consum\" * \"m2\"'
                 if emissions:
                     alg_params['FORMULA'] = '\"emissions\" * \"m2\"'
+                if consumElectric or consumGas:
+                    alg_params['FORMULA'] = '\"consum\" * \"m2\"'
                 outputs['Producte'] = processing.run('qgis:fieldcalculator', alg_params)
 
                 ''' sum producte '''
@@ -1148,6 +1426,8 @@ class EficEnerg:
                     alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat', 'qualificació de consum energia primaria no renovable']
                 if emissions:
                     alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat', 'qualificacio emissions de co2']
+                if consumElectric or consumGas:
+                    alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat', 'qualificacio']
                 outputs['SumProducte'] = processing.run('qgis:statisticsbycategories', alg_params)
                 
                 ''' sum m2 '''
@@ -1161,6 +1441,8 @@ class EficEnerg:
                     alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat', 'qualificació de consum energia primaria no renovable']
                 if emissions:
                     alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat', 'qualificacio emissions de co2']
+                if consumElectric or consumGas:
+                    alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat', 'qualificacio']
                 outputs['SumM2'] = processing.run('qgis:statisticsbycategories', alg_params)
 
                 ''' Clean sum producte '''
@@ -1211,6 +1493,8 @@ class EficEnerg:
                     alg_params['FORMULA'] = 'concat(to_string(\"idEntitat\") , \'-\', \"qualificació de consum energia primaria no renovable\")'
                 if emissions:
                     alg_params['FORMULA'] = 'concat(to_string(\"idEntitat\") , \'-\', \"qualificacio emissions de co2\")'
+                if consumElectric or consumGas:
+                    alg_params['FORMULA'] = 'concat(to_string(\"idEntitat\") , \'-\', \"qualificacio\")'
                 outputs['producte_fin'] = processing.run('qgis:fieldcalculator', alg_params)
 
                 ''' seccio_qual per m2 '''
@@ -1227,6 +1511,8 @@ class EficEnerg:
                     alg_params['FORMULA'] = 'concat(to_string(\"idEntitat\") , \'-\', \"qualificació de consum energia primaria no renovable\")'
                 if emissions:
                     alg_params['FORMULA'] = 'concat(to_string(\"idEntitat\") , \'-\', \"qualificacio emissions de co2\")'
+                if consumElectric or consumGas:
+                    alg_params['FORMULA'] = 'concat(to_string(\"idEntitat\") , \'-\', \"qualificacio\")'
                 outputs['m2_fin'] = processing.run('qgis:fieldcalculator', alg_params)
 
                 ''' Join 2 Aggregate '''
@@ -1306,7 +1592,7 @@ class EficEnerg:
         outputs = {}
 
         try:
-            if self.dlg.checkNumHabit.isChecked() and not self.dlg.checkm2.isChecked():
+            if (self.dlg.checkNumHabit.isChecked() and not self.dlg.checkm2.isChecked()) or (self.dlg.checkNumHabit_2.isChecked() and not self.dlg.checkm2_2.isChecked()):
                 ''' indexMODAhab '''
                 alg_params = {
                     'CATEGORIES_FIELD_NAME': None,
@@ -1320,6 +1606,9 @@ class EficEnerg:
                 if emissions:
                     alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat', 'qualificacio emissions de co2']
                     alg_params['VALUES_FIELD_NAME'] = 'emissions'
+                if consumElectric or consumGas:
+                    alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat', 'qualificacio']
+                    alg_params['VALUES_FIELD_NAME'] = 'consum'
                 outputs['Indexmoda'] = processing.run('qgis:statisticsbycategories', alg_params)
 
                 ''' Aggregate Moda '''
@@ -1339,6 +1628,11 @@ class EficEnerg:
                                                 {'aggregate': 'maximum','delimiter': '','input': '\"count\"','length': 0,'name': 'MaxNum','precision': 0,'type': 2},
                                                 {'aggregate': 'concatenate','delimiter': '','input': 'if(\"count\"=maximum(\"count\",\"idEntitat\"), \"qualificacio emissions de co2\",\'\')','length': 0,'name': 'QualifMaxFreq','precision': 0,'type': 10},
                                                 {'aggregate': 'sum','delimiter': '','input': 'if(\"qualificacio emissions de co2\" = if(\"count\"=maximum(\"count\",\"idEntitat\"), \"qualificacio emissions de co2\",\'\'), \"mean\", 0)','length': 0,'name': 'indexMODA','precision': 0,'type': 6}]
+                if consumElectric or consumGas:
+                    alg_params['AGGREGATES'] = [{'aggregate': 'first_value','delimiter': '','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
+                                                {'aggregate': 'maximum','delimiter': '','input': '\"count\"','length': 0,'name': 'MaxNum','precision': 0,'type': 2},
+                                                {'aggregate': 'concatenate','delimiter': '','input': 'if(\"count\"=maximum(\"count\",\"idEntitat\"), \"qualificacio\",\'\')','length': 0,'name': 'QualifMaxFreq','precision': 0,'type': 10},
+                                                {'aggregate': 'sum','delimiter': '','input': 'if(\"qualificacio\" = if(\"count\"=maximum(\"count\",\"idEntitat\"), \"qualificacio\",\'\'), \"mean\", 0)','length': 0,'name': 'indexMODA','precision': 0,'type': 6}]
                 outputs['AggregateModa'] = processing.run('qgis:aggregate', alg_params)
 
                 ''' Join Final Moda '''
@@ -1366,7 +1660,7 @@ class EficEnerg:
                 }
                 entitatLayerResumModa = processing.run('qgis:aggregate', alg_params)['OUTPUT']
                 entitatLayerResumModa.setName('Moda')
-            if self.dlg.checkm2.isChecked():
+            if self.dlg.checkm2.isChecked() or self.dlg.checkm2_2.isChecked():
                 '''
                 - 1. castConsum / castEmissions fet abans
                 - 2. cast m2 fet abans
@@ -1387,6 +1681,8 @@ class EficEnerg:
                     alg_params['FORMULA'] = '\"consum\" * \"m2\"'
                 if emissions:
                     alg_params['FORMULA'] = '\"emissions\" * \"m2\"'
+                if consumElectric or consumGas:
+                    alg_params['FORMULA'] = '\"consum\" * \"m2\"'
                 outputs['Producte'] = processing.run('qgis:fieldcalculator', alg_params)
 
                 ''' 5. Estadistiquesm2 sembla no ser necessari per la moda '''
@@ -1402,6 +1698,8 @@ class EficEnerg:
                     alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat','qualificació de consum energia primaria no renovable']
                 if emissions:
                     alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat','qualificacio emissions de co2']
+                if consumElectric or consumGas:
+                    alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat','qualificacio']
                 outputs['Estadistiquesm2'] = processing.run('qgis:statisticsbycategories', alg_params)
 
                 ''' 6. sum producte '''
@@ -1415,6 +1713,8 @@ class EficEnerg:
                     alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat', 'qualificació de consum energia primaria no renovable']
                 if emissions:
                     alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat', 'qualificacio emissions de co2']
+                if consumElectric or consumGas:
+                    alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat', 'qualificacio']
                 outputs['SumProducte'] = processing.run('qgis:statisticsbycategories', alg_params)
                 
                 ''' 7. sum m2 '''
@@ -1428,6 +1728,8 @@ class EficEnerg:
                     alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat', 'qualificació de consum energia primaria no renovable']
                 if emissions:
                     alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat', 'qualificacio emissions de co2']
+                if consumElectric or consumGas:
+                    alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat', 'qualificacio']
                 outputs['SumM2'] = processing.run('qgis:statisticsbycategories', alg_params)
 
                 ''' 8. Clean producte '''
@@ -1480,6 +1782,8 @@ class EficEnerg:
                     alg_params['FORMULA'] = 'concat(to_string(\"idEntitat\") , \'-\', \"qualificació de consum energia primaria no renovable\")'
                 if emissions:
                     alg_params['FORMULA'] = 'concat(to_string(\"idEntitat\") , \'-\', \"qualificacio emissions de co2\")'
+                if consumElectric or consumGas:
+                    alg_params['FORMULA'] = 'concat(to_string(\"idEntitat\") , \'-\', \"qualificacio\")'
                 outputs['producte_fin'] = processing.run('qgis:fieldcalculator', alg_params)
 
                 ''' 13. seccio_qual per m2 '''
@@ -1496,6 +1800,8 @@ class EficEnerg:
                     alg_params['FORMULA'] = 'concat(to_string(\"idEntitat\") , \'-\', \"qualificació de consum energia primaria no renovable\")'
                 if emissions:
                     alg_params['FORMULA'] = 'concat(to_string(\"idEntitat\") , \'-\', \"qualificacio emissions de co2\")'
+                if consumElectric or consumGas:
+                    alg_params['FORMULA'] = 'concat(to_string(\"idEntitat\") , \'-\', \"qualificacio\")'
                 outputs['m2_fin'] = processing.run('qgis:fieldcalculator', alg_params)
 
                 ''' 14. Join 2 Aggregate '''
@@ -1541,7 +1847,12 @@ class EficEnerg:
                                                 {'aggregate': 'maximum','delimiter': ',','input': '\"count\"','length': 0,'name': 'MaxNum','precision': 0,'type': 2},
                                                 {'aggregate': 'concatenate','delimiter': '','input': 'if(\"sum_m2\"=maximum(\"sum_m2\",\"idEntitat\"),\"qualificacio emissions de co2\",\'\')','length': 0,'name': 'QualifMaxFreq','precision': 0,'type': 10},
                                                 {'aggregate': 'sum','delimiter': ',','input': 'if(\"sum_m2\"=maximum(\"sum_m2\",\"idEntitat\"),\"moda\",0)','length': 0,'name': 'moda','precision': 0,'type': 6}]
-                    
+                if consumElectric or consumGas:
+                    alg_params['AGGREGATES'] = [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
+                                                {'aggregate': 'maximum','delimiter': ',','input': '\"count\"','length': 0,'name': 'MaxNum','precision': 0,'type': 2},
+                                                {'aggregate': 'concatenate','delimiter': '','input': 'if(\"sum_m2\"=maximum(\"sum_m2\",\"idEntitat\"),\"qualificacio\",\'\')','length': 0,'name': 'QualifMaxFreq','precision': 0,'type': 10},
+                                                {'aggregate': 'sum','delimiter': ',','input': 'if(\"sum_m2\"=maximum(\"sum_m2\",\"idEntitat\"),\"moda\",0)','length': 0,'name': 'moda','precision': 0,'type': 6}]
+
                 outputs['Filtrarmoda'] = processing.run('qgis:aggregate', alg_params)
 
                 """
@@ -1629,16 +1940,20 @@ class EficEnerg:
                 'INPUT': joinEntitatHabitatges,
                 'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
             }
-            if self.dlg.checkNumHabit.isChecked() and not self.dlg.checkm2.isChecked():
+            if (self.dlg.checkNumHabit.isChecked() and not self.dlg.checkm2.isChecked()) or (self.dlg.checkNumHabit_2.isChecked() and not self.dlg.checkm2_2.isChecked()):
                 if consum:
                     alg_params['EXPRESSION'] = ' "consum" is not null and "consum" !=0'
                 if emissions:
                     alg_params['EXPRESSION'] = ' "emissions" is not null and "emissions" !=0'
-            if self.dlg.checkm2.isChecked():
+                if consumElectric or consumGas:
+                    alg_params['EXPRESSION'] = ' "consum" is not null and "consum" !=0'
+            if self.dlg.checkm2.isChecked() or self.dlg.checkm2_2.isChecked():
                 if consum:
                     alg_params['EXPRESSION'] = ' "consum" is not null and "consum" !=0 and "m2" is not null and "m2" !=0'
                 if emissions:
                     alg_params['EXPRESSION'] = ' "emissions" is not null and "emissions" !=0 and "m2" is not null and "m2" !=0'
+                if consumElectric or consumGas:
+                    alg_params['EXPRESSION'] = ' "consum" is not null and "consum" !=0 and "m2" is not null and "m2" !=0'
             outputs['joinEntitatHabitatges_nozero_nonull'] = processing.run('native:extractbyexpression', alg_params)
             alg_params = {
                 'CATEGORIES_FIELD_NAME': None,
@@ -1652,6 +1967,9 @@ class EficEnerg:
             if emissions:
                 alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat']
                 alg_params['VALUES_FIELD_NAME'] = 'emissions'
+            if consumElectric or consumGas:
+                alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat']
+                alg_params['VALUES_FIELD_NAME'] = 'consum'
             outputs['Indexmediana'] = processing.run('qgis:statisticsbycategories', alg_params)
 
             alg_params = {
@@ -1664,6 +1982,9 @@ class EficEnerg:
                 alg_params['AGGREGATES'] = [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
                                             {'aggregate': 'first_value','delimiter': ',','input': '\"median\"','length': 0,'name': 'indexMEDIANA','precision': 0,'type': 6}]
             if emissions:
+                alg_params['AGGREGATES'] = [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
+                                            {'aggregate': 'first_value','delimiter': ',','input': '\"median\"','length': 0,'name': 'indexMEDIANA','precision': 0,'type': 6}]
+            if consumElectric or consumGas:
                 alg_params['AGGREGATES'] = [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
                                             {'aggregate': 'first_value','delimiter': ',','input': '\"median\"','length': 0,'name': 'indexMEDIANA','precision': 0,'type': 6}]
             outputs['AggregateMediana'] = processing.run('qgis:aggregate', alg_params)
@@ -1751,6 +2072,7 @@ class EficEnerg:
         global maximumValue
         global estandar
         global personalitzat
+        global any
 
         global habitatges
         global habitatgesLayer
@@ -1780,6 +2102,10 @@ class EficEnerg:
             group = root.insertGroup(0, f"Consum de {nomEntitat.upper()} (KWh/m²any)")
         if emissions:
             group = root.insertGroup(0, f"Emissions de {nomEntitat.upper()} (kgCO₂/m²any)")
+        if consumElectric:
+            group = root.insertGroup(0, f"Consum Electric de {nomEntitat.upper()} (KWh/m²any)")
+        if consumGas:
+            group = root.insertGroup(0, f"Consum Gas de {nomEntitat.upper()} (KWh/m²any)")
 
         llegenda = QgsVectorLayer("MultiPolygon?crs=epsg:25831", "Llegenda", "memory")
         QgsProject.instance().addMapLayer(llegenda, False)
@@ -1840,6 +2166,7 @@ class EficEnerg:
         # Canviar noms num i m2 a "Classificació per nombre d'habitatges" i "Classificació per metres quadrats"
 
         uri = QgsDataSourceUri()
+
         try:
             uri.setConnection(host1, port1, nomBD1, user1, password1)
             self.detect_database_version()
@@ -1859,18 +2186,32 @@ class EficEnerg:
             conn.rollback()
             self.dlg.setEnabled(True)
             return
-        if (not self.dlg.checkNumHabit.isChecked() and not self.dlg.checkm2.isChecked() and not self.dlg.checkMitjana.isChecked() and not self.dlg.checkModa.isChecked() and not self.dlg.checkMediana.isChecked()):
+        if (not self.dlg.checkNumHabit.isChecked() and not self.dlg.checkm2.isChecked() and not self.dlg.checkMitjana.isChecked() and not self.dlg.checkModa.isChecked() and not self.dlg.checkMediana.isChecked()) and (not self.dlg.checkNumHabit_2.isChecked() and not self.dlg.checkm2_2.isChecked() and not self.dlg.checkMitjana_2.isChecked() and not self.dlg.checkModa_2.isChecked() and not self.dlg.checkMediana_2.isChecked()):
             print ("No s'ha seleccionat cap càlcul que realitzar")
             QMessageBox.warning(None, "Error", "No s'ha seleccionat cap càlcul que realitzar")
             conn.rollback()
             self.dlg.setEnabled(True)
             return
-        if (not self.dlg.consumButton.isChecked() and not self.dlg.emissionsButton.isChecked()):
+        if (not self.dlg.consumButton.isChecked() and not self.dlg.emissionsButton.isChecked()) and (not self.dlg.consumElectricButton.isChecked() and not self.dlg.consumGasButton.isChecked()):
             print ("No s'ha seleccionat ni consum ni emissions")
             QMessageBox.warning(None, "Error", "No s'ha seleccionat ni consum ni emissions")
             conn.rollback()
             self.dlg.setEnabled(True)
             return
+        
+        ''' Aquesta comprovació serveix per a assegurar-se que s'utilitza la taula correcta segons consum d'energia primaria no renovable i emissions de co2,
+            consum elèctric o consum de gas, que són tres taules diferents encara que originalment sempre s'utilitzés la primera (cert_efi_energ_edif_mataro_geom)
+            que és la que es s'ha deixat escrita a la definició de la variable global habitatges '''
+        if self.dlg.tabCalculs.currentIndex() == 0:
+            if habitatges != 'cert_efi_energ_edif_mataro_geom':
+                self.on_change_comboEntitat()
+        if self.dlg.tabCalculs.currentIndex() == 1:
+            if self.dlg.consumElectricButton.isChecked():
+                if habitatges != "consums_mataro_llum":
+                    self.on_change_comboEntitat()
+            if self.dlg.consumGasButton.isChecked():
+                if habitatges != "consums_mataro_gas":
+                    self.on_change_comboEntitat()
 
         self.updateProgress(5)
 
@@ -1885,9 +2226,13 @@ class EficEnerg:
 
         QApplication.processEvents()
 
+        any = self.dlg.comboAny.currentText()
+
+        if self.dlg.tabCalculs.currentIndex() == 1:
+            self.calculQualificacio()
         self.calculIdEntitat()
         self.castConsumEmissions()
-        if self.dlg.checkm2.isChecked():
+        if self.dlg.checkm2.isChecked() or self.dlg.checkm2_2.isChecked():
             self.castm2()
         self.joinEntitatHabitatges()
 
@@ -1913,7 +2258,7 @@ class EficEnerg:
         '''
         
         # Diagrames NumHabit
-        if self.dlg.checkNumHabit.isChecked():
+        if self.dlg.checkNumHabit.isChecked() or self.dlg.checkNumHabit_2.isChecked():
             self.calculNumHabit()
 
             diagramNumHabit = QgsPieDiagram()
@@ -1977,7 +2322,7 @@ class EficEnerg:
             self.updateProgress(35)
             QApplication.processEvents()
 
-        if self.dlg.checkm2.isChecked():
+        if self.dlg.checkm2.isChecked() or self.dlg.checkm2_2.isChecked():
             self.calculm2()
 
             diagramm2 = QgsPieDiagram()
@@ -2043,7 +2388,7 @@ class EficEnerg:
 
         # Labels Mitjana
 
-        if self.dlg.checkMitjana.isChecked():
+        if self.dlg.checkMitjana.isChecked() or self.dlg.checkMitjana_2.isChecked():
             self.calculMitjana()
             
             labelMitjana = QgsPalLayerSettings()
@@ -2147,7 +2492,7 @@ class EficEnerg:
         
         # Labels Moda
 
-        if self.dlg.checkModa.isChecked():
+        if self.dlg.checkModa.isChecked() or self.dlg.checkModa_2.isChecked():
             self.calculModa()
 
             labelModa = QgsPalLayerSettings()
@@ -2259,7 +2604,7 @@ class EficEnerg:
 
         # Labels Mediana
 
-        if self.dlg.checkMediana.isChecked():
+        if self.dlg.checkMediana.isChecked() or self.dlg.checkMediana_2.isChecked():
             self.calculMediana()
 
             labelMediana = QgsPalLayerSettings()
