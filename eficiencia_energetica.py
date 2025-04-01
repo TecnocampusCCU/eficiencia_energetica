@@ -41,7 +41,7 @@ from PyQt5.QtWidgets import (QAction, QApplication, QColorDialog, QMessageBox,
                              QToolBar)
 from qgis.core import (QgsCategorizedSymbolRenderer, QgsDataSourceUri,
                        QgsDiagramLayerSettings, QgsDiagramSettings,
-                       QgsFillSymbol, QgsGraduatedSymbolRenderer,
+                       QgsFillSymbol, QgsField, QgsFeature, QgsGraduatedSymbolRenderer,
                        QgsLayerTreeLayer, QgsPalLayerSettings, QgsPieDiagram,
                        QgsProcessing, QgsProject, QgsProperty,
                        QgsPropertyCollection, QgsRasterLayer,
@@ -51,6 +51,7 @@ from qgis.core import (QgsCategorizedSymbolRenderer, QgsDataSourceUri,
                        QgsTextBackgroundSettings, QgsTextFormat, QgsUnitTypes,
                        QgsVectorLayer, QgsVectorLayerSimpleLabeling,
                        QgsWkbTypes)
+from qgis.core import NULL
 from qgis.PyQt.QtCore import QCoreApplication, QSettings, QTranslator
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction, QApplication, QMessageBox
@@ -62,7 +63,7 @@ from .eficiencia_energetica_dialog import EficEnergDialog
 from .resources import *
 
 '''Variables globals'''
-Versio_modul = "V_Q3.250331"
+Versio_modul = "V_Q3.250401"
 nomBD1 = ""
 password1 = ""
 host1 = ""
@@ -435,11 +436,13 @@ class EficEnerg:
                 self.dlg.groupEntitats.setEnabled(True)
                 self.dlg.comboEntitat.setEnabled(True)
                 self.dlg.groupChecks.setEnabled(True)
+                self.dlg.groupChecks_2.setEnabled(True)
                 self.dlg.pushInici.setEnabled(True)
 
                 self.dlg.groupEntitats.setVisible(True)
                 self.dlg.comboEntitat.setVisible(True)
                 self.dlg.groupChecks.setVisible(True)
+                self.dlg.groupChecks_2.setVisible(True)
 
             except Exception as ex:
                 self.estatInicial()
@@ -540,7 +543,7 @@ class EficEnerg:
                 self.dlg.textEstat.setText("Versió de la base de dades: 2.0\n")
             try:
                 sql = f"DROP TABLE IF EXISTS zone_{fitxer};\n"
-                sql += f"CREATE TABLE zone_{fitxer} AS SELECT * FROM zone;"
+                sql += f"CREATE TABLE zone_{fitxer} AS SELECT * FROM zone WHERE type != 'POLIGONO';"
                 cur.execute(sql)
                 conn.commit()
             except:
@@ -803,6 +806,7 @@ class EficEnerg:
     def on_change_consum(self):
         global consum
         global emissions
+
         if self.dlg.consumButton.isChecked():
             consum = True
             emissions = False
@@ -810,15 +814,32 @@ class EficEnerg:
             consum = False
             emissions = True
 
+        self.dlg.consumElectricButton.setChecked(False)
+        self.dlg.consumGasButton.setChecked(False)
+        self.dlg.checkNumHabit_2.setChecked(False)
+        self.dlg.checkm2_2.setChecked(False)
+        self.dlg.checkMitjana_2.setChecked(False)
+        self.dlg.checkModa_2.setChecked(False)
+        self.dlg.checkMediana_2.setChecked(False)
+
     def on_change_emissions(self):
         global consum
         global emissions
+
         if self.dlg.emissionsButton.isChecked():
             emissions = True
             consum = False
         else:
             emissions = False
             consum = True
+
+        self.dlg.consumElectricButton.setChecked(False)
+        self.dlg.consumGasButton.setChecked(False)
+        self.dlg.checkNumHabit_2.setChecked(False)
+        self.dlg.checkm2_2.setChecked(False)
+        self.dlg.checkMitjana_2.setChecked(False)
+        self.dlg.checkModa_2.setChecked(False)
+        self.dlg.checkMediana_2.setChecked(False)
 
     def on_change_consumElectric(self):
         global consumElectric
@@ -835,6 +856,15 @@ class EficEnerg:
             self.dlg.comboAny.clear()
             self.dlg.comboAny.addItems(llistaAnysGas)
             self.dlg.poderCalorLine.setEnabled(True)
+        
+        self.dlg.consumButton.setChecked(False)
+        self.dlg.emissionsButton.setChecked(False)
+        self.dlg.checkNumHabit.setChecked(False)
+        self.dlg.checkm2.setChecked(False)
+        self.dlg.checkMitjana.setChecked(False)
+        self.dlg.checkModa.setChecked(False)
+        self.dlg.checkMediana.setChecked(False)
+
 
     def on_change_consumGas(self):
         global consumElectric
@@ -851,6 +881,53 @@ class EficEnerg:
             self.dlg.comboAny.clear()
             self.dlg.comboAny.addItems(llistaAnysElectric)
             self.dlg.poderCalorLine.setEnabled(False)
+        self.dlg.consumButton.setChecked(False)
+        self.dlg.emissionsButton.setChecked(False)
+        self.dlg.checkNumHabit.setChecked(False)
+        self.dlg.checkm2.setChecked(False)
+        self.dlg.checkMitjana.setChecked(False)
+        self.dlg.checkModa.setChecked(False)
+        self.dlg.checkMediana.setChecked(False)
+
+    def desagregarConsumsElectrics(self):
+        global habitatgesLayer
+
+        camps_origen = habitatgesLayer.fields()
+        crs = habitatgesLayer.crs()
+
+        nova_capa = QgsVectorLayer("Point?crs=" + crs.authid(), "consums desagregats", "memory")
+        nova_capa.startEditing()
+        nova_capa_data = nova_capa.dataProvider()
+
+        nova_capa_data.addAttributes(camps_origen)
+        nova_capa.updateFields()
+
+        features = habitatgesLayer.getFeatures()
+        for feature in features:
+            consum = feature['consum']
+            if consum is not None and consum != NULL:
+                num_clientes = feature['NUM_CLIENTES_CIERRE']
+
+                if num_clientes is not None and num_clientes != NULL:
+                    if num_clientes > 0:
+                        consum_per_client = consum / num_clientes
+
+                        for _ in range(num_clientes):
+                            nova_feature = QgsFeature(camps_origen)
+                            nova_feature.setGeometry(feature.geometry())
+                            for field in camps_origen.names():
+                                if field == 'consum':
+                                    nova_feature[field] = consum_per_client
+                                else:
+                                    nova_feature[field] = feature[field]
+                            nova_capa.addFeature(nova_feature)
+
+        nova_capa.commitChanges()
+        nova_capa.updateExtents()
+
+        habitatgesLayer = nova_capa
+
+
 
     def ompleCombos(self, combo, llista, predef, sort):
         combo.blockSignals(True)
@@ -910,6 +987,7 @@ class EficEnerg:
         self.dlg.groupChecks.setEnabled(False)
         self.dlg.pushInici.setEnabled(False)
         self.dlg.groupChecks.setVisible(False)
+        self.dlg.groupChecks_2.setVisible(False)
         self.dlg.groupEntitats.setVisible(False)
         self.dlg.comboEntitat.setVisible(False)
         self.dlg.checkMitjana.setEnabled(False)
@@ -929,18 +1007,43 @@ class EficEnerg:
         self.dlg.pushColorP.setAutoFillBackground(True)
         self.dlg.minScaleP.setEnabled(True)
         self.dlg.maxScaleP.setEnabled(True)
-        self.dlg.consumButton.setChecked(True)
+        self.dlg.tabCalculs.setCurrentIndex(0)
         textBox = "Selecciona una base de dades...\n"
         self.dlg.textEstat.setText(textBox)
         self.dlg.setEnabled(True)
     
     def estatFinalitzat(self):
+        global habitatges
+        global habitatgesLayer
+        global entitat
+        global nomEntitat
+        global entitatLayer
+        global entitatLayerJoined
+        global entitatLayerResumNumHabit
+        global entitatLayerResumm2
+        global entitatLayerResumMitjana
+        global entitatLayerResumModa
+        global entitatLayerResumMediana
+
         self.dlg.comboBD.setEnabled(True)
         self.dlg.comboEntitat.setEnabled(True)
         self.dlg.groupChecks.setEnabled(True)
+        self.dlg.groupChecks_2.setEnabled(True)
         self.dlg.pushInici.setEnabled(True)
         self.dlg.pushSortir.setEnabled(True)
         self.dlg.labelAvis.setVisible(True)
+
+        habitatges = "cert_efi_energ_edif_mataro_geom"
+        habitatgesLayer = None
+        entitat = None
+        nomEntitat = ""
+        entitatLayer = None
+        entitatLayerJoined = None
+        entitatLayerResumNumHabit = None
+        entitatLayerResumm2 = None
+        entitatLayerResumMitjana = None
+        entitatLayerResumModa = None
+        entitatLayerResumMediana = None
 
     def calculIdEntitat(self):
         global entitatLayer
@@ -1055,7 +1158,7 @@ class EficEnerg:
             alg_params['FORMULA'] = '\"emissions de co2\"'
         if consumElectric:
             alg_params['FIELD_NAME'] = 'consum'
-            alg_params['FORMULA'] = f'\"CONSUMO_{any}\"'
+            alg_params['FORMULA'] = f'\"CONSUMO_{any}\"/\"metres_cadastre\"'
         if consumGas:
             if not self.dlg.poderCalorLine.text() == "" and not self.dlg.poderCalorLine.text() == "0" and not self.dlg.poderCalorLine.text() == "0.0" and not self.dlg.poderCalorLine.text() == "0.00":
                 if "," in self.dlg.poderCalorLine.text():
@@ -1063,7 +1166,7 @@ class EficEnerg:
                 else:
                     poderCalor = self.dlg.poderCalorLine.text()
                 alg_params['FIELD_NAME'] = 'consum'
-                alg_params['FORMULA'] = f'\"CONSUMO_{any}\"*{poderCalor}'
+                alg_params['FORMULA'] = f'(\"CONSUMO_{any}\"*{poderCalor})/\"metres_cadastre\"'
             else:
                 QMessageBox.critical(None, "Error", "Error al calcular consum de gas")
                 self.dlg.setEnabled(True)
@@ -2096,14 +2199,55 @@ class EficEnerg:
         try:
             root = QgsProject.instance().layerTreeRoot()
         except:
-            root = self.iface.layerTreeCanvasBridge().rootGroup()   
+            root = self.iface.layerTreeCanvasBridge().rootGroup()
+
+        if entitat is None or entitatLayer is None or habitatges is None or habitatgesLayer is None or nomEntitat is None:
+            self.on_change_comboEntitat()
+
+        # Fer grup de capes amb totes capes resultats que es digui "Consum de ENTITAT" o "Emissions de ENTITAT"
+        # Canviar noms perque es diguin nombre d'habitatges segons categoria, metres quadrats segons categoria, mitjana, moda i mediana
+        # Canviar noms num i m2 a "Classificació per nombre d'habitatges" i "Classificació per metres quadrats"
+
+        uri = QgsDataSourceUri()
+
+        try:
+            uri.setConnection(host1, port1, nomBD1, user1, password1)
+            self.detect_database_version()
+        except Exception as ex:
+            print ("Error a la connexio")
+            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            message = template.format(type(ex).__name__, ex.args)
+            print (message)
+            QMessageBox.critical(None, "Error", "Error a la connexio")
+            conn.rollback()
+            self.dlg.setEnabled(True)
+            return
+
+        if entitat == llistaEntitats[0] or entitat == None:
+            print("No s'ha seleccionat cap entitat amb la que treballar")
+            QMessageBox.warning(None, "Error", "No s'ha seleccionat cap entitat amb la que treballar")
+            conn.rollback()
+            self.dlg.setEnabled(True)
+            return
+        if (not self.dlg.checkNumHabit.isChecked() and not self.dlg.checkm2.isChecked() and not self.dlg.checkMitjana.isChecked() and not self.dlg.checkModa.isChecked() and not self.dlg.checkMediana.isChecked()) and (not self.dlg.checkNumHabit_2.isChecked() and not self.dlg.checkm2_2.isChecked() and not self.dlg.checkMitjana_2.isChecked() and not self.dlg.checkModa_2.isChecked() and not self.dlg.checkMediana_2.isChecked()):
+            print ("No s'ha seleccionat cap càlcul que realitzar")
+            QMessageBox.warning(None, "Error", "No s'ha seleccionat cap càlcul que realitzar")
+            conn.rollback()
+            self.dlg.setEnabled(True)
+            return
+        if (not self.dlg.consumButton.isChecked() and not self.dlg.emissionsButton.isChecked()) and (not self.dlg.consumElectricButton.isChecked() and not self.dlg.consumGasButton.isChecked()):
+            print ("No s'ha seleccionat ni consum ni emissions")
+            QMessageBox.warning(None, "Error", "No s'ha seleccionat ni consum ni emissions")
+            conn.rollback()
+            self.dlg.setEnabled(True)
+            return
         
         if consum:
             group = root.insertGroup(0, f"Consum de {nomEntitat.upper()} (KWh/m²any)")
         if emissions:
             group = root.insertGroup(0, f"Emissions de {nomEntitat.upper()} (kgCO₂/m²any)")
         if consumElectric:
-            group = root.insertGroup(0, f"Consum Electric de {nomEntitat.upper()} (KWh/m²any)")
+            group = root.insertGroup(0, f"Consum Elèctric de {nomEntitat.upper()} (KWh/m²any)")
         if consumGas:
             group = root.insertGroup(0, f"Consum Gas de {nomEntitat.upper()} (KWh/m²any)")
 
@@ -2160,44 +2304,6 @@ class EficEnerg:
         group.insertChildNode(0, node)
         llegenda.triggerRepaint()
         QApplication.processEvents()
-
-        # Fer grup de capes amb totes capes resultats que es digui "Consum de ENTITAT" o "Emissions de ENTITAT"
-        # Canviar noms perque es diguin nombre d'habitatges segons categoria, metres quadrats segons categoria, mitjana, moda i mediana
-        # Canviar noms num i m2 a "Classificació per nombre d'habitatges" i "Classificació per metres quadrats"
-
-        uri = QgsDataSourceUri()
-
-        try:
-            uri.setConnection(host1, port1, nomBD1, user1, password1)
-            self.detect_database_version()
-        except Exception as ex:
-            print ("Error a la connexio")
-            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-            message = template.format(type(ex).__name__, ex.args)
-            print (message)
-            QMessageBox.critical(None, "Error", "Error a la connexio")
-            conn.rollback()
-            self.dlg.setEnabled(True)
-            return
-
-        if entitat == llistaEntitats[0] or entitat == None:
-            print("No s'ha seleccionat cap entitat amb la que treballar")
-            QMessageBox.warning(None, "Error", "No s'ha seleccionat cap entitat amb la que treballar")
-            conn.rollback()
-            self.dlg.setEnabled(True)
-            return
-        if (not self.dlg.checkNumHabit.isChecked() and not self.dlg.checkm2.isChecked() and not self.dlg.checkMitjana.isChecked() and not self.dlg.checkModa.isChecked() and not self.dlg.checkMediana.isChecked()) and (not self.dlg.checkNumHabit_2.isChecked() and not self.dlg.checkm2_2.isChecked() and not self.dlg.checkMitjana_2.isChecked() and not self.dlg.checkModa_2.isChecked() and not self.dlg.checkMediana_2.isChecked()):
-            print ("No s'ha seleccionat cap càlcul que realitzar")
-            QMessageBox.warning(None, "Error", "No s'ha seleccionat cap càlcul que realitzar")
-            conn.rollback()
-            self.dlg.setEnabled(True)
-            return
-        if (not self.dlg.consumButton.isChecked() and not self.dlg.emissionsButton.isChecked()) and (not self.dlg.consumElectricButton.isChecked() and not self.dlg.consumGasButton.isChecked()):
-            print ("No s'ha seleccionat ni consum ni emissions")
-            QMessageBox.warning(None, "Error", "No s'ha seleccionat ni consum ni emissions")
-            conn.rollback()
-            self.dlg.setEnabled(True)
-            return
         
         ''' Aquesta comprovació serveix per a assegurar-se que s'utilitza la taula correcta segons consum d'energia primaria no renovable i emissions de co2,
             consum elèctric o consum de gas, que són tres taules diferents encara que originalment sempre s'utilitzés la primera (cert_efi_energ_edif_mataro_geom)
@@ -2218,6 +2324,7 @@ class EficEnerg:
         self.dlg.setEnabled(False)
         self.dlg.groupBD.setEnabled(False)
         self.dlg.groupChecks.setEnabled(False)
+        self.dlg.groupChecks_2.setEnabled(False)
         self.dlg.groupEntitats.setEnabled(False)
         textBox = f"INICIANT EL PROCÉS...\n"
         textBox += f"----------------------------\n"
@@ -2232,6 +2339,8 @@ class EficEnerg:
             self.calculQualificacio()
         self.calculIdEntitat()
         self.castConsumEmissions()
+        if self.dlg.consumElectricButton.isChecked():
+            self.desagregarConsumsElectrics()
         if self.dlg.checkm2.isChecked() or self.dlg.checkm2_2.isChecked():
             self.castm2()
         self.joinEntitatHabitatges()
@@ -2710,10 +2819,10 @@ class EficEnerg:
         textBox += f"\nPROCÉS FINALITZAT en {tempsFinal} segons.\n"
         self.dlg.textEstat.setText(textBox)
         self.scroll_text()
-        self.dropFinalTables()
         self.dlg.setEnabled(True)
         self.dlg.groupBD.setEnabled(True)
         self.dlg.groupChecks.setEnabled(True)
+        self.dlg.groupChecks_2.setEnabled(True)
         self.dlg.groupEntitats.setEnabled(True)
         self.updateProgress(100)
         self.estatFinalitzat()

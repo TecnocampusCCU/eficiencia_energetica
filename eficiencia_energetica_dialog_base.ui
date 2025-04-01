@@ -6,19 +6,19 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>660</width>
+    <width>690</width>
     <height>580</height>
    </rect>
   </property>
   <property name="minimumSize">
    <size>
-    <width>660</width>
+    <width>690</width>
     <height>580</height>
    </size>
   </property>
   <property name="maximumSize">
    <size>
-    <width>660</width>
+    <width>690</width>
     <height>580</height>
    </size>
   </property>
@@ -163,7 +163,7 @@
   <widget class="QPushButton" name="pushInici">
    <property name="geometry">
     <rect>
-     <x>380</x>
+     <x>410</x>
      <y>500</y>
      <width>81</width>
      <height>31</height>
@@ -628,7 +628,7 @@
   <widget class="QPushButton" name="pushSortir">
    <property name="geometry">
     <rect>
-     <x>520</x>
+     <x>550</x>
      <y>500</y>
      <width>81</width>
      <height>31</height>
@@ -1103,7 +1103,7 @@
   <widget class="QLabel" name="labelAvis">
    <property name="geometry">
     <rect>
-     <x>340</x>
+     <x>370</x>
      <y>540</y>
      <width>281</width>
      <height>31</height>
@@ -1155,9 +1155,9 @@
   <widget class="QTabWidget" name="tabPersonalitzacio">
    <property name="geometry">
     <rect>
-     <x>320</x>
+     <x>310</x>
      <y>320</y>
-     <width>331</width>
+     <width>371</width>
      <height>161</height>
     </rect>
    </property>
@@ -1416,7 +1416,7 @@
     <rect>
      <x>310</x>
      <y>10</y>
-     <width>341</width>
+     <width>371</width>
      <height>301</height>
     </rect>
    </property>
@@ -1432,7 +1432,7 @@
       <rect>
        <x>10</x>
        <y>10</y>
-       <width>321</width>
+       <width>351</width>
        <height>261</height>
       </rect>
      </property>
@@ -1463,7 +1463,7 @@
        <rect>
         <x>10</x>
         <y>20</y>
-        <width>131</width>
+        <width>161</width>
         <height>80</height>
        </rect>
       </property>
@@ -1506,7 +1506,7 @@
      <widget class="QGroupBox" name="groupBox_2">
       <property name="geometry">
        <rect>
-        <x>139</x>
+        <x>169</x>
         <y>19</y>
         <width>171</width>
         <height>81</height>
@@ -1553,7 +1553,7 @@
        <rect>
         <x>10</x>
         <y>110</y>
-        <width>301</width>
+        <width>331</width>
         <height>111</height>
        </rect>
       </property>
@@ -1614,7 +1614,7 @@
       <rect>
        <x>10</x>
        <y>10</y>
-       <width>321</width>
+       <width>351</width>
        <height>261</height>
       </rect>
      </property>
@@ -1690,7 +1690,7 @@
        <rect>
         <x>139</x>
         <y>19</y>
-        <width>171</width>
+        <width>201</width>
         <height>81</height>
        </rect>
       </property>
@@ -1701,7 +1701,7 @@
        <property name="geometry">
         <rect>
          <x>10</x>
-         <y>2</y>
+         <y>10</y>
          <width>141</width>
          <height>17</height>
         </rect>
@@ -1720,7 +1720,7 @@
        <property name="geometry">
         <rect>
          <x>10</x>
-         <y>22</y>
+         <y>30</y>
          <width>141</width>
          <height>17</height>
         </rect>
@@ -1734,7 +1734,7 @@
         <rect>
          <x>10</x>
          <y>40</y>
-         <width>101</width>
+         <width>121</width>
          <height>41</height>
         </rect>
        </property>
@@ -1748,7 +1748,7 @@
       <widget class="QLineEdit" name="poderCalorLine">
        <property name="geometry">
         <rect>
-         <x>100</x>
+         <x>140</x>
          <y>50</y>
          <width>51</width>
          <height>22</height>
@@ -1764,7 +1764,7 @@
        <rect>
         <x>10</x>
         <y>110</y>
-        <width>301</width>
+        <width>331</width>
         <height>111</height>
        </rect>
       </property>
@@ -1817,7 +1817,7 @@
      <widget class="QComboBox" name="comboAny">
       <property name="geometry">
        <rect>
-        <x>240</x>
+        <x>266</x>
         <y>230</y>
         <width>69</width>
         <height>22</height>
@@ -1827,7 +1827,7 @@
      <widget class="QLabel" name="lblAny">
       <property name="geometry">
        <rect>
-        <x>214</x>
+        <x>240</x>
         <y>230</y>
         <width>21</width>
         <height>20</height>
