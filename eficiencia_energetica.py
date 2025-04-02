@@ -63,7 +63,7 @@ from .eficiencia_energetica_dialog import EficEnergDialog
 from .resources import *
 
 '''Variables globals'''
-Versio_modul = "V_Q3.250401"
+Versio_modul = "V_Q3.250402"
 nomBD1 = ""
 password1 = ""
 host1 = ""
@@ -806,6 +806,8 @@ class EficEnerg:
     def on_change_consum(self):
         global consum
         global emissions
+        global consumElectric
+        global consumGas
 
         if self.dlg.consumButton.isChecked():
             consum = True
@@ -821,10 +823,14 @@ class EficEnerg:
         self.dlg.checkMitjana_2.setChecked(False)
         self.dlg.checkModa_2.setChecked(False)
         self.dlg.checkMediana_2.setChecked(False)
+        consumElectric = False
+        consumGas = False
 
     def on_change_emissions(self):
         global consum
         global emissions
+        global consumElectric
+        global consumGas
 
         if self.dlg.emissionsButton.isChecked():
             emissions = True
@@ -840,10 +846,15 @@ class EficEnerg:
         self.dlg.checkMitjana_2.setChecked(False)
         self.dlg.checkModa_2.setChecked(False)
         self.dlg.checkMediana_2.setChecked(False)
+        consumElectric = False
+        consumGas = False
 
     def on_change_consumElectric(self):
         global consumElectric
         global consumGas
+        global consum
+        global emissions
+
         if self.dlg.consumElectricButton.isChecked():
             consumElectric = True
             consumGas = False
@@ -864,11 +875,16 @@ class EficEnerg:
         self.dlg.checkMitjana.setChecked(False)
         self.dlg.checkModa.setChecked(False)
         self.dlg.checkMediana.setChecked(False)
+        consum = False
+        emissions = False
 
 
     def on_change_consumGas(self):
         global consumElectric
         global consumGas
+        global consum
+        global emissions
+
         if self.dlg.consumGasButton.isChecked():
             consumGas = True
             consumElectric = False
@@ -888,6 +904,8 @@ class EficEnerg:
         self.dlg.checkMitjana.setChecked(False)
         self.dlg.checkModa.setChecked(False)
         self.dlg.checkMediana.setChecked(False)
+        consum = False
+        emissions = False
 
     def desagregarConsumsElectrics(self):
         global habitatgesLayer
