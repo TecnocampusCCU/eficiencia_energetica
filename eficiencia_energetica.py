@@ -63,7 +63,7 @@ from .eficiencia_energetica_dialog import EficEnergDialog
 from .resources import *
 
 '''Variables globals'''
-Versio_modul = "V_Q3.250402"
+Versio_modul = "V_Q3.250407"
 nomBD1 = ""
 password1 = ""
 host1 = ""
@@ -2357,8 +2357,8 @@ class EficEnerg:
             self.calculQualificacio()
         self.calculIdEntitat()
         self.castConsumEmissions()
-        if self.dlg.consumElectricButton.isChecked():
-            self.desagregarConsumsElectrics()
+        #if self.dlg.consumElectricButton.isChecked():
+        #    self.desagregarConsumsElectrics()
         if self.dlg.checkm2.isChecked() or self.dlg.checkm2_2.isChecked():
             self.castm2()
         self.joinEntitatHabitatges()
