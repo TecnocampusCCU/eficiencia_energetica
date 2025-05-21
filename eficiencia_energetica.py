@@ -949,27 +949,6 @@ class EficEnerg:
             self.dlg.comboAny2.setVisible(True)
             self.dlg.lblAny.setVisible(False)
             self.dlg.comboAny.setVisible(False)
-
-            # Actualizar los comboboxes con los años disponibles
-            if self.dlg.consumElectricButton.isChecked():
-                self.dlg.comboAny1.clear()
-                self.dlg.comboAny2.clear()
-                self.dlg.comboAny1.addItems(llistaAnysElectric)
-                self.dlg.comboAny2.addItems(llistaAnysElectric)
-            elif self.dlg.consumGasButton.isChecked():
-                self.dlg.comboAny1.clear()
-                self.dlg.comboAny2.clear()
-                self.dlg.comboAny1.addItems(llistaAnysGas)
-                self.dlg.comboAny2.addItems(llistaAnysGas)
-            elif self.dlg.consumSumaButton.isChecked():
-                self.dlg.comboAny1.clear()
-                self.dlg.comboAny2.clear()
-                setElectric = set(llistaAnysElectric)
-                setGas = set(llistaAnysGas)
-                llistaAnysSuma = list(setElectric.intersection(setGas))
-                llistaAnysSuma.sort()
-                self.dlg.comboAny1.addItems(llistaAnysSuma)
-                self.dlg.comboAny2.addItems(llistaAnysSuma)
         else:
             self.dlg.labelAnysComp.setVisible(False)
             self.dlg.labelAnysVs.setVisible(False)
@@ -1561,21 +1540,22 @@ class EficEnerg:
             alg_params['JOIN_FIELDS'] = ['id','referencia cadastral','qualificacio emissions de co2','emissions de co2','emissions','m2']
         
         if (consumElectric or consumGas or self.dlg.consumSumaButton.isChecked()) and not self.dlg.checkm2_2.isChecked():
-            if self.dlg.checkComparativa.isChecked():
-                any1 = self.dlg.comboAny1.currentText()
-                any2 = self.dlg.comboAny2.currentText()
-                alg_params['JOIN_FIELDS'] = ['id', f'CONSUMO_{any1}', f'CONSUMO_{any2}', 'cadastral_reference', 'qualificacio', 'consum']
-            else:
-                alg_params['JOIN_FIELDS'] = ['id', f'CONSUMO_{any}', 'cadastral_reference', 'qualificacio', 'consum']
+            alg_params['JOIN_FIELDS'] = ['id',f'CONSUMO_{any}','cadastral_reference','qualificacio','consum']
         if (consumElectric or consumGas or self.dlg.consumSumaButton.isChecked()) and self.dlg.checkm2_2.isChecked():
-            if self.dlg.checkComparativa.isChecked():
-                any1 = self.dlg.comboAny1.currentText()
-                any2 = self.dlg.comboAny2.currentText()
-                alg_params['JOIN_FIELDS'] = ['id', f'CONSUMO_{any1}', f'CONSUMO_{any2}', 'cadastral_reference', 'qualificacio', 'consum', 'm2']
-            else:
-                alg_params['JOIN_FIELDS'] = ['id', f'CONSUMO_{any}', 'cadastral_reference', 'qualificacio', 'consum', 'm2']
-        
-        joinEntitatHabitatges = processing.run('native:joinattributesbylocation', alg_params)['OUTPUT']
+            alg_params['JOIN_FIELDS'] = ['id',f'CONSUMO_{any}','cadastral_reference','qualificacio','consum','m2']
+
+        try:
+            result = processing.run('native:joinattributesbylocation', alg_params)
+            joinEntitatHabitatges = result['OUTPUT']
+            QApplication.processEvents()
+        except Exception as ex:
+            print ("Error al fer join entre entitat i habitatges")
+            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            message = template.format(type(ex).__name__, ex.args)
+            print (message)
+            QMessageBox.critical(None, "Error", "Error al fer join entre entitat i habitatges")
+            self.dlg.setEnabled(True)
+            return
     
     def calculNumHabit(self):
         global results
@@ -1785,71 +1765,49 @@ class EficEnerg:
         outputs = {}
 
         try:
-            if (self.dlg.checkNumHabit.isChecked() and not self.dlg.checkm2.isChecked()) or (self.dlg.checkNumHabit_2.isChecked() and not self.dlg.checkm2_2.isChecked()):
+            if (self.dlg.checkNumHabit.isChecked() and not self.dlg.checkm2.isChecked()) or (self.dlg.checkNumHabit_2.isChecked() and not self.dlg.checkm2.isChecked()):
                 ''' indexMITJANAhab '''
                 alg_params = {
-                    'CATEGORIES_FIELD_NAME': None,
+                    'CATEGORIES_FIELD_NAME':    ['idEntitat'],
                     'INPUT': joinEntitatHabitatges,
-                    'VALUES_FIELD_NAME': None,
+                    'VALUES_FIELD_NAME':        None,
                     'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
                 }
                 if consum:
-                    alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat', 'qualificació de consum energia primaria no renovable']
                     alg_params['VALUES_FIELD_NAME'] = 'consum'
                 if emissions:
-                    alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat', 'qualificacio emissions de co2']
                     alg_params['VALUES_FIELD_NAME'] = 'emissions'
                 if consumElectric or consumGas or self.dlg.consumSumaButton.isChecked():
-                    if self.dlg.checkComparativa.isChecked():
-                        any1 = self.dlg.comboAny1.currentText()
-                        any2 = self.dlg.comboAny2.currentText()
-                        alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat', 'qualificacio']
-                        alg_params['VALUES_FIELD_NAME'] = f'CONSUMO_{any1} - CONSUMO_{any2}'
-                    else:
-                        alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat', 'qualificacio']
-                        alg_params['VALUES_FIELD_NAME'] = 'consum'
+                    alg_params['VALUES_FIELD_NAME'] = 'consum'
                 outputs['Indexmitjana'] = processing.run('qgis:statisticsbycategories', alg_params)
 
-                ''' Aggregate Mitjana '''
-                alg_params = {
-                    'AGGREGATES': None,
-                    'GROUP_BY': 'idEntitat',
-                    'INPUT': outputs['Indexmitjana']['OUTPUT'],
-                    'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-                }
-                if consum:
-                    alg_params['AGGREGATES'] = [{'aggregate': 'mean', 'delimiter': ',', 'input': 'consum', 'length': 0, 'name': 'indexMITJANA', 'precision': 0, 'type': 6}]
-                if emissions:
-                    alg_params['AGGREGATES'] = [{'aggregate': 'mean', 'delimiter': ',', 'input': 'emissions', 'length': 0, 'name': 'indexMITJANA', 'precision': 0, 'type': 6}]
-                if consumElectric or consumGas or self.dlg.consumSumaButton.isChecked():
-                    if self.dlg.checkComparativa.isChecked():
-                        alg_params['AGGREGATES'] = [{'aggregate': 'mean', 'delimiter': ',', 'input': f'CONSUMO_{any1} - CONSUMO_{any2}', 'length': 0, 'name': 'indexMITJANA', 'precision': 0, 'type': 6}]
-                    else:
-                        alg_params['AGGREGATES'] = [{'aggregate': 'mean', 'delimiter': ',', 'input': 'consum', 'length': 0, 'name': 'indexMITJANA', 'precision': 0, 'type': 6}]
-                outputs['Aggregate'] = processing.run('native:aggregate', alg_params)
-
-                ''' Join mitjana '''
+                ''' Join Entitat - Mitjana '''
                 alg_params = {
                     'DISCARD_NONMATCHING': False,
+                    'FIELD': 'idEntitat',
+                    'FIELDS_TO_COPY': [''],
+                    'FIELD_2': 'idEntitat',
                     'INPUT': entitatLayer,
-                    'JOIN': outputs['Aggregate']['OUTPUT'],
-                    'JOIN_FIELDS': ['indexMITJANA'],
-                    'METHOD': 0,
-                    'PREDICATE': [0],
+                    'INPUT_2': outputs['Indexmitjana']['OUTPUT'],
+                    'METHOD': 1,
                     'PREFIX': '',
                     'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
                 }
-                outputs['Joinmitjana'] = processing.run('native:joinattributesbylocation', alg_params)
-                entitatLayerResumMitjana = outputs['Joinmitjana']['OUTPUT']
+                outputs['JoinFinal'] = processing.run('native:joinattributestable', alg_params)
 
-            if self.dlg.checkm2.isChecked() or self.dlg.checkm2_2.isChecked():
-                '''
-                - 1. castConsum / castEmissions fet abans
-                - 2. cast m2 fet abans
-                - 3. joinEntitat habitatges fet abans
-                '''
+                ''' Clean Mitjana '''
+                alg_params = {
+                    'AGGREGATES': [{'aggregate': 'first_value', 'delimiter': ',', 'input': '\"idEntitat\"', 'length': 0, 'name': 'idEntitat', 'precision': 0, 'type': 10},
+                                   {'aggregate': 'first_value', 'delimiter': ',', 'input': '\"mean\"', 'length': 0, 'name': 'indexMITJANA', 'precision': 0, 'type': 6}],
+                    'GROUP_BY': 'idEntitat',
+                    'INPUT': outputs['JoinFinal']['OUTPUT'],
+                    'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+                }
+                entitatLayerResumMitjana = processing.run('qgis:aggregate', alg_params)['OUTPUT']
+                entitatLayerResumMitjana.setName('Mitjana')
 
-                ''' 4. Producte consum / emissions '''
+            if self.dlg.checkm2.isChecked() or self.dlg.checkm2_2.isChecked():            
+                ''' Producte consum / emissions '''
                 alg_params = {
                     'FIELD_LENGTH': 0,
                     'FIELD_NAME': 'producte',
@@ -1864,10 +1822,10 @@ class EficEnerg:
                 if emissions:
                     alg_params['FORMULA'] = '\"emissions\" * \"m2\"'
                 if consumElectric or consumGas or self.dlg.consumSumaButton.isChecked():
-                    alg_params['FORMULA'] = f'(\"CONSUMO_{any1}\" - \"CONSUMO_{any2}\") * \"m2\"'
+                    alg_params['FORMULA'] = '\"consum\" * \"m2\"'
                 outputs['Producte'] = processing.run('qgis:fieldcalculator', alg_params)
 
-                ''' 5. Estadistiquesm2 '''
+                ''' sum producte '''
                 alg_params = {
                     'CATEGORIES_FIELD_NAME':    None,
                     'INPUT': outputs['Producte']['OUTPUT'],
@@ -1875,64 +1833,165 @@ class EficEnerg:
                     'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
                 }
                 if consum:
-                    alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat','qualificació de consum energia primaria no renovable']
+                    alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat', 'qualificació de consum energia primaria no renovable']
                 if emissions:
-                    alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat','qualificacio emissions de co2']
+                    alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat', 'qualificacio emissions de co2']
                 if consumElectric or consumGas or self.dlg.consumSumaButton.isChecked():
-                    alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat','qualificacio']
-                outputs['Estadistiquesm2'] = processing.run('qgis:statisticsbycategories', alg_params)
-
-                ''' 6. Join estadistiquesm2 '''
+                    alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat', 'qualificacio']
+                outputs['SumProducte'] = processing.run('qgis:statisticsbycategories', alg_params)
+                
+                ''' sum m2 '''
                 alg_params = {
-                    'DISCARD_NONMATCHING': False,
-                    'INPUT': outputs['Producte']['OUTPUT'],
-                    'JOIN': outputs['Estadistiquesm2']['OUTPUT'],
-                    'JOIN_FIELDS': ['sum'],
-                    'METHOD': 0,
-                    'PREDICATE': [0],
-                    'PREFIX': '',
-                    'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-                }
-                outputs['Joinestadistiquesm2'] = processing.run('native:joinattributesbylocation', alg_params)
-
-                ''' 7. Divisió '''
-                alg_params = {
-                    'FIELD_LENGTH': 0,
-                    'FIELD_NAME': 'indexMITJANA',
-                    'FIELD_PRECISION': 0,
-                    'FIELD_TYPE': 0,
-                    'FORMULA': None,
-                    'INPUT': outputs['Joinestadistiquesm2']['OUTPUT'],
+                    'CATEGORIES_FIELD_NAME':    None,
+                    'INPUT': joinEntitatHabitatges,
+                    'VALUES_FIELD_NAME':        'm2',
                     'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
                 }
                 if consum:
-                    alg_params['FORMULA'] = '\"producte\" / \"sum\"'
+                    alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat', 'qualificació de consum energia primaria no renovable']
                 if emissions:
-                    alg_params['FORMULA'] = '\"producte\" / \"sum\"'
+                    alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat', 'qualificacio emissions de co2']
                 if consumElectric or consumGas or self.dlg.consumSumaButton.isChecked():
-                    alg_params['FORMULA'] = '\"producte\" / \"sum\"'
-                outputs['Divisio'] = processing.run('qgis:fieldcalculator', alg_params)
+                    alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat', 'qualificacio']
+                outputs['SumM2'] = processing.run('qgis:statisticsbycategories', alg_params)
 
-                ''' 8. Join mitjana '''
+                ''' Clean sum producte '''
+                alg_params = {
+                    'COLUMN': ['unique','min','max','range','mean','median','stddev','minority','majority','q1','q3','iqr'],
+                    'INPUT': outputs['SumProducte']['OUTPUT'],
+                    'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+                }
+                outputs['cleanproducte'] = processing.run('qgis:deletecolumn', alg_params)
+
+                ''' Clean m2 '''
+                alg_params = {
+                    'COLUMN': ['unique','min','max','range','mean','median','stddev','minority','majority','q1','q3','iqr'],
+                    'INPUT': outputs['SumM2']['OUTPUT'],
+                    'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+                }
+                outputs['cleanm2'] = processing.run('qgis:deletecolumn', alg_params)
+
+                ''' rename producte '''
+                alg_params = {
+                    'FIELD': 'sum',
+                    'INPUT': outputs['cleanproducte']['OUTPUT'],
+                    'NEW_NAME': 'sum_producte',
+                    'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+                }
+                outputs['renameproducte'] = processing.run('native:renametablefield', alg_params)
+
+                ''' rename m2 '''
+                alg_params = {
+                    'FIELD': 'sum',
+                    'INPUT': outputs['cleanm2']['OUTPUT'],
+                    'NEW_NAME': 'sum_m2',
+                    'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+                }
+                outputs['renamem2'] = processing.run('native:renametablefield', alg_params)
+
+                ''' id_qual per producte '''
+                alg_params = {
+                    'FIELD_LENGTH': 0,
+                    'FIELD_NAME': 'id_qual',
+                    'FIELD_PRECISION': 0,
+                    'FIELD_TYPE': 2,
+                    'FORMULA': None,
+                    'INPUT': outputs['renameproducte']['OUTPUT'],
+                    'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+                }
+                if consum:
+                    alg_params['FORMULA'] = 'concat(to_string(\"idEntitat\") , \'-\', \"qualificació de consum energia primaria no renovable\")'
+                if emissions:
+                    alg_params['FORMULA'] = 'concat(to_string(\"idEntitat\") , \'-\', \"qualificacio emissions de co2\")'
+                if consumElectric or consumGas or self.dlg.consumSumaButton.isChecked():
+                    alg_params['FORMULA'] = 'concat(to_string(\"idEntitat\") , \'-\', \"qualificacio\")'
+                outputs['producte_fin'] = processing.run('qgis:fieldcalculator', alg_params)
+
+                ''' seccio_qual per m2 '''
+                alg_params = {
+                    'FIELD_LENGTH': 0,
+                    'FIELD_NAME': 'id_qual',
+                    'FIELD_PRECISION': 0,
+                    'FIELD_TYPE': 2,
+                    'FORMULA': None,
+                    'INPUT': outputs['renamem2']['OUTPUT'],
+                    'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+                }
+                if consum:
+                    alg_params['FORMULA'] = 'concat(to_string(\"idEntitat\") , \'-\', \"qualificació de consum energia primaria no renovable\")'
+                if emissions:
+                    alg_params['FORMULA'] = 'concat(to_string(\"idEntitat\") , \'-\', \"qualificacio emissions de co2\")'
+                if consumElectric or consumGas or self.dlg.consumSumaButton.isChecked():
+                    alg_params['FORMULA'] = 'concat(to_string(\"idEntitat\") , \'-\', \"qualificacio\")'
+                outputs['m2_fin'] = processing.run('qgis:fieldcalculator', alg_params)
+
+                ''' Join 2 Aggregate '''
                 alg_params = {
                     'DISCARD_NONMATCHING': False,
-                    'INPUT': entitatLayer,
-                    'JOIN': outputs['Divisio']['OUTPUT'],
-                    'JOIN_FIELDS': ['indexMITJANA'],
-                    'METHOD': 0,
-                    'PREDICATE': [0],
+                    'FIELD': 'id_qual',
+                    'FIELDS_TO_COPY': ['sum_m2'],
+                    'FIELD_2': 'id_qual',
+                    'INPUT': outputs['producte_fin']['OUTPUT'],
+                    'INPUT_2': outputs['m2_fin']['OUTPUT'],
+                    'METHOD': 1,
                     'PREFIX': '',
                     'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
                 }
-                outputs['Joinmitjana'] = processing.run('native:joinattributesbylocation', alg_params)
-                entitatLayerResumMitjana = outputs['Joinmitjana']['OUTPUT']
+                outputs['Join2Aggregate'] = processing.run('native:joinattributestable', alg_params)
 
+                ''' Sum de Sum Producte i Sum de Sum m2 '''
+                alg_params = {
+                    'AGGREGATES' : [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
+                                    {'aggregate': 'sum','delimiter': ',','input': '\"sum_producte\"','length': 0,'name': 'sum_producte','precision': 0,'type': 6},
+                                    {'aggregate': 'sum','delimiter': ',','input': '\"sum_m2\"','length': 0,'name': 'sum_m2','precision': 0,'type': 6}],
+                    'GROUP_BY' : '\"idEntitat\"', 
+                    'INPUT' : outputs['Join2Aggregate']['OUTPUT'], 
+                    'OUTPUT' : QgsProcessing.TEMPORARY_OUTPUT
+                }
+                outputs['SumDeSums'] = processing.run('qgis:aggregate', alg_params)
+
+                ''' Mitjana '''
+
+                alg_params = {
+                    'AGGREGATES' : [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
+                                    {'aggregate': 'first_value','delimiter': ',','input': '\"sum_producte\"/\"sum_m2\"','length': 0,'name': 'mitjana','precision': 0,'type': 6}],
+                    'GROUP_BY' : '\"idEntitat\"', 
+                    'INPUT' : outputs['SumDeSums']['OUTPUT'], 
+                    'OUTPUT' : QgsProcessing.TEMPORARY_OUTPUT
+                }
+                outputs['Mitjana'] = processing.run('qgis:aggregate', alg_params)
+
+                ''' Join Final '''
+                alg_params = {
+                    'DISCARD_NONMATCHING': False,
+                    'FIELD': 'idEntitat',
+                    'FIELDS_TO_COPY': [''],
+                    'FIELD_2': 'idEntitat',
+                    'INPUT': entitatLayer,
+                    'INPUT_2': outputs['Mitjana']['OUTPUT'],
+                    'METHOD': 1,
+                    'PREFIX': '',
+                    'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+                }
+                outputs['JoinFinal'] = processing.run('native:joinattributestable', alg_params)
+
+                ''' Aggregate Final Clean '''
+                alg_params = {
+                    'AGGREGATES': [{'aggregate': 'first_value', 'delimiter': ',', 'input': '\"idEntitat\"', 'length': 0, 'name': 'idEntitat', 'precision': 0, 'type': 2},
+                                   {'aggregate': 'first_value', 'delimiter': ',', 'input': '\"mitjana\"', 'length': 0, 'name': 'indexMITJANA', 'precision': 0, 'type': 6}],
+                    'GROUP_BY': 'idEntitat',
+                    'INPUT': outputs['JoinFinal']['OUTPUT'],
+                    'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+                }
+                entitatLayerResumMitjana = processing.run('qgis:aggregate', alg_params)['OUTPUT']
+                entitatLayerResumMitjana.setName('Mitjana')
+            QApplication.processEvents()
         except Exception as ex:
-            print ("Error al calcular la mitjana")
+            print ("Error al calcular mitjana de " + nomEntitat)
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             message = template.format(type(ex).__name__, ex.args)
             print (message)
-            QMessageBox.critical(None, "Error", "Error al calcular la mitjana")
+            QMessageBox.critical(None, "Error", "Error al calcular mitjana de " + nomEntitat)
             self.dlg.setEnabled(True)
             return
 
@@ -1952,7 +2011,7 @@ class EficEnerg:
                     'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
                 }
                 if consum:
-                    alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat','qualificació de consum energia primaria no renovable']
+                    alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat', 'qualificació de consum energia primaria no renovable']
                     alg_params['VALUES_FIELD_NAME'] = 'consum'
                 if emissions:
                     alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat', 'qualificacio emissions de co2']
@@ -2015,7 +2074,7 @@ class EficEnerg:
                 '''
                 - 1. castConsum / castEmissions fet abans
                 - 2. cast m2 fet abans
-                - 3. joinEntitat habitatges fet abans
+                - 3. joinEntitatHabitatges fet abans
                 '''
 
                 ''' 4. Producte consum / emissions '''
@@ -2036,11 +2095,13 @@ class EficEnerg:
                     alg_params['FORMULA'] = '\"consum\" * \"m2\"'
                 outputs['Producte'] = processing.run('qgis:fieldcalculator', alg_params)
 
-                ''' 5. Estadistiquesm2 '''
+                ''' 5. Estadistiquesm2 sembla no ser necessari per la moda '''
+
+                ''' 5. Fare estadistiques per si de cas '''
                 alg_params = {
-                    'CATEGORIES_FIELD_NAME': None,
+                    'CATEGORIES_FIELD_NAME':    None,
                     'INPUT': joinEntitatHabitatges,
-                    'VALUES_FIELD_NAME': 'm2',
+                    'VALUES_FIELD_NAME':        'm2',
                     'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
                 }
                 if consum:
@@ -2051,57 +2112,229 @@ class EficEnerg:
                     alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat','qualificacio']
                 outputs['Estadistiquesm2'] = processing.run('qgis:statisticsbycategories', alg_params)
 
-                ''' 6. Join estadistiquesm2 '''
+                ''' 6. sum producte '''
                 alg_params = {
-                    'DISCARD_NONMATCHING': False,
+                    'CATEGORIES_FIELD_NAME':    None,
                     'INPUT': outputs['Producte']['OUTPUT'],
-                    'JOIN': outputs['Estadistiquesm2']['OUTPUT'],
-                    'JOIN_FIELDS': ['sum'],
-                    'METHOD': 0,
-                    'PREDICATE': [0],
-                    'PREFIX': '',
-                    'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-                }
-                outputs['Joinestadistiquesm2'] = processing.run('native:joinattributesbylocation', alg_params)
-
-                ''' 7. Divisió '''
-                alg_params = {
-                    'FIELD_LENGTH': 0,
-                    'FIELD_NAME': 'indexMITJANA',
-                    'FIELD_PRECISION': 0,
-                    'FIELD_TYPE': 0,
-                    'FORMULA': None,
-                    'INPUT': outputs['Joinestadistiquesm2']['OUTPUT'],
+                    'VALUES_FIELD_NAME':        'producte',
                     'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
                 }
                 if consum:
-                    alg_params['FORMULA'] = '\"producte\" / \"sum\"'
+                    alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat', 'qualificació de consum energia primaria no renovable']
                 if emissions:
-                    alg_params['FORMULA'] = '\"producte\" / \"sum\"'
+                    alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat', 'qualificacio emissions de co2']
                 if consumElectric or consumGas or self.dlg.consumSumaButton.isChecked():
-                    alg_params['FORMULA'] = '\"producte\" / \"sum\"'
-                outputs['Divisio'] = processing.run('qgis:fieldcalculator', alg_params)
+                    alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat', 'qualificacio']
+                outputs['SumProducte'] = processing.run('qgis:statisticsbycategories', alg_params)
+                
+                ''' 7. sum m2 '''
+                alg_params = {
+                    'CATEGORIES_FIELD_NAME':    None,
+                    'INPUT': outputs['Producte']['OUTPUT'],
+                    'VALUES_FIELD_NAME':        'm2',
+                    'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+                }
+                if consum:
+                    alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat', 'qualificació de consum energia primaria no renovable']
+                if emissions:
+                    alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat', 'qualificacio emissions de co2']
+                if consumElectric or consumGas or self.dlg.consumSumaButton.isChecked():
+                    alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat', 'qualificacio']
+                outputs['SumM2'] = processing.run('qgis:statisticsbycategories', alg_params)
 
-                ''' 8. Join mitjana '''
+                ''' 8. Clean producte '''
+                alg_params = {
+                    'COLUMN': ['unique','min','max','range','mean','median','stddev','minority','majority','q1','q3','iqr'],
+                    'INPUT': outputs['SumProducte']['OUTPUT'],
+                    'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+                }
+                outputs['cleanproducte'] = processing.run('qgis:deletecolumn', alg_params)
+
+                ''' 9. Clean m2 '''
+                alg_params = {
+                    'COLUMN': ['unique','min','max','range','mean','median','stddev','minority','majority','q1','q3','iqr'],
+                    'INPUT': outputs['SumM2']['OUTPUT'],
+                    'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+                }
+                outputs['cleanm2'] = processing.run('qgis:deletecolumn', alg_params)
+
+                ''' 10. rename producte '''
+                alg_params = {
+                    'FIELD': 'sum',
+                    'INPUT': outputs['cleanproducte']['OUTPUT'],
+                    'NEW_NAME': 'sum_producte',
+                    'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+                }
+                outputs['renameproducte'] = processing.run('native:renametablefield', alg_params)
+
+                ''' 11. rename m2 '''
+                alg_params = {
+                    'FIELD': 'sum',
+                    'INPUT': outputs['cleanm2']['OUTPUT'],
+                    'NEW_NAME': 'sum_m2',
+                    'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+                }
+                outputs['renamem2'] = processing.run('native:renametablefield', alg_params)
+
+                ''' 12 i 13 calculen seccio_qual, pero aixo no fa falta tenint idEntitat '''
+                
+                ''' 12. seccio_qual per producte_con/emi '''
+                alg_params = {
+                    'FIELD_LENGTH': 0,
+                    'FIELD_NAME': 'id_qual',
+                    'FIELD_PRECISION': 0,
+                    'FIELD_TYPE': 2,
+                    'FORMULA': None,
+                    'INPUT': outputs['renameproducte']['OUTPUT'],
+                    'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+                }
+                if consum:
+                    alg_params['FORMULA'] = 'concat(to_string(\"idEntitat\") , \'-\', \"qualificació de consum energia primaria no renovable\")'
+                if emissions:
+                    alg_params['FORMULA'] = 'concat(to_string(\"idEntitat\") , \'-\', \"qualificacio emissions de co2\")'
+                if consumElectric or consumGas or self.dlg.consumSumaButton.isChecked():
+                    alg_params['FORMULA'] = 'concat(to_string(\"idEntitat\") , \'-\', \"qualificacio\")'
+                outputs['producte_fin'] = processing.run('qgis:fieldcalculator', alg_params)
+
+                ''' 13. seccio_qual per m2 '''
+                alg_params = {
+                    'FIELD_LENGTH': 0,
+                    'FIELD_NAME': 'id_qual',
+                    'FIELD_PRECISION': 0,
+                    'FIELD_TYPE': 2,
+                    'FORMULA': None,
+                    'INPUT': outputs['renamem2']['OUTPUT'],
+                    'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+                }
+                if consum:
+                    alg_params['FORMULA'] = 'concat(to_string(\"idEntitat\") , \'-\', \"qualificació de consum energia primaria no renovable\")'
+                if emissions:
+                    alg_params['FORMULA'] = 'concat(to_string(\"idEntitat\") , \'-\', \"qualificacio emissions de co2\")'
+                if consumElectric or consumGas or self.dlg.consumSumaButton.isChecked():
+                    alg_params['FORMULA'] = 'concat(to_string(\"idEntitat\") , \'-\', \"qualificacio\")'
+                outputs['m2_fin'] = processing.run('qgis:fieldcalculator', alg_params)
+
+                ''' 14. Join 2 Aggregate '''
                 alg_params = {
                     'DISCARD_NONMATCHING': False,
-                    'INPUT': entitatLayer,
-                    'JOIN': outputs['Divisio']['OUTPUT'],
-                    'JOIN_FIELDS': ['indexMITJANA'],
+                    'FIELD': 'id_qual',
+                    'FIELDS_TO_COPY': ['sum_m2'],
+                    'FIELD_2': 'id_qual',
+                    'INPUT': outputs['producte_fin']['OUTPUT'],
+                    'INPUT_2': outputs['m2_fin']['OUTPUT'],
                     'METHOD': 0,
-                    'PREDICATE': [0],
                     'PREFIX': '',
                     'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
                 }
-                outputs['Joinmitjana'] = processing.run('native:joinattributesbylocation', alg_params)
-                entitatLayerResumMitjana = outputs['Joinmitjana']['OUTPUT']
+                outputs['Join2Aggregate'] = processing.run('native:joinattributestable', alg_params)
 
+                ''' 15. Moda '''
+                alg_params = {
+                    'FIELD_LENGTH': 0,
+                    'FIELD_NAME': 'moda',
+                    'FIELD_PRECISION': 0,
+                    'FIELD_TYPE': 0,
+                    'FORMULA': '\"sum_producte\" / \"sum_m2\"',
+                    'INPUT': outputs['Join2Aggregate']['OUTPUT'],
+                    'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+                }
+                outputs['Moda'] = processing.run('qgis:fieldcalculator', alg_params)
+
+                ''' 16. Filtrat moda '''
+                alg_params = {
+                    'AGGREGATES': None,
+                    'GROUP_BY': '\"idEntitat\"',
+                    'INPUT': outputs['Moda']['OUTPUT'],
+                    'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+                }
+                if consum:
+                    alg_params['AGGREGATES'] = [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
+                                                {'aggregate': 'maximum','delimiter': ',','input': '\"count\"','length': 0,'name': 'MaxNum','precision': 0,'type': 2},
+                                                {'aggregate': 'concatenate','delimiter': '','input': 'if(\"sum_m2\"=maximum(\"sum_m2\",\"idEntitat\"),\"qualificació de consum energia primaria no renovable\",\'\')','length': 0,'name': 'QualifMaxFreq','precision': 0,'type': 10},
+                                                {'aggregate': 'sum','delimiter': ',','input': 'if(\"sum_m2\"=maximum(\"sum_m2\",\"idEntitat\"),\"moda\",0)','length': 0,'name': 'moda','precision': 0,'type': 6}]
+                if emissions:
+                    alg_params['AGGREGATES'] = [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
+                                                {'aggregate': 'maximum','delimiter': ',','input': '\"count\"','length': 0,'name': 'MaxNum','precision': 0,'type': 2},
+                                                {'aggregate': 'concatenate','delimiter': '','input': 'if(\"sum_m2\"=maximum(\"sum_m2\",\"idEntitat\"),\"qualificacio emissions de co2\",\'\')','length': 0,'name': 'QualifMaxFreq','precision': 0,'type': 10},
+                                                {'aggregate': 'sum','delimiter': ',','input': 'if(\"sum_m2\"=maximum(\"sum_m2\",\"idEntitat\"),\"moda\",0)','length': 0,'name': 'moda','precision': 0,'type': 6}]
+                if consumElectric or consumGas or self.dlg.consumSumaButton.isChecked():
+                    alg_params['AGGREGATES'] = [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
+                                                {'aggregate': 'maximum','delimiter': ',','input': '\"count\"','length': 0,'name': 'MaxNum','precision': 0,'type': 2},
+                                                {'aggregate': 'concatenate','delimiter': '','input': 'if(\"sum_m2\"=maximum(\"sum_m2\",\"idEntitat\"),\"qualificacio\",\'\')','length': 0,'name': 'QualifMaxFreq','precision': 0,'type': 10},
+                                                {'aggregate': 'sum','delimiter': ',','input': 'if(\"sum_m2\"=maximum(\"sum_m2\",\"idEntitat\"),\"moda\",0)','length': 0,'name': 'moda','precision': 0,'type': 6}]
+
+                outputs['Filtrarmoda'] = processing.run('qgis:aggregate', alg_params)
+
+                """
+                Agregat QGIS FUNCIONAL
+                Versión de QGIS: 3.16.16-Hannover
+                Revisión del código de QGIS: f5778a89df
+                Versión de Qt: 5.11.2
+                Versión de GDAL: 3.1.4
+                Versión de GEOS: 3.8.1-CAPI-1.13.3
+                Versión de PROJ: Rel. 6.3.2, May 1st, 2020
+                Procesando algoritmo...
+                Algoritmo 'Agregar' comenzando…
+                Parámetros de entrada:
+                { 'AGGREGATES' : [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},{'aggregate': 'maximum','delimiter': ',','input': '\"count\"','length': 0,'name': 'MaxNum','precision': 0,'type': 2},{'aggregate': 'concatenate','delimiter': '','input': 'if(\"count\"=maximum(\"count\",\"idEntitat\"),\"qualificacio emissions de co2\",\'\')','length': 0,'name': 'QualifMaxFreq','precision': 0,'type': 10},{'aggregate': 'sum','delimiter': ',','input': 'if(\"count\"=maximum(\"count\",\"idEntitat\"),\"moda\",0)','length': 0,'name': 'moda','precision': 0,'type': 6}], 'GROUP_BY' : '\"idEntitat\"', 'INPUT' : 'memory://NoGeometry?field=idEntitat:integer(0,0)&field=qualificacio%20emissions%20de%20co2:string(-1,0)&field=count:integer(0,0)&field=sum_producte:double(0,0)&field=id_qual:string(0,0)&field=sum_m2:double(0,0)&field=moda:double(0,0)&uid={9fdb8c9f-6564-4f0b-bf53-f946db7de232}', 'OUTPUT' : 'TEMPORARY_OUTPUT' }
+
+                Ejecución completada en 0.24 segundos
+                Resultados:
+                {'OUTPUT': 'Agregado_d0fdfd98_9a38_4f72_8e04_ba18837668c4'}
+
+                Cargando las capas resultantes
+                Algoritmo 'Agregar' finalizado
+                """
+
+
+                ''' 17. pre_mitjana no es necessari '''
+
+                ''' 18. Ordenar moda '''
+                alg_params = {
+                    'ASCENDING': True,
+                    'EXPRESSION': '\"idEntitat\"',
+                    'INPUT': outputs['Filtrarmoda']['OUTPUT'],
+                    'NULLS_FIRST': False,
+                    'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+                }
+                outputs['Ordenarmoda'] = processing.run('native:orderbyexpression', alg_params)
+
+                ''' 19. mitjanam2 no es necessari '''
+
+                ''' 20. Join de mitjana i moda no cal, 21. Join de ordenar_moda i aggregate de m2 NO HAURIA DE SER NECESSARI, aggregatem2 nomes servia per trobar m2A, m2B, m2C... '''
+
+                ''' 22. Join Final Moda '''
+                alg_params = {
+                    'DISCARD_NONMATCHING': False,
+                    'FIELD': 'idEntitat',
+                    'FIELDS_TO_COPY': [''],
+                    'FIELD_2': 'idEntitat',
+                    'INPUT': entitatLayer,
+                    'INPUT_2': outputs['Ordenarmoda']['OUTPUT'],
+                    'METHOD': 1,
+                    'PREFIX': '',
+                    'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+                }
+                outputs['JoinFinal'] = processing.run('native:joinattributestable', alg_params)
+
+                ''' 23. Aggregate Final Clean '''
+                alg_params = {
+                    'AGGREGATES': [{'aggregate': 'first_value', 'delimiter': ',', 'input': '\"idEntitat\"', 'length': 0, 'name': 'idEntitat', 'precision': 0, 'type': 2}, 
+                                   {'aggregate': 'first_value', 'delimiter': ',', 'input': '\"QualifMaxFreq\"', 'length': 0, 'name': 'QualifMaxFreq', 'precision': 0, 'type': 10},
+                                   {'aggregate': 'first_value', 'delimiter': ',', 'input': '\"moda\"', 'length': 0, 'name': 'indexMODA', 'precision': 0, 'type': 6}],
+                    'GROUP_BY': 'idEntitat',
+                    'INPUT': outputs['JoinFinal']['OUTPUT'],
+                    'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+                }
+                entitatLayerResumModa = processing.run('qgis:aggregate', alg_params)['OUTPUT']
+                entitatLayerResumModa.setName('Moda')
+            QApplication.processEvents()
         except Exception as ex:
-            print ("Error al calcular la moda")
+            print ("Error al calcular moda de " + nomEntitat)
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             message = template.format(type(ex).__name__, ex.args)
             print (message)
-            QMessageBox.critical(None, "Error", "Error al calcular la moda")
+            QMessageBox.critical(None, "Error", "Error al calcular moda de " + nomEntitat)
             self.dlg.setEnabled(True)
             return
 
@@ -2134,7 +2367,7 @@ class EficEnerg:
             outputs['joinEntitatHabitatges_nozero_nonull'] = processing.run('native:extractbyexpression', alg_params)
             alg_params = {
                 'CATEGORIES_FIELD_NAME': None,
-                'INPUT': outputs['joinEntitat habitatges_nozero_nonull']['OUTPUT'],
+                'INPUT': outputs['joinEntitatHabitatges_nozero_nonull']['OUTPUT'],
                 'VALUES_FIELD_NAME': None,
                 'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
             }
@@ -2190,11 +2423,11 @@ class EficEnerg:
             entitatLayerResumMediana.setName('Mediana')
             QApplication.processEvents()
         except Exception as ex:
-            print ("Error al calcular la mediana")
+            print ("Error al calcular mediana de " + nomEntitat)
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             message = template.format(type(ex).__name__, ex.args)
             print (message)
-            QMessageBox.critical(None, "Error", "Error al calcular la mediana")
+            QMessageBox.critical(None, "Error", "Error al calcular mediana de " + nomEntitat)
             self.dlg.setEnabled(True)
             return
         
@@ -2507,11 +2740,15 @@ class EficEnerg:
 
     def on_click_Inici(self):
         global cur
-        global any
-        global any1
-        global any2
-
-        global connexioFeta
+        global conn
+        global textBox
+        global nomBD1
+        global password1
+        global host1
+        global user1
+        global port1
+        global schema1
+        global uri
         global color
         global minimumValue
         global maximumValue
@@ -2519,6 +2756,8 @@ class EficEnerg:
         global personalitzat
         global any
 
+        global habitatges
+        global habitatgesLayer
         global entitat
         global entitatLayer
         global entitatLayerJoined
@@ -2541,7 +2780,7 @@ class EficEnerg:
         except:
             root = self.iface.layerTreeCanvasBridge().rootGroup()
 
-        if entitat is None or entitatLayer is None or any is None:
+        if entitat is None or entitatLayer is None or habitatges is None or habitatgesLayer is None or nomEntitat is None:
             self.on_change_comboEntitat()
 
         # Fer grup de capes amb totes capes resultats que es digui "Consum de ENTITAT" o "Emissions de ENTITAT"
@@ -2563,7 +2802,7 @@ class EficEnerg:
             self.dlg.setEnabled(True)
             return
 
-        if entitat == llistaEntitats[0] or entitat is None:
+        if entitat == llistaEntitats[0] or entitat == None:
             print("No s'ha seleccionat cap entitat amb la que treballar")
             QMessageBox.warning(None, "Error", "No s'ha seleccionat cap entitat amb la que treballar")
             conn.rollback()
@@ -2651,14 +2890,14 @@ class EficEnerg:
             consum elèctric o consum de gas, que són tres taules diferents encara que originalment sempre s'utilitzés la primera (cert_efi_energ_edif_mataro_geom)
             que és la que es s'ha deixat escrita a la definició de la variable global habitatges '''
         if self.dlg.tabCalculs.currentIndex() == 0:
-            if any != 'cert_efi_energ_edif_mataro_geom':
+            if habitatges != 'cert_efi_energ_edif_mataro_geom':
                 self.on_change_comboEntitat()
         if self.dlg.tabCalculs.currentIndex() == 1:
             if self.dlg.consumElectricButton.isChecked():
-                if any != "consums_mataro_llum":
+                if habitatges != "consums_mataro_llum":
                     self.on_change_comboEntitat()
             if self.dlg.consumGasButton.isChecked():
-                if any != "consums_mataro_gas":
+                if habitatges != "consums_mataro_gas":
                     self.on_change_comboEntitat()
 
         self.updateProgress(5)
@@ -2679,9 +2918,14 @@ class EficEnerg:
 
         if self.dlg.tabCalculs.currentIndex() == 1:
             self.calculSuperficieGasElectricitat()
+            #if self.dlg.consumSumaButton.isChecked():
+                #self.calculSumaConsums()
+                #print("Calcul de suma de consums")
             self.calculQualificacio()
         self.calculIdEntitat()
         self.castConsumEmissions()
+        #if self.dlg.consumElectricButton.isChecked():
+        #    self.desagregarConsumsElectrics()
         if self.dlg.checkm2.isChecked() or self.dlg.checkm2_2.isChecked():
             self.castm2()
         self.joinEntitatHabitatges()
@@ -2850,20 +3094,13 @@ class EficEnerg:
                 ELSE ''
             END
             """
-            if self.dlg.checkComparativa.isChecked():
-                labelMitjana.fieldName = """
-                CASE
-                    WHEN "indexMITJANA" IS NOT NULL THEN '<div><b><font color="black">' || format_number("indexMITJANA", 1) || '</font></b></div>'
-                    ELSE ''
-                END
-                """
-
             labelMitjana.isExpression = True
             labelMitjana.placement = QgsPalLayerSettings.AroundPoint
 
             text_format = QgsTextFormat()
             text_format.setAllowHtmlFormatting(True)
 
+            background_format = QgsTextBackgroundSettings()
             background_format = QgsTextBackgroundSettings()
             background_format.setEnabled(True)
             background_format.setType(QgsTextBackgroundSettings.ShapeRectangle)
@@ -2878,26 +3115,75 @@ class EficEnerg:
             background_format.setStrokeWidth(1)
 
             text_format.setBackground(background_format)
-
+            
             symbology = QgsGraduatedSymbolRenderer("indexMITJANA", ranges.values())
-            symbolA = QgsFillSymbol()
+            '''
+            symbolUnits = QgsFillSymbol()
             if consum:
-                symbolA.setColor(colors["colorConsum"])
+                symbolUnits.setColor(colors["colorConsum"])
             if emissions:
-                symbolA.setColor(colors["colorEmissions"])
-            if consumElectric or consumGas or self.dlg.consumSumaButton.isChecked():
-                symbolA.setColor(colors["colorConsum"])
-            symbology.updateSymbols(symbolA)
-            entitatLayerResumMitjana.setRenderer(symbology)
-            entitatLayerResumMitjana.setLabelsEnabled(True)
-            entitatLayerResumMitjana.setLabeling(labelMitjana)
-            entitatLayerResumMitjana.triggerRepaint()
-            node = QgsLayerTreeLayer(entitatLayerResumMitjana)
-            node.setExpanded(True)
-            group.insertChildNode(0, node)
-            entitatLayerResumMitjana.triggerRepaint()
-            QApplication.processEvents()
+                symbolUnits.setColor(colors["colorEmissions"])
+            '''
+            symbolA = QgsFillSymbol()
+            symbolA.setColor(colors["colorA"])
+            symbolB = QgsFillSymbol()
+            symbolB.setColor(colors["colorB"])
+            symbolC = QgsFillSymbol()
+            symbolC.setColor(colors["colorC"])
+            symbolD = QgsFillSymbol()
+            symbolD.setColor(colors["colorD"])
+            symbolE = QgsFillSymbol()
+            symbolE.setColor(colors["colorE"])
+            symbolF = QgsFillSymbol()
+            symbolF.setColor(colors["colorF"])
+            symbolG = QgsFillSymbol()
+            symbolG.setColor(colors["colorG"])
 
+            #symbology.updateRangeSymbol(0, symbolUnits)
+            symbology.updateRangeSymbol(0, symbolA)
+            symbology.updateRangeSymbol(1, symbolB)
+            symbology.updateRangeSymbol(2, symbolC)
+            symbology.updateRangeSymbol(3, symbolD)
+            symbology.updateRangeSymbol(4, symbolE)
+            symbology.updateRangeSymbol(5, symbolF)
+            symbology.updateRangeSymbol(6, symbolG)
+
+            labelMitjana.setFormat(text_format)
+
+            propertyx = QgsProperty()
+            propertyx.setExpressionString("x(centroid($geometry))")
+            propertyx.setActive(True)
+
+            propertyy = QgsProperty()
+            propertyy.setExpressionString("y(centroid($geometry))")
+            propertyy.setActive(True)
+
+            propertyCollection = QgsPropertyCollection("Coordenades")
+            propertyCollection.setProperty(9, propertyx)
+            propertyCollection.setProperty(10, propertyy)
+
+            labelMitjana.setDataDefinedProperties(propertyCollection)
+
+            labelMitjana.minimumScale = minimumValue
+            labelMitjana.maximumScale = maximumValue
+            
+            labelMitjana.scaleVisibility = True
+
+            entitatLayerResumMitjana.setLabeling(QgsVectorLayerSimpleLabeling(labelMitjana))
+            entitatLayerResumMitjana.setLabelsEnabled(True)
+            entitatLayerResumMitjana.setRenderer(symbology)
+            entitatLayerResumMitjana.triggerRepaint()
+            QgsProject.instance().addMapLayer(entitatLayerResumMitjana, False)
+            node = QgsLayerTreeLayer(entitatLayerResumMitjana)
+            node.setExpanded(False)
+            group.insertChildNode(3, node)
+            
+            textBox += f"Realitzat càlcul de mitjana de {nomEntitat}.\n"
+            self.dlg.textEstat.setText(textBox)
+            self.scroll_text()
+            self.updateProgress(65)
+            QApplication.processEvents()
+        
         # Labels Moda
 
         if self.dlg.checkModa.isChecked() or self.dlg.checkModa_2.isChecked():
