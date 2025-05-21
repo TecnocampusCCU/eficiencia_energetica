@@ -1,0 +1,14 @@
+{
+    "python.autoComplete.extraPaths": [
+        "C:\\Program Files\\QGIS 3.16.16\\apps\\qgis-ltr\\python",
+        "C:\\Program Files\\QGIS 3.22.16\\apps\\qgis-ltr\\python",
+        "C:\\Program Files\\QGIS 3.28.15\\apps\\qgis-ltr\\python",
+        "C:\\Program Files\\QGIS 3.34.15\\apps\\qgis-ltr\\python"
+    ],
+    "python.analysis.extraPaths": [
+        "C:\\Program Files\\QGIS 3.16.16\\apps\\qgis-ltr\\python",
+        "C:\\Program Files\\QGIS 3.22.16\\apps\\qgis-ltr\\python",
+        "C:\\Program Files\\QGIS 3.28.15\\apps\\qgis-ltr\\python",
+        "C:\\Program Files\\QGIS 3.34.15\\apps\\qgis-ltr\\python"
+    ]
+}
