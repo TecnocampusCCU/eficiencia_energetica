@@ -653,7 +653,7 @@ class EficEnerg:
             self.dlg.checkModa.setEnabled(True)
             self.dlg.checkMediana.setEnabled(True)
             self.dlg.labelRestriccio.setVisible(True)
-            self.dlg.labelRestriccio.setText("La mitjana i la Moda utilitzen en els seus càlculs la superfície dels habitatges.")
+            self.dlg.labelRestriccio.setText("La Mitjana i la Moda utilitzen en els seus càlculs la superfície dels habitatges.")
 
         if not self.dlg.checkNumHabit.isChecked() and not self.dlg.checkm2.isChecked():
             self.dlg.checkMitjana.setEnabled(False)
@@ -721,7 +721,7 @@ class EficEnerg:
             self.dlg.checkModa_2.setEnabled(True)
             self.dlg.checkMediana_2.setEnabled(True)
             self.dlg.labelRestriccio.setVisible(True)
-            self.dlg.labelRestriccio.setText("La mitjana i la Moda utilitzen en els seus càlculs la superfície dels habitatges.")
+            self.dlg.labelRestriccio.setText("La Mitjana i la Moda utilitzen en els seus càlculs la superfície dels habitatges.")
 
         if not self.dlg.checkNumHabit_2.isChecked() and not self.dlg.checkm2_2.isChecked():
             self.dlg.checkMitjana_2.setEnabled(False)
@@ -1856,7 +1856,7 @@ class EficEnerg:
                     'FIELD_PRECISION': 0,
                     'FIELD_TYPE': 0,
                     'FORMULA': None,
-                    'INPUT': joinEntitat habitatges,
+                    'INPUT': joinEntitatHabitatges,
                     'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
                 }
                 if consum:
@@ -1869,9 +1869,9 @@ class EficEnerg:
 
                 ''' 5. Estadistiquesm2 '''
                 alg_params = {
-                    'CATEGORIES_FIELD_NAME': None,
-                    'INPUT': joinEntitat habitatges,
-                    'VALUES_FIELD_NAME': 'm2',
+                    'CATEGORIES_FIELD_NAME':    None,
+                    'INPUT': outputs['Producte']['OUTPUT'],
+                    'VALUES_FIELD_NAME':        'producte',
                     'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
                 }
                 if consum:
@@ -1947,7 +1947,7 @@ class EficEnerg:
                 ''' indexMODAhab '''
                 alg_params = {
                     'CATEGORIES_FIELD_NAME': None,
-                    'INPUT': joinEntitat habitatges,
+                    'INPUT': joinEntitatHabitatges,
                     'VALUES_FIELD_NAME': None,
                     'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
                 }
@@ -2025,7 +2025,7 @@ class EficEnerg:
                     'FIELD_PRECISION': 0,
                     'FIELD_TYPE': 0,
                     'FORMULA': None,
-                    'INPUT': joinEntitat habitatges,
+                    'INPUT': joinEntitatHabitatges,
                     'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
                 }
                 if consum:
@@ -2039,7 +2039,7 @@ class EficEnerg:
                 ''' 5. Estadistiquesm2 '''
                 alg_params = {
                     'CATEGORIES_FIELD_NAME': None,
-                    'INPUT': joinEntitat habitatges,
+                    'INPUT': joinEntitatHabitatges,
                     'VALUES_FIELD_NAME': 'm2',
                     'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
                 }
@@ -2114,7 +2114,7 @@ class EficEnerg:
         try:
             alg_params = {
                 'EXPRESSION': None,
-                'INPUT': joinEntitat habitatges,
+                'INPUT': joinEntitatHabitatges,
                 'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
             }
             if (self.dlg.checkNumHabit.isChecked() and not self.dlg.checkm2.isChecked()) or (self.dlg.checkNumHabit_2.isChecked() and not self.dlg.checkm2_2.isChecked()):
