@@ -52,8 +52,8 @@ from qgis.core import (QgsCategorizedSymbolRenderer, QgsDataSourceUri,
                        QgsVectorLayer, QgsVectorLayerSimpleLabeling,
                        QgsWkbTypes, QgsExpression)
 from qgis.core import NULL
-from qgis.PyQt.QtCore import QCoreApplication, QSettings, QTranslator
-from qgis.PyQt.QtGui import QIcon
+from qgis.PyQt.QtCore import QCoreApplication, QSettings, QTranslator, qVersion, QVariant, QUrl
+from qgis.PyQt.QtGui import QIcon, QColor, QFont, QStandardItemModel, QStandardItem, QTextCursor
 from qgis.PyQt.QtWidgets import QAction, QApplication, QMessageBox
 from qgis.utils import iface
 
@@ -63,7 +63,7 @@ from .eficiencia_energetica_dialog import EficEnergDialog
 from .resources import *
 
 '''Variables globals'''
-Versio_modul = "V_Q3.250520"
+Versio_modul = "V_Q3.250526"
 nomBD1 = ""
 password1 = ""
 host1 = ""
@@ -150,6 +150,14 @@ ranges = {
     'rangeE': QgsRendererRange(111.6, 136.6, symbols['symbolE'], 'E'),
     'rangeF': QgsRendererRange(136.6, 170.7, symbols['symbolF'], 'F'),
     'rangeG': QgsRendererRange(170.7, 9999999, symbols['symbolG'], 'G')
+}
+
+ranges_comparativa = {
+    'rangeMoltPositiu': QgsRendererRange(50.0, 999999.9, symbols['symbolA'], 'Molt positiu'),
+    'rangePositiu': QgsRendererRange(0.2, 49.9, symbols['symbolC'], 'Positiu'),
+    'rangeNeutre': QgsRendererRange(-0.1, 0.1, symbols['symbolD'], 'Sense canvis'),
+    'rangeNegatiu': QgsRendererRange(-49.9, -0.2, symbols['symbolE'], 'Negatiu'),
+    'rangeMoltNegatiu': QgsRendererRange( -999999.9, -50.0, symbols['symbolG'], 'Molt negatiu')
 }
 
 '''
@@ -863,12 +871,22 @@ class EficEnerg:
             consumGas = False
             self.dlg.comboAny.clear()
             self.dlg.comboAny.addItems(llistaAnysElectric)
+            if self.dlg.checkComparativa.isChecked():
+                self.dlg.comboAny1.clear()
+                self.dlg.comboAny2.clear()
+                self.dlg.comboAny1.addItems(llistaAnysElectric)
+                self.dlg.comboAny2.addItems(llistaAnysElectric)
             self.dlg.poderCalorLine.setEnabled(False)
         else:
             consumElectric = False
             consumGas = True
             self.dlg.comboAny.clear()
             self.dlg.comboAny.addItems(llistaAnysGas)
+            if self.dlg.checkComparativa.isChecked():
+                self.dlg.comboAny1.clear()
+                self.dlg.comboAny2.clear()
+                self.dlg.comboAny1.addItems(llistaAnysGas)
+                self.dlg.comboAny2.addItems(llistaAnysGas)
             self.dlg.poderCalorLine.setEnabled(True)
         
         self.dlg.consumButton.setChecked(False)
@@ -893,12 +911,22 @@ class EficEnerg:
             consumElectric = False
             self.dlg.comboAny.clear()
             self.dlg.comboAny.addItems(llistaAnysGas)
+            if self.dlg.checkComparativa.isChecked():
+                self.dlg.comboAny1.clear()
+                self.dlg.comboAny2.clear()
+                self.dlg.comboAny1.addItems(llistaAnysGas)
+                self.dlg.comboAny2.addItems(llistaAnysGas)
             self.dlg.poderCalorLine.setEnabled(True)
         else:
             consumGas = False
             consumElectric = True
             self.dlg.comboAny.clear()
             self.dlg.comboAny.addItems(llistaAnysElectric)
+            if self.dlg.checkComparativa.isChecked():
+                self.dlg.comboAny1.clear()
+                self.dlg.comboAny2.clear()
+                self.dlg.comboAny1.addItems(llistaAnysElectric)
+                self.dlg.comboAny2.addItems(llistaAnysElectric)
             self.dlg.poderCalorLine.setEnabled(False)
         self.dlg.consumButton.setChecked(False)
         self.dlg.emissionsButton.setChecked(False)
@@ -929,6 +957,11 @@ class EficEnerg:
             llistaAnysSuma.sort()
 
             self.dlg.comboAny.addItems(llistaAnysSuma)
+            if self.dlg.checkComparativa.isChecked():
+                self.dlg.comboAny1.clear()
+                self.dlg.comboAny2.clear()
+                self.dlg.comboAny1.addItems(llistaAnysSuma)
+                self.dlg.comboAny2.addItems(llistaAnysSuma)
 
             self.dlg.poderCalorLine.setEnabled(True)
             self.dlg.consumButton.setChecked(False)
@@ -2437,269 +2470,380 @@ class EficEnerg:
         # amb ús d'habitatge* en cada parcel·la**.
         # *: de primeres es prescindeix de mirar únicament els habitatges, perquè les dades ja són prou escuetes
         # **: es comença mirant parcel·les perquè és l'entitat més petita, però parcel·la es pot canviar per illa, barri, seccions...
+        if consumGas:
+            uri.setDataSource('public', 'FinquesUS', '')
+            buildingLayer = QgsVectorLayer(uri.uri(), 'FinquesUS', 'postgres')
+            if not buildingLayer.isValid():
+                print("Layer failed to load!")
+                QMessageBox.critical(None, "Error", "Layer failed to load!")
+                return
+                    
+            alg_params = {
+                'AGGREGATES': [
+                    {
+                        'aggregate': 'first_value',
+                        'delimiter': ',',
+                        'input': '"id"',
+                        'length': -1,
+                        'name': 'id_building',
+                        'precision': 0,
+                        'type': 2
+                    },
+                    {
+                        'aggregate': 'first_value',
+                        'delimiter': ',',
+                        'input': '"Ref_Cadastral"',
+                        'length': -1,
+                        'name': 'cadastral_reference',
+                        'precision': 0,
+                        'type': 10
+                    },
+                    {
+                        'aggregate': 'sum',
+                        'delimiter': ',',
+                        'input': 'to_int("Quants")',
+                        'length': -1,
+                        'name': 'Quants',
+                        'precision': 0,
+                        'type': 2
+                    },
+                    {
+                        'aggregate': 'sum',
+                        'delimiter': ',',
+                        'input': 'to_real("Superficie_Cons")',
+                        'length': -1,
+                        'name': 'area_value',
+                        'precision': 0,
+                        'type': 6
+                    },
+                    {
+                        'aggregate': 'first_value',
+                        'delimiter': ',',
+                        'input': '"UTM"',
+                        'length': -1,
+                        'name': 'UTM',
+                        'precision': 0,
+                        'type': 10
+                    },
+                    {
+                        'aggregate': 'first_value',
+                        'delimiter': ',',
+                        'input': 'sum(to_real("Superficie_Cons"), "Ref_Cadastral") / sum(to_int("Quants"), "Ref_Cadastral")',
+                        'length': 0,
+                        'name': 'fmh',
+                        'precision': 0,
+                        'type': 6
+                    }
+                ],
+                'GROUP_BY': 'Ref_Cadastral',
+                'INPUT': buildingLayer,
+                'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+            }
 
-        uri.setDataSource('public', 'FinquesUS', '')
-        buildingLayer = QgsVectorLayer(uri.uri(), 'FinquesUS', 'postgres')
-        if not buildingLayer.isValid():
-            print("Layer failed to load!")
-            QMessageBox.critical(None, "Error", "Layer failed to load!")
-            return
-                
-        alg_params = {
-            'AGGREGATES': [
-                {
-                    'aggregate': 'first_value',
-                    'delimiter': ',',
-                    'input': '"id"',
-                    'length': -1,
-                    'name': 'id_building',
-                    'precision': 0,
-                    'type': 2
-                },
-                {
-                    'aggregate': 'first_value',
-                    'delimiter': ',',
-                    'input': '"Ref_Cadastral"',
-                    'length': -1,
-                    'name': 'cadastral_reference',
-                    'precision': 0,
-                    'type': 10
-                },
-                {
-                    'aggregate': 'sum',
-                    'delimiter': ',',
-                    'input': 'to_int("Quants")',
-                    'length': -1,
-                    'name': 'Quants',
-                    'precision': 0,
-                    'type': 2
-                },
-                {
-                    'aggregate': 'sum',
-                    'delimiter': ',',
-                    'input': 'to_real("Superficie_Cons")',
-                    'length': -1,
-                    'name': 'area_value',
-                    'precision': 0,
-                    'type': 6
-                },
-                {
-                    'aggregate': 'first_value',
-                    'delimiter': ',',
-                    'input': '"UTM"',
-                    'length': -1,
-                    'name': 'UTM',
-                    'precision': 0,
-                    'type': 10
-                },
-                {
-                    'aggregate': 'first_value',
-                    'delimiter': ',',
-                    'input': 'sum(to_real("Superficie_Cons"), "Ref_Cadastral") / sum(to_int("Quants"), "Ref_Cadastral")',
-                    'length': 0,
-                    'name': 'fmh',
-                    'precision': 0,
-                    'type': 6
-                }
-            ],
-            'GROUP_BY': 'Ref_Cadastral',
-            'INPUT': buildingLayer,
-            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-        }
+            agg_finquesus = processing.run('qgis:aggregate', alg_params)['OUTPUT']
 
-        agg_finquesus = processing.run('qgis:aggregate', alg_params)['OUTPUT']
+            alg_params = {
+                'FIELD': f'CONSUMO_{any}',
+                'INPUT': habitatgesLayer,
+                'OPERATOR': 9,
+                'VALUE': '',
+                'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+            }
 
-        alg_params = {
-            'FIELD': f'CONSUMO_{any}',
-            'INPUT': habitatgesLayer,
-            'OPERATOR': 9,
-            'VALUE': '',
-            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-        }
+            consums_filtrats = processing.run('native:extractbyattribute', alg_params)['OUTPUT']
 
-        consums_filtrats = processing.run('native:extractbyattribute', alg_params)['OUTPUT']
+            alg_params = {
+                'DISCARD_NONMATCHING': False,
+                'FIELD': 'cadastral_reference',
+                'FIELDS_TO_COPY': ['fmh'],
+                'FIELD_2': 'cadastral_reference',
+                'INPUT': consums_filtrats,
+                'INPUT_2': agg_finquesus,
+                'METHOD': 1,
+                'PREFIX': '',
+                'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+            }
 
-        alg_params = {
-            'DISCARD_NONMATCHING': False,
-            'FIELD': 'cadastral_reference',
-            'FIELDS_TO_COPY': ['fmh'],
-            'FIELD_2': 'cadastral_reference',
-            'INPUT': consums_filtrats,
-            'INPUT_2': agg_finquesus,
-            'METHOD': 1,
-            'PREFIX': '',
-            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-        }
+            join_fmh = processing.run('native:joinattributestable', alg_params)['OUTPUT']
 
-        join_fmh = processing.run('native:joinattributestable', alg_params)['OUTPUT']
+            # S'ha de mirar que el poder calorífic sigui un valor numèric i no sigui ni null ni 0 ni 0.0 ni res semblant que pugui ser incorrecte
+            # i en cas que l'usuari ho hagi introduit amb una coma, canviar-ho per un punt
+            if self.dlg.poderCalorLine.text() == '' or self.dlg.poderCalorLine.text() == '0' or self.dlg.poderCalorLine.text() == '0.0' or self.dlg.poderCalorLine.text() == '0,0' :
+                QMessageBox.critical(None, "Error", "El poder calorífic no pot ser 0 ni null")
+                self.dlg.setEnabled(True)
+                return
+            poderCalor = self.dlg.poderCalorLine.text().replace(',', '.')
 
-        # S'ha de mirar que el poder calorífic sigui un valor numèric i no sigui ni null ni 0 ni 0.0 ni res semblant que pugui ser incorrecte
-        # i en cas que l'usuari ho hagi introduit amb una coma, canviar-ho per un punt
-        if self.dlg.poderCalorLine.text() == '' or self.dlg.poderCalorLine.text() == '0' or self.dlg.poderCalorLine.text() == '0.0' or self.dlg.poderCalorLine.text() == '0,0' :
-            QMessageBox.critical(None, "Error", "El poder calorífic no pot ser 0 ni null")
-            self.dlg.setEnabled(True)
-            return
-        poderCalor = self.dlg.poderCalorLine.text().replace(',', '.')
+            alg_params = {
+                'AGGREGATES' : [
+                    {
+                        'aggregate': 'first_value',
+                        'delimiter': ',',
+                        'input': '"id"',
+                        'length': -1,
+                        'name': 'id',
+                        'precision': 0,
+                        'sub_type': 0,
+                        'type': 2,
+                        'type_name': 'integer'
+                    },
+                    {
+                        'aggregate': 'first_value',
+                        'delimiter': ',',
+                        'input': '"designator"',
+                        'length': -1,
+                        'name': 'designator',
+                        'precision': 0,
+                        'sub_type': 0,
+                        'type': 10,
+                        'type_name': 'text'
+                    },
+                    {
+                        'aggregate': 'first_value',
+                        'delimiter': ',',
+                        'input': '"cadastral_reference"',
+                        'length': -1,
+                        'name': 'cadastral_reference',
+                        'precision': 0,
+                        'sub_type': 0,
+                        'type': 10,
+                        'type_name': 'text'
+                    },
+                    {
+                        'aggregate': 'first_value',
+                        'delimiter': ',',
+                        'input': f'("CONSUMO_{any}"*{poderCalor})/"fmh"',
+                        'length': 0,
+                        'name': f'CONSUMO_{any}',
+                        'precision': 2,
+                        'sub_type': 0,
+                        'type': 6,
+                        'type_name': 'double precision'
+                    },
+                    {
+                        'aggregate': 'first_value',
+                        'delimiter': ',',
+                        'input': '"fmh"',
+                        'length': 0,
+                        'name': 'metres_cadastre',
+                        'precision': 2,
+                        'sub_type': 0,
+                        'type': 6,
+                        'type_name': 'double precision'
+                    }
+                ], 
+                'GROUP_BY' : '"id"', 
+                'INPUT' : join_fmh,
+                'OUTPUT' : QgsProcessing.TEMPORARY_OUTPUT
+            }
 
-        alg_params = {
-            'AGGREGATES' : [
-                {
-                    'aggregate': 'first_value',
-                    'delimiter': ',',
-                    'input': '"id"',
-                    'length': -1,
-                    'name': 'id',
-                    'precision': 0,
-                    'sub_type': 0,
-                    'type': 2,
-                    'type_name': 'integer'
-                },
-                {
-                    'aggregate': 'first_value',
-                    'delimiter': ',',
-                    'input': '"CALLE"',
-                    'length': -1,
-                    'name': 'CALLE',
-                    'precision': 0,
-                    'sub_type': 0,
-                    'type': 10,
-                    'type_name': 'text'
-                },
-                {
-                    'aggregate': 'first_value',
-                    'delimiter': ',',
-                    'input': '"MUNICIPIO"',
-                    'length': -1,
-                    'name': 'MUNICIPIO',
-                    'precision': 0,
-                    'sub_type': 0,
-                    'type': 10,
-                    'type_name': 'text'
-                },
-                {
-                    'aggregate': 'first_value',
-                    'delimiter': ',',
-                    'input': '"NUMERO"',
-                    'length': -1,
-                    'name': 'NUMERO',
-                    'precision': 0,
-                    'sub_type': 0,
-                    'type': 10,
-                    'type_name': 'text'
-                },
-                {
-                    'aggregate': 'first_value',
-                    'delimiter': ',',
-                    'input': '"designator"',
-                    'length': -1,
-                    'name': 'designator',
-                    'precision': 0,
-                    'sub_type': 0,
-                    'type': 10,
-                    'type_name': 'text'
-                },
-                {
-                    'aggregate': 'first_value',
-                    'delimiter': ',',
-                    'input': '"numero_carrer"',
-                    'length': -1,
-                    'name': 'numero_carrer',
-                    'precision': 0,
-                    'sub_type': 0,
-                    'type': 10,
-                    'type_name': 'text'
-                },
-                {
-                    'aggregate': 'first_value',
-                    'delimiter': ',',
-                    'input': '"PORTAL"',
-                    'length': -1,
-                    'name': 'PORTAL',
-                    'precision': 0,
-                    'sub_type': 0,
-                    'type': 10,
-                    'type_name': 'text'
-                },
-                {
-                    'aggregate': 'first_value',
-                    'delimiter': ',',
-                    'input': '"ESCALERA"',
-                    'length': -1,
-                    'name': 'ESCALERA',
-                    'precision': 0,
-                    'sub_type': 0,
-                    'type': 10,
-                    'type_name': 'text'
-                },
-                {
-                    'aggregate': 'first_value'
-                    ,'delimiter': ',',
-                    'input': '"PISO"',
-                    'length': -1,
-                    'name': 'PISO',
-                    'precision': 0,
-                    'sub_type': 0,
-                    'type': 10,
-                    'type_name': 'text'
-                },
-                {
-                    'aggregate': 'first_value',
-                    'delimiter': ',',
-                    'input': '"PUERTA"',
-                    'length': -1,
-                    'name': 'PUERTA',
-                    'precision': 0,
-                    'sub_type': 0,
-                    'type': 10,
-                    'type_name': 'text'
-                },
-                {
-                    'aggregate': 'first_value',
-                    'delimiter': ',',
-                    'input': '"cadastral_reference"',
-                    'length': -1,
-                    'name': 'cadastral_reference',
-                    'precision': 0,
-                    'sub_type': 0,
-                    'type': 10,
-                    'type_name': 'text'
-                },
-                {
-                    'aggregate': 'first_value',
-                    'delimiter': ',',
-                    'input': f'("CONSUMO_{any}"*{poderCalor})/"fmh"',
-                    'length': 0,
-                    'name': f'CONSUMO_{any}',
-                    'precision': 2,
-                    'sub_type': 0,
-                    'type': 6,
-                    'type_name': 'double precision'
-                },
-                {
-                    'aggregate': 'first_value',
-                    'delimiter': ',',
-                    'input': '"fmh"',
-                    'length': 0,
-                    'name': 'metres_cadastre',
-                    'precision': 2,
-                    'sub_type': 0,
-                    'type': 6,
-                    'type_name': 'double precision'
-                }
-            ], 
-            'GROUP_BY' : '"id"', 
-            'INPUT' : join_fmh,
-            'OUTPUT' : QgsProcessing.TEMPORARY_OUTPUT
-        }
+            habitatgesLayer = processing.run('qgis:aggregate', alg_params)['OUTPUT']
 
-        habitatgesLayer = processing.run('qgis:aggregate', alg_params)['OUTPUT']
+        if consumElectric:
+            pass
 
-        # TODO: al final cal mirar pel cas de l'electricitat i també cal mirar amb un if
-        # si es vol sumar els consums d'electricitat i gas
         
 
 
 
+
+    def calculComparativa(self, any1, any2):
+        global any
+        global habitatgesLayer
+        global entitatLayerResumNumHabit
+        global entitatLayerResumm2
+        global entitatLayerResumMitjana
+        global entitatLayerResumModa
+        global entitatLayerResumMediana
+
+        copiaOriginalHabitatges = habitatgesLayer
+
+        any = any1
+        self.calculSuperficieGasElectricitat()
+        self.calculQualificacio()
+        self.calculIdEntitat()
+        self.castConsumEmissions()
+        if self.dlg.checkm2_2.isChecked():
+            self.castm2()
+        self.joinEntitatHabitatges()
+        if self.dlg.checkNumHabit_2.isChecked():
+            self.calculNumHabit()
+            entitatLayerResumNumHabitAny1 = entitatLayerResumNumHabit
+        if self.dlg.checkm2_2.isChecked():
+            self.calculm2()
+            entitatLayerResumm2Any1 = entitatLayerResumm2
+        if self.dlg.checkMitjana_2.isChecked():
+            self.calculMitjana()
+            entitatLayerResumMitjanaAny1 = entitatLayerResumMitjana
+            #QgsProject.instance().addMapLayer(entitatLayerResumMitjanaAny1).setName("Classificació per mitjana")
+        if self.dlg.checkModa_2.isChecked():
+            self.calculModa()
+            entitatLayerResumModaAny1 = entitatLayerResumModa
+        if self.dlg.checkMediana_2.isChecked():
+            self.calculMediana()
+            entitatLayerResumMedianaAny1 = entitatLayerResumMediana
+        habitatgesLayerAny1 = habitatgesLayer
+        QApplication.processEvents()
+
+        habitatgesLayer = copiaOriginalHabitatges
+
+        any = any2
+        self.calculSuperficieGasElectricitat()
+        self.calculQualificacio()
+        self.calculIdEntitat()
+        self.castConsumEmissions()
+        if self.dlg.checkm2_2.isChecked():
+            self.castm2()
+        self.joinEntitatHabitatges()
+        if self.dlg.checkNumHabit_2.isChecked():
+            self.calculNumHabit()
+            entitatLayerResumNumHabitAny2 = entitatLayerResumNumHabit
+        if self.dlg.checkm2_2.isChecked():
+            self.calculm2()
+            entitatLayerResumm2Any2 = entitatLayerResumm2
+        if self.dlg.checkMitjana_2.isChecked():
+            self.calculMitjana()
+            entitatLayerResumMitjanaAny2 = entitatLayerResumMitjana
+            #QgsProject.instance().addMapLayer(entitatLayerResumMitjanaAny2).setName("Classificació per mitjana")
+        if self.dlg.checkModa_2.isChecked():
+            self.calculModa()
+            entitatLayerResumModaAny2 = entitatLayerResumModa
+        if self.dlg.checkMediana_2.isChecked():
+            self.calculMediana()
+            entitatLayerResumMedianaAny2 = entitatLayerResumMediana
+        habitatgeLayerAny2 = habitatgesLayer
+        QApplication.processEvents()
+
+        # Un cop tenim les dues taules, cal fer crear una nova columna amb la diferència entre els consums dels dos anys a comparar
+
+        if self.dlg.checkMitjana_2.isChecked():
+            alg_params = {
+                'INPUT': entitatLayerResumMitjanaAny1,
+                'FIELD': 'idEntitat',
+                'INPUT_2': entitatLayerResumMitjanaAny2,
+                'FIELD_2': 'idEntitat',
+                'FIELDS_TO_COPY': ['indexMITJANA'],
+                'METHOD': 1,
+                'PREFIX': '',
+                'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+            }
+            join_comparativa = processing.run('native:joinattributestable', alg_params)['OUTPUT']
+            QApplication.processEvents()
+
+            alg_params = {
+                'FIELD': 'indexMITJANA',
+                'INPUT': join_comparativa,
+                'NEW_NAME': f'indexMITJANA_{any1}',
+                'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+            }
+            rename_any1 = processing.run('native:renametablefield', alg_params)['OUTPUT']
+
+            alg_params = {
+                'FIELD': 'indexMITJANA_2',
+                'INPUT': rename_any1,
+                'NEW_NAME': f'indexMITJANA_{any2}',
+                'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+            }
+            rename_any2 = processing.run('native:renametablefield', alg_params)['OUTPUT']
+
+            alg_params = {
+                'FIELD_LENGTH': 0,
+                'FIELD_NAME': 'diferencia',
+                'FIELD_PRECISION': 1,
+                'FIELD_TYPE': 0,
+                'FORMULA': f'indexMITJANA_{any1} - indexMITJANA_{any2}',
+                'INPUT': rename_any2,
+                'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+            }
+            entitatLayerResumMitjana = processing.run('native:fieldcalculator', alg_params)['OUTPUT']
+            entitatLayerResumMitjana.setName('Mitjana')
+
+        if self.dlg.checkModa_2.isChecked():
+            alg_params = {
+                'INPUT': entitatLayerResumModaAny1,
+                'FIELD': 'idEntitat',
+                'INPUT_2': entitatLayerResumModaAny2,
+                'FIELD_2': 'idEntitat',
+                'FIELDS_TO_COPY': ['indexMODA'],
+                'METHOD': 1,
+                'PREFIX': '',
+                'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+            }
+            join_comparativa = processing.run('native:joinattributestable', alg_params)['OUTPUT']
+            QApplication.processEvents()
+
+            alg_params = {
+                'FIELD': 'indexMODA',
+                'INPUT': join_comparativa,
+                'NEW_NAME': f'indexMODA_{any1}',
+                'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+            }
+            rename_any1 = processing.run('native:renametablefield', alg_params)['OUTPUT']
+
+            alg_params = {
+                'FIELD': 'indexMODA_2',
+                'INPUT': rename_any1,
+                'NEW_NAME': f'indexMODA_{any2}',
+                'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+            }
+            rename_any2 = processing.run('native:renametablefield', alg_params)['OUTPUT']
+
+            alg_params = {
+                'FIELD_LENGTH': 0,
+                'FIELD_NAME': 'diferencia',
+                'FIELD_PRECISION': 1,
+                'FIELD_TYPE': 0,
+                'FORMULA': f'indexMODA_{any1} - indexMODA_{any2}',
+                'INPUT': rename_any2,
+                'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+            }
+            entitatLayerResumModa = processing.run('native:fieldcalculator', alg_params)['OUTPUT']
+            entitatLayerResumModa.setName('Moda')
+
+        if self.dlg.checkMediana_2.isChecked():
+            alg_params = {
+                'INPUT': entitatLayerResumMedianaAny1,
+                'FIELD': 'idEntitat',
+                'INPUT_2': entitatLayerResumMedianaAny2,
+                'FIELD_2': 'idEntitat',
+                'FIELDS_TO_COPY': ['indexMEDIANA'],
+                'METHOD': 1,
+                'PREFIX': '',
+                'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+            }
+            join_comparativa = processing.run('native:joinattributestable', alg_params)['OUTPUT']
+            print("S'ha fet el join")
+            QApplication.processEvents()
+
+            alg_params = {
+                'FIELD': 'indexMEDIANA',
+                'INPUT': join_comparativa,
+                'NEW_NAME': f'indexMEDIANA_{any1}',
+                'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+            }
+            rename_any1 = processing.run('native:renametablefield', alg_params)['OUTPUT']
+
+            alg_params = {
+                'FIELD': 'indexMEDIANA_2',
+                'INPUT': rename_any1,
+                'NEW_NAME': f'indexMEDIANA_{any2}',
+                'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+            }
+            rename_any2 = processing.run('native:renametablefield', alg_params)['OUTPUT']
+
+            alg_params = {
+                'FIELD_LENGTH': 0,
+                'FIELD_NAME': 'diferencia',
+                'FIELD_PRECISION': 1,
+                'FIELD_TYPE': 0,
+                'FORMULA': f'indexMEDIANA_{any1} - indexMEDIANA_{any2}',
+                'INPUT': rename_any2,
+                'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+            }
+            entitatLayerResumMediana = processing.run('native:fieldcalculator', alg_params)['OUTPUT']
+            entitatLayerResumMediana.setName('Mediana')
+
+        # return
 
 
 
@@ -2825,66 +2969,71 @@ class EficEnerg:
             group = root.insertGroup(0, f"Consum de {nomEntitat.upper()} (KWh/m²any)")
         if emissions:
             group = root.insertGroup(0, f"Emissions de {nomEntitat.upper()} (kgCO₂/m²any)")
-        if consumElectric:
+        if consumElectric and not self.dlg.checkComparativa.isChecked():
             group = root.insertGroup(0, f"Consum Elèctric de {nomEntitat.upper()} (KWh/m²any)")
-        if consumGas:
+        if consumGas and not self.dlg.checkComparativa.isChecked():
             group = root.insertGroup(0, f"Consum Gas de {nomEntitat.upper()} (KWh/m²any)")
-        if self.dlg.consumSumaButton.isChecked():
+        if self.dlg.consumSumaButton.isChecked() and not self.dlg.checkComparativa.isChecked():
             group = root.insertGroup(0, f"Suma de consums de {nomEntitat.upper()} (KWh/m²any)")
+        if self.dlg.checkComparativa.isChecked():
+            any1 = self.dlg.comboAny1.currentText()
+            any2 = self.dlg.comboAny2.currentText()
+            group = root.insertGroup(0, f"Comparativa {any1} i {any2}")
 
-        llegenda = QgsVectorLayer("MultiPolygon?crs=epsg:25831", "Llegenda", "memory")
-        QgsProject.instance().addMapLayer(llegenda, False)
-        diagramLlegenda = QgsPieDiagram()
-        diagramLlegendaSettings = QgsDiagramSettings()
-        diagramLlegendaSettings.categoryColors = list(colors.values())[2:]
-        diagramLlegendaSettings.categoryAttributes = ['m2A', 'm2B', 'm2C', 'm2D', 'm2E', 'm2F', 'm2G']
-        diagramLlegendaSettings.scaleByArea = False
-        diagramLlegendaSettings.scaleBasedVisibility = True
-        diagramLlegendaSettings.size = QSizeF(15, 15)
-        diagramLlegendaSettings.minimumScale = minimumValue
-        diagramLlegendaSettings.maximumScale = maximumValue
-        diagramLlegendaSettings.categoryLabels = ['A (Menys de 34,1)', 
-                                                  'B (34,1 - 55,5)', 
-                                                  'C (55,5 - 85,4)', 
-                                                  'D (85,4 - 111,6)', 
-                                                  'E (111,6 - 136,6)', 
-                                                  'F (136,6 - 170,7)', 
-                                                  'G (Més de 170,7)']
-        diagramLlegendaSettings.enabled = True
-        llegenda.renderer().symbol().setColor(color)
-        diagramLlegendaRenderer = QgsSingleCategoryDiagramRenderer()
-        diagramLlegendaRenderer.setDiagram(diagramLlegenda)
-        diagramLlegendaRenderer.setDiagramSettings(diagramLlegendaSettings)
-        diagramLlegendaRenderer.setAttributeLegend(True)
-        llegenda.setDiagramRenderer(diagramLlegendaRenderer)
-        llegenda.triggerRepaint()
-        propertyx = QgsProperty()
-        propertyx.setExpressionString("x(centroid($geometry))")
-        propertyx.setActive(True)
-        propertyy = QgsProperty()
-        propertyy.setExpressionString("y(centroid($geometry))")
-        propertyy.setActive(True)
-        propertyVisibility = QgsProperty()
-        propertyVisibility.setExpressionString("scale() > " + str(minimumValue) + " AND scale() < " + str(maximumValue))
-        propertyVisibility.setActive(True)
-        propertyCollection = QgsPropertyCollection("Diagram Properties")
-        propertyCollection.setProperty(3, propertyx)
-        propertyCollection.setProperty(4, propertyy)
-        propertyCollection.setProperty(9, propertyVisibility)
-        diagramLlegendaLayerSettings = QgsDiagramLayerSettings()
-        diagramLlegendaLayerSettings.setDataDefinedProperties(propertyCollection)
-        llegenda.setDiagramLayerSettings(diagramLlegendaLayerSettings)
-        single_symbol_renderer = llegenda.renderer().clone()
-        symbol = single_symbol_renderer.symbol()
-        symbol_layer = QgsSimpleLineSymbolLayer()
-        symbol_layer.setWidth(0)
-        llegenda.setRenderer(single_symbol_renderer)
-        llegenda.triggerRepaint()
-        node = QgsLayerTreeLayer(llegenda)
-        node.setExpanded(True)
-        group.insertChildNode(0, node)
-        llegenda.triggerRepaint()
-        QApplication.processEvents()
+        if not self.dlg.checkComparativa.isChecked():
+            llegenda = QgsVectorLayer("MultiPolygon?crs=epsg:25831", "Llegenda", "memory")
+            QgsProject.instance().addMapLayer(llegenda, False)
+            diagramLlegenda = QgsPieDiagram()
+            diagramLlegendaSettings = QgsDiagramSettings()
+            diagramLlegendaSettings.categoryColors = list(colors.values())[2:]
+            diagramLlegendaSettings.categoryAttributes = ['m2A', 'm2B', 'm2C', 'm2D', 'm2E', 'm2F', 'm2G']
+            diagramLlegendaSettings.scaleByArea = False
+            diagramLlegendaSettings.scaleBasedVisibility = True
+            diagramLlegendaSettings.size = QSizeF(15, 15)
+            diagramLlegendaSettings.minimumScale = minimumValue
+            diagramLlegendaSettings.maximumScale = maximumValue
+            diagramLlegendaSettings.categoryLabels = ['A (Menys de 34,1)', 
+                                                    'B (34,1 - 55,5)', 
+                                                    'C (55,5 - 85,4)', 
+                                                    'D (85,4 - 111,6)', 
+                                                    'E (111,6 - 136,6)', 
+                                                    'F (136,6 - 170,7)', 
+                                                    'G (Més de 170,7)']
+            diagramLlegendaSettings.enabled = True
+            llegenda.renderer().symbol().setColor(color)
+            diagramLlegendaRenderer = QgsSingleCategoryDiagramRenderer()
+            diagramLlegendaRenderer.setDiagram(diagramLlegenda)
+            diagramLlegendaRenderer.setDiagramSettings(diagramLlegendaSettings)
+            diagramLlegendaRenderer.setAttributeLegend(True)
+            llegenda.setDiagramRenderer(diagramLlegendaRenderer)
+            llegenda.triggerRepaint()
+            propertyx = QgsProperty()
+            propertyx.setExpressionString("x(centroid($geometry))")
+            propertyx.setActive(True)
+            propertyy = QgsProperty()
+            propertyy.setExpressionString("y(centroid($geometry))")
+            propertyy.setActive(True)
+            propertyVisibility = QgsProperty()
+            propertyVisibility.setExpressionString("scale() > " + str(minimumValue) + " AND scale() < " + str(maximumValue))
+            propertyVisibility.setActive(True)
+            propertyCollection = QgsPropertyCollection("Diagram Properties")
+            propertyCollection.setProperty(3, propertyx)
+            propertyCollection.setProperty(4, propertyy)
+            propertyCollection.setProperty(9, propertyVisibility)
+            diagramLlegendaLayerSettings = QgsDiagramLayerSettings()
+            diagramLlegendaLayerSettings.setDataDefinedProperties(propertyCollection)
+            llegenda.setDiagramLayerSettings(diagramLlegendaLayerSettings)
+            single_symbol_renderer = llegenda.renderer().clone()
+            symbol = single_symbol_renderer.symbol()
+            symbol_layer = QgsSimpleLineSymbolLayer()
+            symbol_layer.setWidth(0)
+            llegenda.setRenderer(single_symbol_renderer)
+            llegenda.triggerRepaint()
+            node = QgsLayerTreeLayer(llegenda)
+            node.setExpanded(True)
+            group.insertChildNode(0, node)
+            llegenda.triggerRepaint()
+            QApplication.processEvents()
         
         ''' Aquesta comprovació serveix per a assegurar-se que s'utilitza la taula correcta segons consum d'energia primaria no renovable i emissions de co2,
             consum elèctric o consum de gas, que són tres taules diferents encara que originalment sempre s'utilitzés la primera (cert_efi_energ_edif_mataro_geom)
@@ -2914,27 +3063,116 @@ class EficEnerg:
 
         QApplication.processEvents()
 
-        any = self.dlg.comboAny.currentText()
+        if self.dlg.checkComparativa.isChecked():
+            self.calculComparativa(any1, any2)
+            # if self.dlg.checkMitjana_2.isChecked():
+            #     labelMitjana = QgsPalLayerSettings()
+            #     labelMitjana.enabled = True
+            #     labelMitjana.fieldName = """
+            #     CASE
+            #         WHEN "diferencia" IS NOT NULL THEN '<div><b><font color="black">' || format_number("diferencia", 1) || '</font></b></div>'
+            #         ELSE ''
+            #     END
+            #     """
+            #     labelMitjana.isExpression = True
+            #     labelMitjana.placement = QgsPalLayerSettings.AroundPoint
 
-        if self.dlg.tabCalculs.currentIndex() == 1:
-            self.calculSuperficieGasElectricitat()
-            #if self.dlg.consumSumaButton.isChecked():
-                #self.calculSumaConsums()
-                #print("Calcul de suma de consums")
-            self.calculQualificacio()
-        self.calculIdEntitat()
-        self.castConsumEmissions()
-        #if self.dlg.consumElectricButton.isChecked():
-        #    self.desagregarConsumsElectrics()
-        if self.dlg.checkm2.isChecked() or self.dlg.checkm2_2.isChecked():
-            self.castm2()
-        self.joinEntitatHabitatges()
+            #     text_format = QgsTextFormat()
+            #     text_format.setAllowHtmlFormatting(True)
 
-        textBox += f"Realitzats càlculs previs de {nomEntitat}.\n"
-        self.dlg.textEstat.setText(textBox)
-        self.scroll_text()
-        self.updateProgress(20)
-        QApplication.processEvents()
+            #     background_format = QgsTextBackgroundSettings()
+            #     background_format.setEnabled(True)
+            #     background_format.setType(QgsTextBackgroundSettings.ShapeRectangle)
+            #     background_format.setSizeType(QgsTextBackgroundSettings.SizeBuffer)
+            #     background_format.setSizeUnit(QgsUnitTypes.RenderMillimeters)
+            #     background_format.setSize(QSizeF(3, 3))
+            #     background_format.setRadiiUnit(QgsUnitTypes.RenderMillimeters)
+            #     background_format.setRadii(QSizeF(3, 3))
+            #     background_format.setFillColor(QColor("#ffffff"))
+            #     background_format.setStrokeColor(QColor("#808080"))
+            #     background_format.setStrokeWidthUnit(QgsUnitTypes.RenderMillimeters)
+            #     background_format.setStrokeWidth(1)
+
+            #     text_format.setBackground(background_format)
+            
+            #     symbology = QgsGraduatedSymbolRenderer("diferencia", ranges_comparativa.values())
+
+            #     symbolMoltPositiu = QgsFillSymbol()
+            #     symbolMoltPositiu.setColor(colors['colorA'])
+            #     symbolPositiu = QgsFillSymbol()
+            #     symbolPositiu.setColor(colors['colorC'])
+            #     symbolNeutre = QgsFillSymbol()
+            #     symbolNeutre.setColor(colors['colorD'])
+            #     symbolNegatiu = QgsFillSymbol()
+            #     symbolNegatiu.setColor(colors['colorE'])
+            #     symbolMoltNegatiu = QgsFillSymbol()
+            #     symbolMoltNegatiu.setColor(colors['colorG'])
+
+            #     symbology.updateRangeSymbol(0, symbolMoltPositiu)
+            #     symbology.updateRangeSymbol(1, symbolPositiu)
+            #     symbology.updateRangeSymbol(2, symbolNeutre)
+            #     symbology.updateRangeSymbol(3, symbolNegatiu)
+            #     symbology.updateRangeSymbol(4, symbolMoltNegatiu)
+
+            #     labelMitjana.setFormat(text_format)
+
+            #     propertyx = QgsProperty()
+            #     propertyx.setExpressionString("x(centroid($geometry))")
+            #     propertyx.setActive(True)
+
+            #     propertyy = QgsProperty()
+            #     propertyy.setExpressionString("y(centroid($geometry))")
+            #     propertyy.setActive(True)
+
+            #     propertyCollection = QgsPropertyCollection("Coordenades")
+            #     propertyCollection.setProperty(9, propertyx)
+            #     propertyCollection.setProperty(10, propertyy)
+            
+            #     labelMitjana.setDataDefinedProperties(propertyCollection)
+
+            #     labelMitjana.minimumScale = minimumValue
+            #     labelMitjana.maximumScale = maximumValue
+            #     labelMitjana.scaleVisibility = True
+
+            #     entitatLayerResumMitjana.setLabeling(QgsVectorLayerSimpleLabeling(labelMitjana))
+            #     entitatLayerResumMitjana.setLabelsEnabled(True)
+            #     entitatLayerResumMitjana.setRenderer(symbology)
+            #     entitatLayerResumMitjana.triggerRepaint()
+            #     QgsProject.instance().addMapLayer(entitatLayerResumMitjana, False)#.setName(f"Comparativa Mitjana {any1} i {any2}")
+            #     node = QgsLayerTreeLayer(entitatLayerResumMitjana)
+            #     node.setExpanded(True)
+            #     group.insertChildNode(3, node)
+
+            #     textBox += f"Comparativa {any1} i {any2} realitzada correctament\n"
+            #     self.dlg.textEstat.setText(textBox)
+            #     self.scroll_text()
+            #     self.updateProgress(65)
+            #     QApplication.processEvents()
+            
+            # return
+        
+        if not self.dlg.checkComparativa.isChecked():
+            any = self.dlg.comboAny.currentText()
+
+            if self.dlg.tabCalculs.currentIndex() == 1:
+                self.calculSuperficieGasElectricitat()
+                #if self.dlg.consumSumaButton.isChecked():
+                    #self.calculSumaConsums()
+                    #print("Calcul de suma de consums")
+                self.calculQualificacio()
+            self.calculIdEntitat()
+            self.castConsumEmissions()
+            #if self.dlg.consumElectricButton.isChecked():
+            #    self.desagregarConsumsElectrics()
+            if self.dlg.checkm2.isChecked() or self.dlg.checkm2_2.isChecked():
+                self.castm2()
+            self.joinEntitatHabitatges()
+
+            textBox += f"Realitzats càlculs previs de {nomEntitat}.\n"
+            self.dlg.textEstat.setText(textBox)
+            self.scroll_text()
+            self.updateProgress(20)
+            QApplication.processEvents()
 
         if estandar:
             color = QColor("#707070")
@@ -2952,7 +3190,7 @@ class EficEnerg:
         '''
         
         # Diagrames NumHabit
-        if self.dlg.checkNumHabit.isChecked() or self.dlg.checkNumHabit_2.isChecked():
+        if (self.dlg.checkNumHabit.isChecked() or self.dlg.checkNumHabit_2.isChecked()) and not self.dlg.checkComparativa.isChecked():
             self.calculNumHabit()
 
             diagramNumHabit = QgsPieDiagram()
@@ -3016,7 +3254,7 @@ class EficEnerg:
             self.updateProgress(35)
             QApplication.processEvents()
 
-        if self.dlg.checkm2.isChecked() or self.dlg.checkm2_2.isChecked():
+        if self.dlg.checkm2.isChecked() or self.dlg.checkm2_2.isChecked() and not self.dlg.checkComparativa.isChecked():
             self.calculm2()
 
             diagramm2 = QgsPieDiagram()
@@ -3083,24 +3321,31 @@ class EficEnerg:
         # Labels Mitjana
 
         if self.dlg.checkMitjana.isChecked() or self.dlg.checkMitjana_2.isChecked():
-            self.calculMitjana()
+            if not self.dlg.checkComparativa.isChecked():
+                self.calculMitjana()
             
             labelMitjana = QgsPalLayerSettings()
             labelMitjana.enabled = True
-
-            labelMitjana.fieldName = """
-            CASE
-                WHEN "indexMITJANA" IS NOT NULL AND "indexMITJANA" > 0 THEN '<div><b><font color="black">' || format_number("indexMITJANA", 1) || '</font></b></div>'
-                ELSE ''
-            END
-            """
+            if self.dlg.checkComparativa.isChecked():
+                labelMitjana.fieldName = """
+                CASE
+                    WHEN "diferencia" IS NOT NULL THEN '<div><b><font color="black">' || format_number("diferencia", 1) || '</font></b></div>'
+                    ELSE ''
+                END
+                """
+            else:
+                labelMitjana.fieldName = """
+                CASE
+                    WHEN "indexMITJANA" IS NOT NULL AND "indexMITJANA" > 0 THEN '<div><b><font color="black">' || format_number("indexMITJANA", 1) || '</font></b></div>'
+                    ELSE ''
+                END
+                """
             labelMitjana.isExpression = True
             labelMitjana.placement = QgsPalLayerSettings.AroundPoint
 
             text_format = QgsTextFormat()
             text_format.setAllowHtmlFormatting(True)
 
-            background_format = QgsTextBackgroundSettings()
             background_format = QgsTextBackgroundSettings()
             background_format.setEnabled(True)
             background_format.setType(QgsTextBackgroundSettings.ShapeRectangle)
@@ -3116,7 +3361,49 @@ class EficEnerg:
 
             text_format.setBackground(background_format)
             
-            symbology = QgsGraduatedSymbolRenderer("indexMITJANA", ranges.values())
+            if self.dlg.checkComparativa.isChecked():
+                symbology = QgsGraduatedSymbolRenderer("diferencia", ranges_comparativa.values())
+                symbolMoltPositiu = QgsFillSymbol()
+                symbolMoltPositiu.setColor(colors['colorA'])
+                symbolPositiu = QgsFillSymbol()
+                symbolPositiu.setColor(colors['colorC'])
+                symbolNeutre = QgsFillSymbol()
+                symbolNeutre.setColor(colors['colorD'])
+                symbolNegatiu = QgsFillSymbol()
+                symbolNegatiu.setColor(colors['colorE'])
+                symbolMoltNegatiu = QgsFillSymbol()
+                symbolMoltNegatiu.setColor(colors['colorG'])
+
+                symbology.updateRangeSymbol(0, symbolMoltPositiu)
+                symbology.updateRangeSymbol(1, symbolPositiu)
+                symbology.updateRangeSymbol(2, symbolNeutre)
+                symbology.updateRangeSymbol(3, symbolNegatiu)
+                symbology.updateRangeSymbol(4, symbolMoltNegatiu)
+            else:
+                symbology = QgsGraduatedSymbolRenderer("indexMITJANA", ranges.values())
+                symbolA = QgsFillSymbol()
+                symbolA.setColor(colors["colorA"])
+                symbolB = QgsFillSymbol()
+                symbolB.setColor(colors["colorB"])
+                symbolC = QgsFillSymbol()
+                symbolC.setColor(colors["colorC"])
+                symbolD = QgsFillSymbol()
+                symbolD.setColor(colors["colorD"])
+                symbolE = QgsFillSymbol()
+                symbolE.setColor(colors["colorE"])
+                symbolF = QgsFillSymbol()
+                symbolF.setColor(colors["colorF"])
+                symbolG = QgsFillSymbol()
+                symbolG.setColor(colors["colorG"])
+
+                symbology.updateRangeSymbol(0, symbolA)
+                symbology.updateRangeSymbol(1, symbolB)
+                symbology.updateRangeSymbol(2, symbolC)
+                symbology.updateRangeSymbol(3, symbolD)
+                symbology.updateRangeSymbol(4, symbolE)
+                symbology.updateRangeSymbol(5, symbolF)
+                symbology.updateRangeSymbol(6, symbolG)
+                
             '''
             symbolUnits = QgsFillSymbol()
             if consum:
@@ -3124,29 +3411,9 @@ class EficEnerg:
             if emissions:
                 symbolUnits.setColor(colors["colorEmissions"])
             '''
-            symbolA = QgsFillSymbol()
-            symbolA.setColor(colors["colorA"])
-            symbolB = QgsFillSymbol()
-            symbolB.setColor(colors["colorB"])
-            symbolC = QgsFillSymbol()
-            symbolC.setColor(colors["colorC"])
-            symbolD = QgsFillSymbol()
-            symbolD.setColor(colors["colorD"])
-            symbolE = QgsFillSymbol()
-            symbolE.setColor(colors["colorE"])
-            symbolF = QgsFillSymbol()
-            symbolF.setColor(colors["colorF"])
-            symbolG = QgsFillSymbol()
-            symbolG.setColor(colors["colorG"])
-
+            
             #symbology.updateRangeSymbol(0, symbolUnits)
-            symbology.updateRangeSymbol(0, symbolA)
-            symbology.updateRangeSymbol(1, symbolB)
-            symbology.updateRangeSymbol(2, symbolC)
-            symbology.updateRangeSymbol(3, symbolD)
-            symbology.updateRangeSymbol(4, symbolE)
-            symbology.updateRangeSymbol(5, symbolF)
-            symbology.updateRangeSymbol(6, symbolG)
+            
 
             labelMitjana.setFormat(text_format)
 
@@ -3166,7 +3433,7 @@ class EficEnerg:
 
             labelMitjana.minimumScale = minimumValue
             labelMitjana.maximumScale = maximumValue
-            
+
             labelMitjana.scaleVisibility = True
 
             entitatLayerResumMitjana.setLabeling(QgsVectorLayerSimpleLabeling(labelMitjana))
@@ -3187,17 +3454,26 @@ class EficEnerg:
         # Labels Moda
 
         if self.dlg.checkModa.isChecked() or self.dlg.checkModa_2.isChecked():
-            self.calculModa()
+            if not self.dlg.checkComparativa.isChecked():
+                self.calculModa()
 
             labelModa = QgsPalLayerSettings()
             labelModa.enabled = True
 
-            labelModa.fieldName = """
-            CASE
-                WHEN "indexMODA" IS NOT NULL AND "indexMODA" > 0 THEN '<div><b><font color="black">' || format_number("indexMODA", 1) || '</font></b></div>'
-                ELSE ''
-            END
-            """
+            if self.dlg.checkComparativa.isChecked():
+                labelModa.fieldName = """
+                CASE
+                    WHEN "diferencia" IS NOT NULL THEN '<div><b><font color="black">' || format_number("diferencia", 1) || '</font></b></div>'
+                    ELSE ''
+                END
+                """
+            else:
+                labelModa.fieldName = """
+                CASE
+                    WHEN "indexMODA" IS NOT NULL AND "indexMODA" > 0 THEN '<div><b><font color="black">' || format_number("indexMODA", 1) || '</font></b></div>'
+                    ELSE ''
+                END
+                """
 
             labelModa.isExpression = True
             labelModa.placement = QgsPalLayerSettings.AroundPoint
@@ -3220,45 +3496,64 @@ class EficEnerg:
 
             text_format.setBackground(background_format)
 
-            symbology = QgsCategorizedSymbolRenderer()
-            symbology.setClassAttribute("QualifMaxFreq")
-            '''
-            if consum:
+            if not self.dlg.checkComparativa.isChecked():          
+                symbology = QgsCategorizedSymbolRenderer()
+                symbology.setClassAttribute("QualifMaxFreq")
+                '''
+                if consum:
+                    symbol = QgsSymbol.defaultSymbol(entitatLayerResumModa.geometryType())
+                    symbol.changeSymbolLayer(0, QgsSimpleFillSymbolLayer(QColor("#000000")))
+                    symbology.addCategory(QgsRendererCategory("xxx", symbol, "Consum (KWh/m²any)"))
+                if emissions:
+                    symbol = QgsSymbol.defaultSymbol(entitatLayerResumModa.geometryType())
+                    symbol.changeSymbolLayer(0, QgsSimpleFillSymbolLayer(QColor("#000000")))
+                    symbology.addCategory(QgsRendererCategory("xxx", symbol,"Emissions (kgCO₂/m²any)"))
+                '''
                 symbol = QgsSymbol.defaultSymbol(entitatLayerResumModa.geometryType())
-                symbol.changeSymbolLayer(0, QgsSimpleFillSymbolLayer(QColor("#000000")))
-                symbology.addCategory(QgsRendererCategory("xxx", symbol, "Consum (KWh/m²any)"))
-            if emissions:
+                symbol.changeSymbolLayer(0, QgsSimpleFillSymbolLayer(colors["colorA"]))
+                symbology.addCategory(QgsRendererCategory("A", symbol, "A"))
+
                 symbol = QgsSymbol.defaultSymbol(entitatLayerResumModa.geometryType())
-                symbol.changeSymbolLayer(0, QgsSimpleFillSymbolLayer(QColor("#000000")))
-                symbology.addCategory(QgsRendererCategory("xxx", symbol,"Emissions (kgCO₂/m²any)"))
-            '''
-            symbol = QgsSymbol.defaultSymbol(entitatLayerResumModa.geometryType())
-            symbol.changeSymbolLayer(0, QgsSimpleFillSymbolLayer(colors["colorA"]))
-            symbology.addCategory(QgsRendererCategory("A", symbol, "A"))
+                symbol.changeSymbolLayer(0, QgsSimpleFillSymbolLayer(colors["colorB"]))
+                symbology.addCategory(QgsRendererCategory("B", symbol, "B"))
 
-            symbol = QgsSymbol.defaultSymbol(entitatLayerResumModa.geometryType())
-            symbol.changeSymbolLayer(0, QgsSimpleFillSymbolLayer(colors["colorB"]))
-            symbology.addCategory(QgsRendererCategory("B", symbol, "B"))
+                symbol = QgsSymbol.defaultSymbol(entitatLayerResumModa.geometryType())
+                symbol.changeSymbolLayer(0, QgsSimpleFillSymbolLayer(colors["colorC"]))
+                symbology.addCategory(QgsRendererCategory("C", symbol, "C"))
 
-            symbol = QgsSymbol.defaultSymbol(entitatLayerResumModa.geometryType())
-            symbol.changeSymbolLayer(0, QgsSimpleFillSymbolLayer(colors["colorC"]))
-            symbology.addCategory(QgsRendererCategory("C", symbol, "C"))
+                symbol = QgsSymbol.defaultSymbol(entitatLayerResumModa.geometryType())
+                symbol.changeSymbolLayer(0, QgsSimpleFillSymbolLayer(colors["colorD"]))
+                symbology.addCategory(QgsRendererCategory("D", symbol, "D"))
 
-            symbol = QgsSymbol.defaultSymbol(entitatLayerResumModa.geometryType())
-            symbol.changeSymbolLayer(0, QgsSimpleFillSymbolLayer(colors["colorD"]))
-            symbology.addCategory(QgsRendererCategory("D", symbol, "D"))
+                symbol = QgsSymbol.defaultSymbol(entitatLayerResumModa.geometryType())
+                symbol.changeSymbolLayer(0, QgsSimpleFillSymbolLayer(colors["colorE"]))
+                symbology.addCategory(QgsRendererCategory("E", symbol, "E"))
 
-            symbol = QgsSymbol.defaultSymbol(entitatLayerResumModa.geometryType())
-            symbol.changeSymbolLayer(0, QgsSimpleFillSymbolLayer(colors["colorE"]))
-            symbology.addCategory(QgsRendererCategory("E", symbol, "E"))
+                symbol = QgsSymbol.defaultSymbol(entitatLayerResumModa.geometryType())
+                symbol.changeSymbolLayer(0, QgsSimpleFillSymbolLayer(colors["colorF"]))
+                symbology.addCategory(QgsRendererCategory("F", symbol, "F"))
 
-            symbol = QgsSymbol.defaultSymbol(entitatLayerResumModa.geometryType())
-            symbol.changeSymbolLayer(0, QgsSimpleFillSymbolLayer(colors["colorF"]))
-            symbology.addCategory(QgsRendererCategory("F", symbol, "F"))
+                symbol = QgsSymbol.defaultSymbol(entitatLayerResumModa.geometryType())
+                symbol.changeSymbolLayer(0, QgsSimpleFillSymbolLayer(colors["colorG"]))
+                symbology.addCategory(QgsRendererCategory("G", symbol, "G"))
+            else:
+                symbology = QgsGraduatedSymbolRenderer("diferencia", ranges_comparativa.values())
+                symbolMoltPositiu = QgsFillSymbol()
+                symbolMoltPositiu.setColor(colors['colorA'])
+                symbolPositiu = QgsFillSymbol()
+                symbolPositiu.setColor(colors['colorC'])
+                symbolNeutre = QgsFillSymbol()
+                symbolNeutre.setColor(colors['colorD'])
+                symbolNegatiu = QgsFillSymbol()
+                symbolNegatiu.setColor(colors['colorE'])
+                symbolMoltNegatiu = QgsFillSymbol()
+                symbolMoltNegatiu.setColor(colors['colorG'])
 
-            symbol = QgsSymbol.defaultSymbol(entitatLayerResumModa.geometryType())
-            symbol.changeSymbolLayer(0, QgsSimpleFillSymbolLayer(colors["colorG"]))
-            symbology.addCategory(QgsRendererCategory("G", symbol, "G"))
+                symbology.updateRangeSymbol(0, symbolMoltPositiu)
+                symbology.updateRangeSymbol(1, symbolPositiu)
+                symbology.updateRangeSymbol(2, symbolNeutre)
+                symbology.updateRangeSymbol(3, symbolNegatiu)
+                symbology.updateRangeSymbol(4, symbolMoltNegatiu)
 
             labelModa.setFormat(text_format)
 
@@ -3299,16 +3594,25 @@ class EficEnerg:
         # Labels Mediana
 
         if self.dlg.checkMediana.isChecked() or self.dlg.checkMediana_2.isChecked():
-            self.calculMediana()
+            if not self.dlg.checkComparativa.isChecked():
+                self.calculMediana()
 
             labelMediana = QgsPalLayerSettings()
             labelMediana.enabled = True
-            labelMediana.fieldName = """
-            CASE
-                WHEN "indexMEDIANA" IS NOT NULL AND "indexMEDIANA" > 0 THEN '<div><b><font color="black">' || format_number("indexMEDIANA", 1) || '</font></b></div>'
-                ELSE ''
-            END
-            """
+            if self.dlg.checkComparativa.isChecked():
+                labelMediana.fieldName = """
+                CASE
+                    WHEN "diferencia" IS NOT NULL THEN '<div><b><font color="black">' || format_number("diferencia", 1) || '</font></b></div>'
+                    ELSE ''
+                END
+                """
+            else:
+                labelMediana.fieldName = """
+                CASE
+                    WHEN "indexMEDIANA" IS NOT NULL AND "indexMEDIANA" > 0 THEN '<div><b><font color="black">' || format_number("indexMEDIANA", 1) || '</font></b></div>'
+                    ELSE ''
+                END
+                """
 
             labelMediana.isExpression = True
             labelMediana.placement = QgsPalLayerSettings.AroundPoint
@@ -3331,37 +3635,56 @@ class EficEnerg:
 
             text_format.setBackground(background_format)
 
-            symbology = QgsGraduatedSymbolRenderer("indexMEDIANA", ranges.values())
-            '''
-            symbolUnits = QgsFillSymbol()
-            if consum:
-                symbolUnits.setColor(colors["colorConsum"])
-            if emissions:
-                symbolUnits.setColor(colors["colorEmissions"])
-            '''
-            symbolA = QgsFillSymbol()
-            symbolA.setColor(colors["colorA"])
-            symbolB = QgsFillSymbol()
-            symbolB.setColor(colors["colorB"])
-            symbolC = QgsFillSymbol()
-            symbolC.setColor(colors["colorC"])
-            symbolD = QgsFillSymbol()
-            symbolD.setColor(colors["colorD"])
-            symbolE = QgsFillSymbol()
-            symbolE.setColor(colors["colorE"])
-            symbolF = QgsFillSymbol()
-            symbolF.setColor(colors["colorF"])
-            symbolG = QgsFillSymbol()
-            symbolG.setColor(colors["colorG"])
+            if not self.dlg.checkComparativa.isChecked():
+                symbology = QgsGraduatedSymbolRenderer("indexMEDIANA", ranges.values())
+                '''
+                symbolUnits = QgsFillSymbol()
+                if consum:
+                    symbolUnits.setColor(colors["colorConsum"])
+                if emissions:
+                    symbolUnits.setColor(colors["colorEmissions"])
+                '''
+                symbolA = QgsFillSymbol()
+                symbolA.setColor(colors["colorA"])
+                symbolB = QgsFillSymbol()
+                symbolB.setColor(colors["colorB"])
+                symbolC = QgsFillSymbol()
+                symbolC.setColor(colors["colorC"])
+                symbolD = QgsFillSymbol()
+                symbolD.setColor(colors["colorD"])
+                symbolE = QgsFillSymbol()
+                symbolE.setColor(colors["colorE"])
+                symbolF = QgsFillSymbol()
+                symbolF.setColor(colors["colorF"])
+                symbolG = QgsFillSymbol()
+                symbolG.setColor(colors["colorG"])
 
-            #symbology.updateRangeSymbol(0, symbolUnits)
-            symbology.updateRangeSymbol(0, symbolA)
-            symbology.updateRangeSymbol(1, symbolB)
-            symbology.updateRangeSymbol(2, symbolC)
-            symbology.updateRangeSymbol(3, symbolD)
-            symbology.updateRangeSymbol(4, symbolE)
-            symbology.updateRangeSymbol(5, symbolF)
-            symbology.updateRangeSymbol(6, symbolG)
+                #symbology.updateRangeSymbol(0, symbolUnits)
+                symbology.updateRangeSymbol(0, symbolA)
+                symbology.updateRangeSymbol(1, symbolB)
+                symbology.updateRangeSymbol(2, symbolC)
+                symbology.updateRangeSymbol(3, symbolD)
+                symbology.updateRangeSymbol(4, symbolE)
+                symbology.updateRangeSymbol(5, symbolF)
+                symbology.updateRangeSymbol(6, symbolG)
+            else:
+                symbology = QgsGraduatedSymbolRenderer("diferencia", ranges_comparativa.values())
+                symbolMoltPositiu = QgsFillSymbol()
+                symbolMoltPositiu.setColor(colors['colorA'])
+                symbolPositiu = QgsFillSymbol()
+                symbolPositiu.setColor(colors['colorC'])
+                symbolNeutre = QgsFillSymbol()
+                symbolNeutre.setColor(colors['colorD'])
+                symbolNegatiu = QgsFillSymbol()
+                symbolNegatiu.setColor(colors['colorE'])
+                symbolMoltNegatiu = QgsFillSymbol()
+                symbolMoltNegatiu.setColor(colors['colorG'])
+
+                symbology.updateRangeSymbol(0, symbolMoltPositiu)
+                symbology.updateRangeSymbol(1, symbolPositiu)
+                symbology.updateRangeSymbol(2, symbolNeutre)
+                symbology.updateRangeSymbol(3, symbolNegatiu)
+                symbology.updateRangeSymbol(4, symbolMoltNegatiu)
 
             labelMediana.setFormat(text_format)
 
