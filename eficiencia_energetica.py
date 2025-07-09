@@ -450,7 +450,7 @@ class EficEnerg:
 
             self.barraEstat_connectant()
             #textBox += f"\nConnectant a la base de dades {nomBD1}...\n"
-            textBox = f"Connectant a la base de dades {nomBD1}...\n"
+            textBox = f"Connectant a la base de dades...\n"
             self.dlg.textEstat.setText(textBox)
             self.scroll_text()
             self.dlg.lblEstatConn.setAutoFillBackground(True)
@@ -467,7 +467,7 @@ class EficEnerg:
                 conn = psycopg2.connect(estructura)
                 self.barraEstat_connectat()
                 connexioFeta = True
-                textBox += f"\nConnectat a la base de dades {nomBD1}\n"
+                textBox += f"\nConnectat a la base de dades.\n"
                 textBox += "\nSelecciona l'entitat amb la que vulguis treballar i indica els càlculs que vols realitzar sobre aquesta així com si vols els càlculs sobre:\n"
                 textBox += " - el consum d'energia primaria no renovable\n"
                 textBox += " - les emissions de diòxid de carboni\n"
@@ -3615,7 +3615,15 @@ class EficEnerg:
         if evolucioLayer is None:
             return
         if not QgsProject.instance().mapLayersByName(evolucioLayer.name()):
-            QgsProject.instance().addMapLayer(evolucioLayer)
+            QgsProject.instance().addMapLayer(evolucioLayer, False)
+            evolucioLayer.setAutoRefreshEnabled(True)
+            root = QgsProject.instance().layerTreeRoot()
+            #layer_node = root.addLayer(evolucioLayer)
+            layer_node = root.findLayer(evolucioLayer.id())
+            layer_node.setExpanded(True)
+            QApplication.processEvents()
+            layer_node.setExpanded(False)
+            self.iface.layerTreeView().layerTreeModel().refreshLayerLegend(layer_node)
         capa = evolucioLayer
         required_fields = [f'indexMITJANA_{year}']
 
@@ -3741,6 +3749,14 @@ class EficEnerg:
             return
         if not QgsProject.instance().mapLayersByName(evolucioLayer.name()):
             QgsProject.instance().addMapLayer(evolucioLayer)
+            evolucioLayer.setAutoRefreshEnabled(True)
+            root = QgsProject.instance().layerTreeRoot()
+            #layer_node = root.addLayer(evolucioLayer)
+            layer_node = root.findLayer(evolucioLayer.id())
+            layer_node.setExpanded(True)
+            QApplication.processEvents()
+            layer_node.setExpanded(False)
+            self.iface.layerTreeView().layerTreeModel().refreshLayerLegend(layer_node)
         capa = evolucioLayer
         required_fields = [f'indexMODA_{year}', f'QualifMaxFreq_{year}']
 
@@ -3845,6 +3861,14 @@ class EficEnerg:
             return
         if not QgsProject.instance().mapLayersByName(evolucioLayer.name()):
             QgsProject.instance().addMapLayer(evolucioLayer)
+            evolucioLayer.setAutoRefreshEnabled(True)
+            root = QgsProject.instance().layerTreeRoot()
+            #layer_node = root.addLayer(evolucioLayer)
+            layer_node = root.findLayer(evolucioLayer.id())
+            layer_node.setExpanded(True)
+            QApplication.processEvents()
+            layer_node.setExpanded(False)
+            self.iface.layerTreeView().layerTreeModel().refreshLayerLegend(layer_node)
         capa = evolucioLayer
         required_fields = [f'indexMEDIANA_{year}']
 
