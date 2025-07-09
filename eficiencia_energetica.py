@@ -92,6 +92,7 @@ group = None
 total_start_time = 0
 primeraExecucio = True
 versioBD = ""
+llegendaAfegida = False
 
 habitatges = "cert_efi_energ_edif_mataro_geom"
 habitatgesLayer = None
@@ -106,6 +107,7 @@ entitatLayerResumModa = None
 entitatLayerResumMediana = None
 evolucioLayer = None
 metodeEvolucio = None
+llegendaLayer = None
 
 results = {}
 parameters = {}
@@ -447,7 +449,8 @@ class EficEnerg:
             #schema1 = s.value("schema", "")
 
             self.barraEstat_connectant()
-            textBox += f"\nConnectant a la base de dades {nomBD1}...\n"
+            #textBox += f"\nConnectant a la base de dades {nomBD1}...\n"
+            textBox = f"Connectant a la base de dades {nomBD1}...\n"
             self.dlg.textEstat.setText(textBox)
             self.scroll_text()
             self.dlg.lblEstatConn.setAutoFillBackground(True)
@@ -1167,6 +1170,12 @@ class EficEnerg:
             self.dlg.loopGasCheck.setChecked(False)
 
     def on_change_evolucioGasSlider(self):
+        global group
+        if group is not None:
+            self.mostrarCapaLlegenda()
+        else:
+            group = QgsProject.instance().layerTreeRoot()
+            self.mostrarCapaLlegenda()
         any = self.dlg.evolucioGasSlider.value()
         self.dlg.anyGasLabel.setText(str(any))
         if self.dlg.metodeEvolucioCombo.currentIndex() == 1:
@@ -1670,6 +1679,11 @@ class EficEnerg:
         global entitatLayerResumMitjana
         global entitatLayerResumModa
         global entitatLayerResumMediana
+        global evolucioLayer
+        global metodeEvolucio
+        global joinEntitatHabitatges
+        global llegendaLayer
+        global llegendaAfegida
 
         self.dlg.comboBD.setEnabled(True)
         self.dlg.comboEntitat.setEnabled(True)
@@ -1690,6 +1704,12 @@ class EficEnerg:
         entitatLayerResumMitjana = None
         entitatLayerResumModa = None
         entitatLayerResumMediana = None
+        evolucioLayer = None
+        metodeEvolucio = None
+        llegendaLayer = None
+        joinEntitatHabitatges = None
+
+        llegendaAfegida = False
 
     def calculIdEntitat(self):
         global entitatLayer
@@ -3006,13 +3026,14 @@ class EficEnerg:
     def eliminarNulls(self):
         global habitatgesLayer
 
-        alg_params = {
-            'FIELD': f'CONSUMO_{any}',
-            'INPUT': habitatgesLayer,
-            'OPERATOR': 9,  # 9 = is not null
-            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-        }
-        habitatgesLayer = processing.run('qgis:extractbyattribute', alg_params)['OUTPUT']
+        if consumGas or consumElectric or self.dlg.consumSumaButton.isChecked():
+            alg_params = {
+                'FIELD': f'CONSUMO_{any}',
+                'INPUT': habitatgesLayer,
+                'OPERATOR': 9,  # 9 = is not null
+                'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+            }
+            habitatgesLayer = processing.run('qgis:extractbyattribute', alg_params)['OUTPUT']
         
     def castGaskWh(self):
         global habitatgesLayer
@@ -3315,7 +3336,6 @@ class EficEnerg:
                 self.updateProgress(65)
                 QApplication.processEvents()
 
-                
                 self.updateProgress(100)
                 QApplication.processEvents()
             if evolucioSuma:
@@ -3978,59 +3998,7 @@ class EficEnerg:
             group = root.insertGroup(0, f"Evolució {nomEntitat.upper()} (KWh/m²any)")
 
         if not self.dlg.checkComparativa.isChecked():
-            llegenda = QgsVectorLayer("MultiPolygon?crs=epsg:25831", "Llegenda", "memory")
-            QgsProject.instance().addMapLayer(llegenda, False)
-            diagramLlegenda = QgsPieDiagram()
-            diagramLlegendaSettings = QgsDiagramSettings()
-            diagramLlegendaSettings.categoryColors = list(colors.values())[2:]
-            diagramLlegendaSettings.categoryAttributes = ['m2A', 'm2B', 'm2C', 'm2D', 'm2E', 'm2F', 'm2G']
-            diagramLlegendaSettings.scaleByArea = False
-            diagramLlegendaSettings.scaleBasedVisibility = True
-            diagramLlegendaSettings.size = QSizeF(15, 15)
-            diagramLlegendaSettings.minimumScale = minimumValue
-            diagramLlegendaSettings.maximumScale = maximumValue
-            diagramLlegendaSettings.categoryLabels = ['A (Menys de 34,1)', 
-                                                    'B (34,1 - 55,5)', 
-                                                    'C (55,5 - 85,4)', 
-                                                    'D (85,4 - 111,6)', 
-                                                    'E (111,6 - 136,6)', 
-                                                    'F (136,6 - 170,7)', 
-                                                    'G (Més de 170,7)']
-            diagramLlegendaSettings.enabled = True
-            llegenda.renderer().symbol().setColor(color)
-            diagramLlegendaRenderer = QgsSingleCategoryDiagramRenderer()
-            diagramLlegendaRenderer.setDiagram(diagramLlegenda)
-            diagramLlegendaRenderer.setDiagramSettings(diagramLlegendaSettings)
-            diagramLlegendaRenderer.setAttributeLegend(True)
-            llegenda.setDiagramRenderer(diagramLlegendaRenderer)
-            llegenda.triggerRepaint()
-            propertyx = QgsProperty()
-            propertyx.setExpressionString("x(centroid($geometry))")
-            propertyx.setActive(True)
-            propertyy = QgsProperty()
-            propertyy.setExpressionString("y(centroid($geometry))")
-            propertyy.setActive(True)
-            propertyVisibility = QgsProperty()
-            propertyVisibility.setExpressionString("scale() > " + str(minimumValue) + " AND scale() < " + str(maximumValue))
-            propertyVisibility.setActive(True)
-            propertyCollection = QgsPropertyCollection("Diagram Properties")
-            propertyCollection.setProperty(3, propertyx)
-            propertyCollection.setProperty(4, propertyy)
-            propertyCollection.setProperty(9, propertyVisibility)
-            diagramLlegendaLayerSettings = QgsDiagramLayerSettings()
-            diagramLlegendaLayerSettings.setDataDefinedProperties(propertyCollection)
-            llegenda.setDiagramLayerSettings(diagramLlegendaLayerSettings)
-            single_symbol_renderer = llegenda.renderer().clone()
-            symbol = single_symbol_renderer.symbol()
-            symbol_layer = QgsSimpleLineSymbolLayer()
-            symbol_layer.setWidth(0)
-            llegenda.setRenderer(single_symbol_renderer)
-            llegenda.triggerRepaint()
-            node = QgsLayerTreeLayer(llegenda)
-            node.setExpanded(True)
-            group.insertChildNode(0, node)
-            llegenda.triggerRepaint()
-            QApplication.processEvents()
+            self.mostrarCapaLlegenda()
         
         ''' Aquesta comprovació serveix per a assegurar-se que s'utilitza la taula correcta segons consum d'energia primaria no renovable i emissions de co2,
             consum elèctric o consum de gas, que són tres taules diferents encara que originalment sempre s'utilitzés la primera (cert_efi_energ_edif_mataro_geom)
@@ -4672,6 +4640,66 @@ class EficEnerg:
         QMessageBox.information(None, "Procés finalitzat", f"El procés per a l'entitat {nomEntitat} ha finalitzat.", QMessageBox.Ok)
         self.estatFinalitzat()
         QApplication.processEvents()
+
+    def mostrarCapaLlegenda(self):
+        global llegendaAfegida
+        global llegendaLayer
+        if not llegendaAfegida:
+            llegenda = QgsVectorLayer("MultiPolygon?crs=epsg:25831", "Llegenda", "memory")
+            QgsProject.instance().addMapLayer(llegenda, False)
+            diagramLlegenda = QgsPieDiagram()
+            diagramLlegendaSettings = QgsDiagramSettings()
+            diagramLlegendaSettings.categoryColors = list(colors.values())[2:]
+            diagramLlegendaSettings.categoryAttributes = ['m2A', 'm2B', 'm2C', 'm2D', 'm2E', 'm2F', 'm2G']
+            diagramLlegendaSettings.scaleByArea = False
+            diagramLlegendaSettings.scaleBasedVisibility = True
+            diagramLlegendaSettings.size = QSizeF(15, 15)
+            diagramLlegendaSettings.minimumScale = minimumValue
+            diagramLlegendaSettings.maximumScale = maximumValue
+            diagramLlegendaSettings.categoryLabels = ['A (Menys de 34,1)', 
+                                                    'B (34,1 - 55,5)', 
+                                                    'C (55,5 - 85,4)', 
+                                                    'D (85,4 - 111,6)', 
+                                                    'E (111,6 - 136,6)', 
+                                                    'F (136,6 - 170,7)', 
+                                                    'G (Més de 170,7)']
+            diagramLlegendaSettings.enabled = True
+            llegenda.renderer().symbol().setColor(color)
+            diagramLlegendaRenderer = QgsSingleCategoryDiagramRenderer()
+            diagramLlegendaRenderer.setDiagram(diagramLlegenda)
+            diagramLlegendaRenderer.setDiagramSettings(diagramLlegendaSettings)
+            diagramLlegendaRenderer.setAttributeLegend(True)
+            llegenda.setDiagramRenderer(diagramLlegendaRenderer)
+            llegenda.triggerRepaint()
+            propertyx = QgsProperty()
+            propertyx.setExpressionString("x(centroid($geometry))")
+            propertyx.setActive(True)
+            propertyy = QgsProperty()
+            propertyy.setExpressionString("y(centroid($geometry))")
+            propertyy.setActive(True)
+            propertyVisibility = QgsProperty()
+            propertyVisibility.setExpressionString("scale() > " + str(minimumValue) + " AND scale() < " + str(maximumValue))
+            propertyVisibility.setActive(True)
+            propertyCollection = QgsPropertyCollection("Diagram Properties")
+            propertyCollection.setProperty(3, propertyx)
+            propertyCollection.setProperty(4, propertyy)
+            propertyCollection.setProperty(9, propertyVisibility)
+            diagramLlegendaLayerSettings = QgsDiagramLayerSettings()
+            diagramLlegendaLayerSettings.setDataDefinedProperties(propertyCollection)
+            llegenda.setDiagramLayerSettings(diagramLlegendaLayerSettings)
+            single_symbol_renderer = llegenda.renderer().clone()
+            symbol = single_symbol_renderer.symbol()
+            symbol_layer = QgsSimpleLineSymbolLayer()
+            symbol_layer.setWidth(0)
+            llegenda.setRenderer(single_symbol_renderer)
+            llegenda.triggerRepaint()
+            node = QgsLayerTreeLayer(llegenda)
+            node.setExpanded(True)
+            group.insertChildNode(0, node)
+            llegenda.triggerRepaint()
+            llegendaLayer = llegenda
+            llegendaAfegida = True
+            QApplication.processEvents()
 
     def dropFinalTables(self):
         global cur
