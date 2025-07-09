@@ -465,7 +465,12 @@ class EficEnerg:
                 self.barraEstat_connectat()
                 connexioFeta = True
                 textBox += f"\nConnectat a la base de dades {nomBD1}\n"
-                textBox += "\nSelecciona l'entitat amb la que vulguis treballar i indica els càlculs que vols realitzar sobre aquesta així com si vols els càlculs sobre el consum o les emissions.\n"
+                textBox += "\nSelecciona l'entitat amb la que vulguis treballar i indica els càlculs que vols realitzar sobre aquesta així com si vols els càlculs sobre:\n"
+                textBox += " - el consum d'energia primaria no renovable\n"
+                textBox += " - les emissions de diòxid de carboni\n"
+                textBox += " - el consum de gas\n"
+                textBox += " - el consum d'electricitat\n"
+                textBox += " - la suma dels consums de gas i electricitat\n"
                 self.dlg.textEstat.setText(textBox)
                 self.scroll_text()
                 cur = conn.cursor()
@@ -576,12 +581,6 @@ class EficEnerg:
                 print("Error al crear la taula temporal")
                 QMessageBox.information(None, "Error", "Error al crear la taula temporal")
                 return
-            if textBox is not None or textBox != "":
-                textBox += "\nVersió de la base de dades: 2.0\n"
-                self.dlg.textEstat.setText(textBox)
-                self.scroll_text()
-            else:
-                self.dlg.textEstat.setText("Versió de la base de dades: 2.0\n")
             try:
                 sql = f"DROP TABLE IF EXISTS zone_{fitxer};\n"
                 sql += f"CREATE TABLE zone_{fitxer} AS SELECT * FROM zone WHERE type != 'POLIGONO';"
