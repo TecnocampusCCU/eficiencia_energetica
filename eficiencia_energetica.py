@@ -33,7 +33,7 @@ import processing
 import psycopg2
 import qgis.utils
 from PyQt5.QtCore import *
-from PyQt5.QtCore import QSizeF
+from PyQt5.QtCore import QSizeF, QTimer
 from PyQt5.QtGui import *
 from PyQt5.QtGui import QColor
 from PyQt5.QtSql import *
@@ -50,7 +50,7 @@ from qgis.core import (QgsCategorizedSymbolRenderer, QgsDataSourceUri,
                        QgsSingleCategoryDiagramRenderer, QgsSymbol,
                        QgsTextBackgroundSettings, QgsTextFormat, QgsUnitTypes,
                        QgsVectorLayer, QgsVectorLayerSimpleLabeling,
-                       QgsWkbTypes, QgsExpression)
+                       QgsWkbTypes, QgsExpression, QgsCoordinateReferenceSystem)
 from qgis.core import NULL
 from qgis.PyQt.QtCore import QCoreApplication, QSettings, QTranslator, qVersion, QVariant, QUrl
 from qgis.PyQt.QtGui import QIcon, QColor, QFont, QStandardItemModel, QStandardItem, QTextCursor
@@ -63,7 +63,7 @@ from .eficiencia_energetica_dialog import EficEnergDialog
 from .resources import *
 
 '''Variables globals'''
-Versio_modul = "V_Q3.250526"
+Versio_modul = "V_Q3.250709"
 nomBD1 = ""
 password1 = ""
 host1 = ""
@@ -88,7 +88,9 @@ emissions = False
 consumElectric = False
 consumGas = False
 any = 0
-
+group = None
+total_start_time = 0
+primeraExecucio = True
 versioBD = ""
 
 habitatges = "cert_efi_energ_edif_mataro_geom"
@@ -102,6 +104,8 @@ entitatLayerResumm2 = None
 entitatLayerResumMitjana = None
 entitatLayerResumModa = None
 entitatLayerResumMediana = None
+evolucioLayer = None
+metodeEvolucio = None
 
 results = {}
 parameters = {}
@@ -202,6 +206,17 @@ llistaAnysGas = [
     '2022'
 ]
 
+play_button_style = """
+QPushButton {
+    background-color: rgba(240, 240, 240, 128);
+    border: 1px solid #cccccc;
+    border-radius: 5px;
+}
+QPushButton:checked {
+    background-color: rgb(85, 255, 127);
+}
+"""
+
 class EficEnerg:
     """QGIS Plugin Implementation."""
 
@@ -274,6 +289,21 @@ class EficEnerg:
         self.dlg.checkComparativa.stateChanged.connect(self.on_change_checkComparativa)
 
         self.dlg.tabCalculs.currentChanged.connect(self.on_currentChanged_tabCalculs)
+
+        self.dlg.evolucioGasButton.toggled.connect(self.on_change_evolucioGasButton)
+        self.dlg.evolucioGasSlider.valueChanged.connect(self.on_change_evolucioGasSlider)
+        self.dlg.evolucioGasPlay.toggled.connect(self.on_change_evolucioGasPlay)
+        self.dlg.evolucioLlumButton.toggled.connect(self.on_change_evolucioLlumButton)
+        self.dlg.evolucioLlumSlider.valueChanged.connect(self.on_change_evolucioLlumSlider)
+        self.dlg.evolucioLlumPlay.toggled.connect(self.on_change_evolucioLlumPlay)
+        self.dlg.evolucioSumaButton.toggled.connect(self.on_change_evolucioSumaButton)
+        self.dlg.evolucioSumaSlider.valueChanged.connect(self.on_change_evolucioSumaSlider)
+        self.dlg.evolucioSumaPlay.toggled.connect(self.on_change_evolucioSumaPlay)
+        self.dlg.metodeEvolucioCombo.currentIndexChanged.connect(self.on_change_metodeEvolucioCombo)
+
+        self.playback_timer = QTimer()
+        self.playback_timer.timeout.connect(self.update_playback_year)
+        self.current_playback_year = 2016
 
         self.dlg.rejected.connect(self.on_click_Sortir)
 
@@ -571,6 +601,12 @@ class EficEnerg:
         global habitatges
         global habitatgesLayer
         global nomEntitat
+        global evolucioGas
+        global evolucioLlum
+        global evolucioSuma
+        global color
+        global minimumValue
+        global maximumValue
 
         entitat = llistaEntitats[self.dlg.comboEntitat.currentIndex()]
         nomEntitat = self.dlg.comboEntitat.currentText()
@@ -583,6 +619,15 @@ class EficEnerg:
                 habitatges = "consums_mataro_llum"
             if self.dlg.consumGasButton.isChecked():
                 habitatges = "consums_mataro_gas"
+            if self.dlg.consumSumaButton.isChecked():
+                habitatges = "consums_mataro_suma"
+        if self.dlg.tabCalculs.currentIndex() == 2:
+            if self.dlg.evolucioGasButton.isChecked():
+                self.on_change_evolucioGasButton()
+            if self.dlg.evolucioLlumButton.isChecked():
+                self.on_change_evolucioLlumButton()
+            if self.dlg.evolucioSumaButton.isChecked():
+                self.on_change_evolucioSumaButton()
 
         try:
             uri.setDataSource(schema1, entitat, 'geom')
@@ -629,6 +674,18 @@ class EficEnerg:
             self.dlg.maxScale.setValue(1)
             self.dlg.minScaleP.setValue(40000)
             self.dlg.maxScaleP.setValue(1)
+
+        if self.dlg.evolucioGasButton.isChecked():
+            self.on_change_evolucioGasButton()
+        if self.dlg.evolucioLlumButton.isChecked():
+            self.on_change_evolucioLlumButton()
+        if self.dlg.evolucioSumaButton.isChecked():
+            self.on_change_evolucioSumaButton()
+
+        if self.dlg.tabCalculs.currentIndex() == 2:
+            color = QColor("#707070")
+            minimumValue = self.dlg.minScale.value()
+            maximumValue = self.dlg.maxScale.value()
         
     def on_change_entitatsIOperacions(self):
         if numOperacions > 2:
@@ -712,7 +769,7 @@ class EficEnerg:
         if self.dlg.checkNumHabit_2.isChecked() and not self.dlg.checkm2_2.isChecked():
             self.dlg.checkMitjana_2.setEnabled(True)
             self.dlg.checkModa_2.setEnabled(True)
-            self.dlg.checkMediana_2.setEnabled(True)
+            self.dlg.checkMediana_2.setEnabled(False)
             self.dlg.labelRestriccio.setVisible(True)
             self.dlg.labelRestriccio.setText("Al calcular la Mitjana, la Moda i la Mediana no es tenen en compte les superfícies dels habitatges.")
 
@@ -780,9 +837,38 @@ class EficEnerg:
         self.dlg.checkMitjana_2.setChecked(False)
         self.dlg.checkModa_2.setChecked(False)
         self.dlg.checkMediana_2.setChecked(False)
+        self.dlg.consumButton.setChecked(False)
+        self.dlg.emissionsButton.setChecked(False)
+        self.dlg.consumElectricButton.setChecked(False)
+        self.dlg.consumGasButton.setChecked(False)
+        self.dlg.consumSumaButton.setChecked(False)
+        self.dlg.checkComparativa.setChecked(False)
+        self.dlg.evolucioGasButton.setChecked(False)
+        self.dlg.evolucioLlumButton.setChecked(False)
+        self.dlg.evolucioSumaButton.setChecked(False)
+        self.dlg.evolucioGasSlider.setEnabled(False)
+        self.dlg.evolucioLlumSlider.setEnabled(False)
+        self.dlg.evolucioSumaSlider.setEnabled(False)
+        self.dlg.anyGasLabel.setEnabled(False)
+        self.dlg.anyLlumLabel.setEnabled(False)
+        self.dlg.anySumaLabel.setEnabled(False)
+        self.dlg.evolucioGasSlider.setValue(2016)
+        self.dlg.evolucioLlumSlider.setValue(2016)
+        self.dlg.evolucioSumaSlider.setValue(2016)
+        self.dlg.anyGasLabel.setText("2016")
+        self.dlg.anyLlumLabel.setText("2016")
+        self.dlg.anySumaLabel.setText("2016")
         self.dlg.labelRestriccio.setVisible(False)
-        self.dlg.labelRestriccio.setText(" ")            
-
+        self.dlg.labelRestriccio.setText(" ")           
+        
+        if self.dlg.tabCalculs.currentIndex() == 2:
+            self.dlg.pushInici.setVisible(False)
+            self.dlg.pushInici.setEnabled(False)
+            self.dlg.comboEntitat.setCurrentIndex(0)
+        else:
+            self.dlg.pushInici.setVisible(True)
+            self.dlg.pushInici.setEnabled(True)
+            
     def on_click_color(self):
         global color
         try:
@@ -990,6 +1076,416 @@ class EficEnerg:
             self.dlg.lblAny.setVisible(True)
             self.dlg.comboAny.setVisible(True)
 
+    def on_change_evolucioGasButton(self):
+        global uri
+        global conn
+
+        global evolucioGas
+        global evolucioLlum
+        global evolucioSuma
+        global evolucioLayer
+
+        if self.dlg.evolucioGasButton.isChecked():
+            evolucioGas = True
+            evolucioLlum = False
+            evolucioSuma = False
+            self.dlg.evolucioGasSlider.setEnabled(True)
+            self.dlg.anyGasLabel.setEnabled(True)
+            self.dlg.evolucioLlumSlider.setEnabled(False)
+            self.dlg.anyLlumLabel.setEnabled(False)
+            self.dlg.evolucioSumaSlider.setEnabled(False)
+            self.dlg.anySumaLabel.setEnabled(False)
+            self.dlg.evolucioGasPlay.setVisible(True)
+            self.dlg.evolucioGasPlay.setEnabled(True)
+            self.dlg.loopGasCheck.setVisible(True)
+            self.dlg.loopGasCheck.setEnabled(True)
+
+            if evolucioLayer is not None:
+                QgsProject.instance().removeMapLayer(evolucioLayer.id())
+                evolucioLayer = None
+
+            if self.dlg.comboEntitat.currentIndex() != 0 and self.dlg.metodeEvolucioCombo.currentIndex() != 0:
+                if self.dlg.metodeEvolucioCombo.currentIndex() == 1:
+                    metodeEvolucio = 'numhab'
+                    nom_metode = 'nombre d\'habitatges'
+                if self.dlg.metodeEvolucioCombo.currentIndex() == 2:
+                    metodeEvolucio = 'm2'
+                    nom_metode = 'metres quadrats'
+                if self.dlg.metodeEvolucioCombo.currentIndex() == 3:
+                    metodeEvolucio = 'mitjana'
+                    nom_metode = 'mitjana'
+                if self.dlg.metodeEvolucioCombo.currentIndex() == 4:
+                    metodeEvolucio = 'moda'
+                    nom_metode = 'moda'
+                if self.dlg.metodeEvolucioCombo.currentIndex() == 5:
+                    metodeEvolucio = 'mediana'
+                    nom_metode = 'mediana'
+
+                if self.dlg.comboEntitat.currentIndex() == 1:
+                    entity = 'parcel'
+                    nom_capa = f'Evolució del consum de gas per {nom_metode} a PARCEL·LES'
+                if self.dlg.comboEntitat.currentIndex() == 2:
+                    entity = 'zone'
+                    nom_capa = f'Evolució del consum de gas per {nom_metode} a ILLES'
+                if self.dlg.comboEntitat.currentIndex() == 3:
+                    entity = 'seccions'
+                    nom_capa = f'Evolució del consum de gas per {nom_metode} a SECCIONS'
+                if self.dlg.comboEntitat.currentIndex() == 4:
+                    entity = 'barris'
+                    nom_capa = f'Evolució del consum de gas per {nom_metode} a BARRIS'
+                if self.dlg.comboEntitat.currentIndex() == 5:
+                    entity = 'districtes'
+                    nom_capa = f'Evolució del consum de gas per {nom_metode} a DISTRICTES'
+                if self.dlg.comboEntitat.currentIndex() == 6:
+                    entity = 'districtes_postals'
+                    nom_capa = f'Evolució del consum de gas per {nom_metode} a DISTRICTES POSTALS'
+                
+                try:
+                    uri.setDataSource('visualitzar_evolucio', f'{entity}_gas_{metodeEvolucio}', 'geom')
+                    evolucioLayer = QgsVectorLayer(uri.uri(), nom_capa, 'postgres')
+                    QgsProject.instance().addMapLayer(evolucioLayer).setName(nom_capa)
+                    self.on_change_evolucioGasSlider()
+                except Exception as ex:
+                    print("Error: No s'ha pogut carregar la capa d'evolucio del consum de gas per a l'entitat seleccionada")
+                    template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+                    message = template.format(type(ex).__name__, ex.args)
+                    print(message)
+                    QMessageBox.critical(None, "Error", "Error: No s'ha pogut carregar la capa d'evolucio del consum de gas per a l'entitat seleccionada")
+                    conn.rollback()
+                    self.dlg.setEnabled(True)
+                    return
+        else:
+            evolucioGas = False
+            self.dlg.evolucioGasSlider.setEnabled(False)
+            self.dlg.evolucioGasSlider.setValue(2016)
+            self.dlg.anyGasLabel.setEnabled(False)
+            self.dlg.anyGasLabel.setText("2016")
+            self.dlg.evolucioGasPlay.setVisible(False)
+            self.dlg.evolucioGasPlay.setEnabled(False)
+            self.dlg.evolucioGasPlay.setChecked(False)
+            self.dlg.loopGasCheck.setVisible(False)
+            self.dlg.loopGasCheck.setEnabled(False)
+            self.dlg.loopGasCheck.setChecked(False)
+
+    def on_change_evolucioGasSlider(self):
+        any = self.dlg.evolucioGasSlider.value()
+        self.dlg.anyGasLabel.setText(str(any))
+        if self.dlg.metodeEvolucioCombo.currentIndex() == 1:
+            self.update_numhabit_diagram(any)
+        if self.dlg.metodeEvolucioCombo.currentIndex() == 2:
+            self.update_m2_diagram(any)
+        if self.dlg.metodeEvolucioCombo.currentIndex() == 3:
+            self.update_mitjana_diagram(any)
+        if self.dlg.metodeEvolucioCombo.currentIndex() == 4:
+            self.update_moda_diagram(any)
+        if self.dlg.metodeEvolucioCombo.currentIndex() == 5:
+            self.update_mediana_diagram(any)
+
+    def on_change_evolucioGasPlay(self):
+        # Mentre estigui activat, cada segon l'slider de l'evolució del gas avançarà un any.
+        # Si el check del loop està activat, al arribar a l'any 2022, que és l'últim, tornarà al 2016, el primer.
+        if self.dlg.evolucioGasPlay.isChecked():
+            self.dlg.evolucioGasSlider.setEnabled(False)
+            self.current_playback_year = 2016
+            self.playback_timer.start(1000) # 1000 ms, 1 segon
+        else:
+            self.playback_timer.stop()
+            self.dlg.evolucioGasSlider.setEnabled(True)
+
+    def update_playback_year(self):
+        # Actualitza l'any de l'slider de l'evolució del gas
+        if self.dlg.evolucioGasPlay.isChecked():
+            self.dlg.evolucioGasSlider.setValue(self.current_playback_year)
+            self.dlg.anyGasLabel.setText(str(self.current_playback_year))
+            # self.update_numhabit_diagram(self.current_playback_year) # no hauria de ser necessari
+            if self.current_playback_year >= 2022:
+                if self.dlg.loopGasCheck.isChecked():
+                    self.current_playback_year = 2016
+                else:
+                    self.dlg.evolucioGasPlay.setChecked(False)
+                    self.dlg.evolucioGasSlider.setEnabled(True)
+                    self.playback_timer.stop()
+            else:
+                self.current_playback_year += 1
+        if self.dlg.evolucioLlumPlay.isChecked():
+            self.dlg.evolucioLlumSlider.setValue(self.current_playback_year)
+            self.dlg.anyLlumLabel.setText(str(self.current_playback_year))
+            if self.current_playback_year >= 2020:
+                if self.dlg.loopLlumCheck.isChecked():
+                    self.current_playback_year = 2016
+                else:
+                    self.dlg.evolucioLlumPlay.setChecked(False)
+                    self.dlg.evolucioLlumSlider.setEnabled(True)
+                    self.playback_timer.stop()
+            else:
+                self.current_playback_year += 1
+        if self.dlg.evolucioSumaPlay.isChecked():
+            self.dlg.evolucioSumaSlider.setValue(self.current_playback_year)
+            self.dlg.anySumaLabel.setText(str(self.current_playback_year))
+            if self.current_playback_year >= 2020:
+                if self.dlg.loopSumaCheck.isChecked():
+                    self.current_playback_year = 2016
+                else:
+                    self.dlg.evolucioSumaPlay.setChecked(False)
+                    self.dlg.evolucioSumaSlider.setEnabled(True)
+                    self.playback_timer.stop()
+            else:
+                self.current_playback_year += 1
+
+    def on_change_evolucioLlumButton(self):
+        global uri
+        global conn
+
+        global evolucioGas
+        global evolucioLlum
+        global evolucioSuma
+        global evolucioLayer
+
+        if self.dlg.evolucioLlumButton.isChecked():
+            evolucioLlum = True
+            evolucioGas = False
+            evolucioSuma = False
+            self.dlg.evolucioLlumSlider.setEnabled(True)
+            self.dlg.anyLlumLabel.setEnabled(True)
+            self.dlg.evolucioGasSlider.setEnabled(False)
+            self.dlg.anyGasLabel.setEnabled(False)
+            self.dlg.evolucioSumaSlider.setEnabled(False)
+            self.dlg.anySumaLabel.setEnabled(False)
+            self.dlg.evolucioLlumPlay.setVisible(True)
+            self.dlg.evolucioLlumPlay.setEnabled(True)
+            self.dlg.loopLlumCheck.setVisible(True)
+            self.dlg.loopLlumCheck.setEnabled(True)
+
+            if evolucioLayer is not None:
+                QgsProject.instance().removeMapLayer(evolucioLayer.id())
+                evolucioLayer = None
+
+            if self.dlg.comboEntitat.currentIndex() != 0 and self.dlg.metodeEvolucioCombo.currentIndex() != 0:
+                if self.dlg.metodeEvolucioCombo.currentIndex() == 1:
+                    metodeEvolucio = 'numhab'
+                    nom_metode = 'nombre d\'habitatges'
+                if self.dlg.metodeEvolucioCombo.currentIndex() == 2:
+                    metodeEvolucio = 'm2'
+                    nom_metode = 'metres quadrats'
+                if self.dlg.metodeEvolucioCombo.currentIndex() == 3:
+                    metodeEvolucio = 'mitjana'
+                    nom_metode = 'mitjana'
+                if self.dlg.metodeEvolucioCombo.currentIndex() == 4:
+                    metodeEvolucio = 'moda'
+                    nom_metode = 'moda'
+                if self.dlg.metodeEvolucioCombo.currentIndex() == 5:
+                    metodeEvolucio = 'mediana'
+                    nom_metode = 'mediana'
+
+                if self.dlg.comboEntitat.currentIndex() == 1:
+                    entity = 'parcel'
+                    nom_capa = f'Evolució del consum elèctric per {nom_metode} a PARCEL·LES'
+                if self.dlg.comboEntitat.currentIndex() == 2:
+                    entity = 'zone'
+                    nom_capa = f'Evolució del consum elèctric per {nom_metode} a ILLES'
+                if self.dlg.comboEntitat.currentIndex() == 3:
+                    entity = 'seccions'
+                    nom_capa = f'Evolució del consum elèctric per {nom_metode} a SECCIONS'
+                if self.dlg.comboEntitat.currentIndex() == 4:
+                    entity = 'barris'
+                    nom_capa = f'Evolució del consum elèctric per {nom_metode} a BARRIS'
+                if self.dlg.comboEntitat.currentIndex() == 5:
+                    entity = 'districtes'
+                    nom_capa = f'Evolució del consum elèctric per {nom_metode} a DISTRICTES'
+                if self.dlg.comboEntitat.currentIndex() == 6:
+                    entity = 'districtes_postals'
+                    nom_capa = f'Evolució del consum elèctric per {nom_metode} a DISTRICTES POSTALS'
+                
+                try:
+                    uri.setDataSource('visualitzar_evolucio', f'{entity}_llum_{metodeEvolucio}', 'geom')
+                    evolucioLayer = QgsVectorLayer(uri.uri(), nom_capa, 'postgres')
+                    QgsProject.instance().addMapLayer(evolucioLayer).setName(nom_capa)
+                    self.on_change_evolucioLlumSlider()
+                except Exception as ex:
+                    print("Error: No s'ha pogut carregar la capa d'evolucio del consum elèctric per a l'entitat seleccionada")
+                    template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+                    message = template.format(type(ex).__name__, ex.args)
+                    print(message)
+                    QMessageBox.critical(None, "Error", "Error: No s'ha pogut carregar la capa d'evolucio del consum elèctric per a l'entitat seleccionada")
+                    conn.rollback()
+                    self.dlg.setEnabled(True)
+                    return
+
+        else:
+            evolucioLlum = False
+            self.dlg.evolucioLlumSlider.setEnabled(False)
+            self.dlg.evolucioLlumSlider.setValue(2016)
+            self.dlg.anyLlumLabel.setEnabled(False)
+            self.dlg.anyLlumLabel.setText("2016")
+            self.dlg.evolucioLlumPlay.setVisible(False)
+            self.dlg.evolucioLlumPlay.setEnabled(False)
+            self.dlg.evolucioLlumPlay.setChecked(False)
+            self.dlg.loopLlumCheck.setVisible(False)
+            self.dlg.loopLlumCheck.setEnabled(False)
+            self.dlg.loopLlumCheck.setChecked(False)
+
+    def on_change_evolucioLlumSlider(self):
+        any = self.dlg.evolucioLlumSlider.value()
+        self.dlg.anyLlumLabel.setText(str(any))
+        if self.dlg.metodeEvolucioCombo.currentIndex() == 1:
+            self.update_numhabit_diagram(any)
+        if self.dlg.metodeEvolucioCombo.currentIndex() == 2:
+            self.update_m2_diagram(any)
+        if self.dlg.metodeEvolucioCombo.currentIndex() == 3:
+            self.update_mitjana_diagram(any)
+        if self.dlg.metodeEvolucioCombo.currentIndex() == 4:
+            self.update_moda_diagram(any)
+        if self.dlg.metodeEvolucioCombo.currentIndex() == 5:
+            self.update_mediana_diagram(any)
+
+    def on_change_evolucioLlumPlay(self):
+        # Mentre estigui activat, cada segon l'slider de l'evolució del gas avançarà un any.
+        # Si el check del loop està activat, al arribar a l'any 2022, que és l'últim, tornarà al 2016, el primer.
+        if self.dlg.evolucioLlumPlay.isChecked():
+            self.dlg.evolucioLlumSlider.setEnabled(False)
+            self.current_playback_year = 2016
+            self.playback_timer.start(1000) # 1000 ms, 1 segon
+        else:
+            self.playback_timer.stop()
+            self.dlg.evolucioLlumSlider.setEnabled(True)
+
+    def on_change_evolucioSumaButton(self):
+        global uri
+        global conn
+
+        global evolucioGas
+        global evolucioLlum
+        global evolucioSuma
+        global evolucioLayer
+
+        if self.dlg.evolucioSumaButton.isChecked():
+            evolucioSuma = True
+            evolucioGas = False
+            evolucioLlum = False
+            self.dlg.evolucioSumaSlider.setEnabled(True)
+            self.dlg.anySumaLabel.setEnabled(True)
+            self.dlg.evolucioGasSlider.setEnabled(False)
+            self.dlg.anyGasLabel.setEnabled(False)
+            self.dlg.evolucioLlumSlider.setEnabled(False)
+            self.dlg.anyLlumLabel.setEnabled(False)
+            self.dlg.evolucioSumaPlay.setVisible(True)
+            self.dlg.evolucioSumaPlay.setEnabled(True)
+            self.dlg.loopSumaCheck.setVisible(True)
+            self.dlg.loopSumaCheck.setEnabled(True)
+
+            if evolucioLayer is not None:
+                QgsProject.instance().removeMapLayer(evolucioLayer.id())
+                evolucioLayer = None
+
+            if self.dlg.comboEntitat.currentIndex() != 0 and self.dlg.metodeEvolucioCombo.currentIndex() != 0:
+                if self.dlg.metodeEvolucioCombo.currentIndex() == 1:
+                    metodeEvolucio = 'numhab'
+                    nom_metode = 'nombre d\'habitatges'
+                if self.dlg.metodeEvolucioCombo.currentIndex() == 2:
+                    metodeEvolucio = 'm2'
+                    nom_metode = 'metres quadrats'
+                if self.dlg.metodeEvolucioCombo.currentIndex() == 3:
+                    metodeEvolucio = 'mitjana'
+                    nom_metode = 'mitjana'
+                if self.dlg.metodeEvolucioCombo.currentIndex() == 4:
+                    metodeEvolucio = 'moda'
+                    nom_metode = 'moda'
+                if self.dlg.metodeEvolucioCombo.currentIndex() == 5:
+                    metodeEvolucio = 'mediana'
+                    nom_metode = 'mediana'
+
+                if self.dlg.comboEntitat.currentIndex() == 1:
+                    entity = 'parcel'
+                    nom_capa = f'Evolució del consum de gas i elèctric per {nom_metode} a PARCEL·LES'
+                if self.dlg.comboEntitat.currentIndex() == 2:
+                    entity = 'zone'
+                    nom_capa = f'Evolució del consum de gas i elèctric per {nom_metode} a ILLES'
+                if self.dlg.comboEntitat.currentIndex() == 3:
+                    entity = 'seccions'
+                    nom_capa = f'Evolució del consum de gas i elèctric per {nom_metode} a SECCIONS'
+                if self.dlg.comboEntitat.currentIndex() == 4:
+                    entity = 'barris'
+                    nom_capa = f'Evolució del consum de gas i elèctric per {nom_metode} a BARRIS'
+                if self.dlg.comboEntitat.currentIndex() == 5:
+                    entity = 'districtes'
+                    nom_capa = f'Evolució del consum de gas i elèctric per {nom_metode} a DISTRICTES'
+                if self.dlg.comboEntitat.currentIndex() == 6:
+                    entity = 'districtes_postals'
+                    nom_capa = f'Evolució del consum de gas i elèctric per {nom_metode} a DISTRICTES POSTALS'
+
+                try:
+                    uri.setDataSource('visualitzar_evolucio', f'{entity}_suma_{metodeEvolucio}', 'geom')
+                    evolucioLayer = QgsVectorLayer(uri.uri(), nom_capa, 'postgres')
+                    QgsProject.instance().addMapLayer(evolucioLayer).setName(nom_capa)
+                    self.on_change_evolucioSumaSlider()
+                except Exception as ex:
+                    print("Error: No s'ha pogut carregar la capa d'evolucio del consum de gas i elèctric per a l'entitat seleccionada")
+                    template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+                    message = template.format(type(ex).__name__, ex.args)
+                    print(message)
+                    QMessageBox.critical(None, "Error", "Error: No s'ha pogut carregar la capa d'evolucio del consum de gas i elèctric per a l'entitat seleccionada")
+                    conn.rollback()
+                    self.dlg.setEnabled(True)
+                    return
+        else:
+            evolucioSuma = False
+            self.dlg.evolucioSumaSlider.setEnabled(False)
+            self.dlg.evolucioSumaSlider.setValue(2016)
+            self.dlg.anySumaLabel.setEnabled(False)
+            self.dlg.anySumaLabel.setText("2016")
+            self.dlg.evolucioSumaPlay.setVisible(False)
+            self.dlg.evolucioSumaPlay.setEnabled(False)
+            self.dlg.evolucioSumaPlay.setChecked(False)
+            self.dlg.loopSumaCheck.setVisible(False)
+            self.dlg.loopSumaCheck.setEnabled(False)
+            self.dlg.loopSumaCheck.setChecked(False)
+
+    def on_change_evolucioSumaSlider(self):
+        any = self.dlg.evolucioSumaSlider.value()
+        self.dlg.anySumaLabel.setText(str(any))
+        if self.dlg.metodeEvolucioCombo.currentIndex() == 1:
+            self.update_numhabit_diagram(any)
+        if self.dlg.metodeEvolucioCombo.currentIndex() == 2:
+            self.update_m2_diagram(any)
+        if self.dlg.metodeEvolucioCombo.currentIndex() == 3:
+            self.update_mitjana_diagram(any)
+        if self.dlg.metodeEvolucioCombo.currentIndex() == 4:
+            self.update_moda_diagram(any)
+        if self.dlg.metodeEvolucioCombo.currentIndex() == 5:
+            self.update_mediana_diagram(any)
+    
+    def on_change_evolucioSumaPlay(self):
+        # Mentre estigui activat, cada segon l'slider de l'evolució del gas avançarà un any.
+        # Si el check del loop està activat, al arribar a l'any 2022, que és l'últim, tornarà al 2016, el primer.
+        if self.dlg.evolucioSumaPlay.isChecked():
+            self.dlg.evolucioSumaSlider.setEnabled(False)
+            self.current_playback_year = 2016
+            self.playback_timer.start(1000) # 1000 ms, 1 segon
+        else:
+            self.playback_timer.stop()
+            self.dlg.evolucioSumaSlider.setEnabled(True)
+
+    def on_change_metodeEvolucioCombo(self):
+        global metodeEvolucio
+
+        if self.dlg.metodeEvolucioCombo.currentIndex() == 1:
+            metodeEvolucio = 'numhab'
+        elif self.dlg.metodeEvolucioCombo.currentIndex() == 2:
+            metodeEvolucio = 'm2'
+        elif self.dlg.metodeEvolucioCombo.currentIndex() == 3:
+            metodeEvolucio = 'mitjana'
+        elif self.dlg.metodeEvolucioCombo.currentIndex() == 4:
+            metodeEvolucio = 'moda'
+        elif self.dlg.metodeEvolucioCombo.currentIndex() == 5:
+            metodeEvolucio = 'mediana'
+
+        if self.dlg.evolucioGasButton.isChecked():
+            self.on_change_evolucioGasButton()
+        elif self.dlg.evolucioLlumButton.isChecked():
+            self.on_change_evolucioLlumButton()
+        elif self.dlg.evolucioSumaButton.isChecked():
+            self.on_change_evolucioSumaButton()
+
     def desagregarConsumsElectrics(self):
         # Funció que va quedar en desús, només es va crear per a provar com seria calcular els consums elèctrics per habitatge i no per agrupacions d'edificacions.
 
@@ -1096,6 +1592,9 @@ class EficEnerg:
         self.dlg.checkMitjana.setEnabled(False)
         self.dlg.checkModa.setEnabled(False)
         self.dlg.checkMediana.setEnabled(False)
+        self.dlg.checkMitjana_2.setEnabled(False)
+        self.dlg.checkModa_2.setEnabled(False)
+        self.dlg.checkMediana_2.setEnabled(False)
         self.dlg.labelAvis.setVisible(False)
         self.dlg.progressBar.setValue(0)
         self.dlg.labelRestriccio.setVisible(False)
@@ -1117,6 +1616,45 @@ class EficEnerg:
         self.dlg.labelAnysVs.setVisible(False)
         self.dlg.comboAny1.setVisible(False)
         self.dlg.comboAny2.setVisible(False)
+        self.dlg.evolucioGasButton.setEnabled(True)
+        self.dlg.evolucioGasButton.setChecked(False)
+        self.dlg.evolucioGasSlider.setEnabled(False)
+        self.dlg.evolucioLlumButton.setEnabled(True)
+        self.dlg.evolucioLlumButton.setChecked(False)
+        self.dlg.evolucioLlumSlider.setEnabled(False)
+        self.dlg.evolucioSumaButton.setEnabled(True)
+        self.dlg.evolucioSumaButton.setChecked(False)
+        self.dlg.evolucioSumaSlider.setEnabled(False)
+        self.dlg.evolucioGasPlay.setStyleSheet(play_button_style)
+        self.dlg.evolucioGasPlay.setVisible(False)
+        self.dlg.loopGasCheck.setVisible(False)
+        self.dlg.evolucioLlumPlay.setStyleSheet(play_button_style)
+        self.dlg.evolucioLlumPlay.setVisible(False)
+        self.dlg.loopLlumCheck.setVisible(False)
+        self.dlg.evolucioSumaPlay.setStyleSheet(play_button_style)
+        self.dlg.evolucioSumaPlay.setVisible(False)
+        self.dlg.loopSumaCheck.setVisible(False)
+        self.dlg.anyGasLabel.setText("2016")
+        self.dlg.anyGasLabel.setEnabled(False)
+        self.dlg.anyLlumLabel.setText("2016")
+        self.dlg.anyLlumLabel.setEnabled(False)
+        self.dlg.anySumaLabel.setText("2016")
+        self.dlg.anySumaLabel.setEnabled(False)
+        self.dlg.evolucioGasSlider.setValue(2016)
+        self.dlg.evolucioLlumSlider.setValue(2016)
+        self.dlg.evolucioSumaSlider.setValue(2016)
+        self.dlg.comboAny.setCurrentIndex(0)
+        self.dlg.metodeEvolucioCombo.setCurrentIndex(0)
+        self.dlg.consumGasButton.setChecked(False)
+        self.dlg.consumElectricButton.setChecked(False)
+        self.dlg.consumSumaButton.setChecked(False)
+        self.dlg.consumInvisible.setVisible(False)
+        self.dlg.consumInvisible.setChecked(True)
+        self.dlg.consumInvisible_2.setVisible(False)
+        self.dlg.consumInvisible_2.setChecked(True)
+        self.dlg.evolucioInvisible.setVisible(False)
+        self.dlg.evolucioInvisible.setChecked(True)
+
         textBox = "Selecciona una base de dades...\n"
         self.dlg.textEstat.setText(textBox)
         self.dlg.setEnabled(True)
@@ -1156,6 +1694,9 @@ class EficEnerg:
 
     def calculIdEntitat(self):
         global entitatLayer
+        
+        # Això és només per Barris que per algun motiu dona problemes amb el SRC
+        entitatLayer.setCrs(QgsCoordinateReferenceSystem("EPSG:25831"))
 
         if entitat == llistaEntitats[1]:
             camp_id = "id_parcel"
@@ -1464,19 +2005,6 @@ class EficEnerg:
             'INPUT': habitatgesLayer,
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
-
-        if consumGas:
-            alg_params['FORMULA'] = f'''
-                        CASE
-                            WHEN ("CONSUMO_{any}") < 34.1 THEN 'A'
-                            WHEN ("CONSUMO_{any}") >= 34.1 AND ("CONSUMO_{any}") < 55.5 THEN 'B'
-                            WHEN ("CONSUMO_{any}") >= 55.5 AND ("CONSUMO_{any}") < 85.4 THEN 'C'
-                            WHEN ("CONSUMO_{any}") >= 85.4 AND ("CONSUMO_{any}") < 111.6 THEN 'D'
-                            WHEN ("CONSUMO_{any}") >= 111.6 AND ("CONSUMO_{any}") < 136.6 THEN 'E'
-                            WHEN ("CONSUMO_{any}") >= 136.6 AND ("CONSUMO_{any}") < 170.7 THEN 'F'
-                            ELSE 'G'
-                        END
-                        '''
 
         try:
             result = processing.run('qgis:fieldcalculator', alg_params)
@@ -1855,7 +2383,7 @@ class EficEnerg:
                 if emissions:
                     alg_params['FORMULA'] = '\"emissions\" * \"m2\"'
                 if consumElectric or consumGas or self.dlg.consumSumaButton.isChecked():
-                    alg_params['FORMULA'] = '\"consum\" * \"m2\"'
+                    alg_params['FORMULA'] = '\"consum\"'
                 outputs['Producte'] = processing.run('qgis:fieldcalculator', alg_params)
 
                 ''' sum producte '''
@@ -2125,7 +2653,7 @@ class EficEnerg:
                 if emissions:
                     alg_params['FORMULA'] = '\"emissions\" * \"m2\"'
                 if consumElectric or consumGas or self.dlg.consumSumaButton.isChecked():
-                    alg_params['FORMULA'] = '\"consum\" * \"m2\"'
+                    alg_params['FORMULA'] = '\"consum\"'
                 outputs['Producte'] = processing.run('qgis:fieldcalculator', alg_params)
 
                 ''' 5. Estadistiquesm2 sembla no ser necessari per la moda '''
@@ -2378,6 +2906,17 @@ class EficEnerg:
         outputs = {}
 
         try:
+            if (consumGas or consumElectric or self.dlg.consumSumaButton.isChecked()):
+                alg_params = {
+                    'FIELD_LENGTH': 0,
+                    'FIELD_NAME': 'consum_m2',
+                    'FIELD_PRECISION': 0,
+                    'FIELD_TYPE': 0,
+                    'FORMULA': '"consum" / "m2"',
+                    'INPUT': joinEntitatHabitatges,
+                    'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+                }
+                outputs['consum/m2'] = processing.run('qgis:fieldcalculator', alg_params)
             alg_params = {
                 'EXPRESSION': None,
                 'INPUT': joinEntitatHabitatges,
@@ -2389,14 +2928,15 @@ class EficEnerg:
                 if emissions:
                     alg_params['EXPRESSION'] = ' "emissions" is not null and "emissions" !=0'
                 if consumElectric or consumGas or self.dlg.consumSumaButton.isChecked():
-                    alg_params['EXPRESSION'] = ' "consum" is not null and "consum" !=0'
+                    alg_params['EXPRESSION'] = ' "consum" is not null and "consum" !=0' # aquest cas no s'hauria d'arribar a donar
             if self.dlg.checkm2.isChecked() or self.dlg.checkm2_2.isChecked():
                 if consum:
                     alg_params['EXPRESSION'] = ' "consum" is not null and "consum" !=0 and "m2" is not null and "m2" !=0'
                 if emissions:
                     alg_params['EXPRESSION'] = ' "emissions" is not null and "emissions" !=0 and "m2" is not null and "m2" !=0'
                 if consumElectric or consumGas or self.dlg.consumSumaButton.isChecked():
-                    alg_params['EXPRESSION'] = ' "consum" is not null and "consum" !=0 and "m2" is not null and "m2" !=0'
+                    alg_params['EXPRESSION'] = ' "consum_m2" is not null and "consum_m2" !=0 and "m2" is not null and "m2" !=0'
+                    alg_params['INPUT'] = outputs['consum/m2']['OUTPUT'] 
             outputs['joinEntitatHabitatges_nozero_nonull'] = processing.run('native:extractbyexpression', alg_params)
             alg_params = {
                 'CATEGORIES_FIELD_NAME': None,
@@ -2412,7 +2952,7 @@ class EficEnerg:
                 alg_params['VALUES_FIELD_NAME'] = 'emissions'
             if consumElectric or consumGas or self.dlg.consumSumaButton.isChecked():
                 alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat']
-                alg_params['VALUES_FIELD_NAME'] = 'consum'
+                alg_params['VALUES_FIELD_NAME'] = 'consum_m2'
             outputs['Indexmediana'] = processing.run('qgis:statisticsbycategories', alg_params)
 
             alg_params = {
@@ -2463,111 +3003,21 @@ class EficEnerg:
             QMessageBox.critical(None, "Error", "Error al calcular mediana de " + nomEntitat)
             self.dlg.setEnabled(True)
             return
-        
-    def calculSuperficieGasElectricitat(self):
+
+    def eliminarNulls(self):
         global habitatgesLayer
-        # Primer pas: Agafar el nombre de locals amb ús d'habitatge* i la superfície construida total
-        # amb ús d'habitatge* en cada parcel·la**.
-        # *: de primeres es prescindeix de mirar únicament els habitatges, perquè les dades ja són prou escuetes
-        # **: es comença mirant parcel·les perquè és l'entitat més petita, però parcel·la es pot canviar per illa, barri, seccions...
+
+        alg_params = {
+            'FIELD': f'CONSUMO_{any}',
+            'INPUT': habitatgesLayer,
+            'OPERATOR': 9,  # 9 = is not null
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+        habitatgesLayer = processing.run('qgis:extractbyattribute', alg_params)['OUTPUT']
+        
+    def castGaskWh(self):
+        global habitatgesLayer
         if consumGas:
-            uri.setDataSource('public', 'FinquesUS', '')
-            buildingLayer = QgsVectorLayer(uri.uri(), 'FinquesUS', 'postgres')
-            if not buildingLayer.isValid():
-                print("Layer failed to load!")
-                QMessageBox.critical(None, "Error", "Layer failed to load!")
-                return
-                    
-            alg_params = {
-                'AGGREGATES': [
-                    {
-                        'aggregate': 'first_value',
-                        'delimiter': ',',
-                        'input': '"id"',
-                        'length': -1,
-                        'name': 'id_building',
-                        'precision': 0,
-                        'type': 2
-                    },
-                    {
-                        'aggregate': 'first_value',
-                        'delimiter': ',',
-                        'input': '"Ref_Cadastral"',
-                        'length': -1,
-                        'name': 'cadastral_reference',
-                        'precision': 0,
-                        'type': 10
-                    },
-                    {
-                        'aggregate': 'sum',
-                        'delimiter': ',',
-                        'input': 'to_int("Quants")',
-                        'length': -1,
-                        'name': 'Quants',
-                        'precision': 0,
-                        'type': 2
-                    },
-                    {
-                        'aggregate': 'sum',
-                        'delimiter': ',',
-                        'input': 'to_real("Superficie_Cons")',
-                        'length': -1,
-                        'name': 'area_value',
-                        'precision': 0,
-                        'type': 6
-                    },
-                    {
-                        'aggregate': 'first_value',
-                        'delimiter': ',',
-                        'input': '"UTM"',
-                        'length': -1,
-                        'name': 'UTM',
-                        'precision': 0,
-                        'type': 10
-                    },
-                    {
-                        'aggregate': 'first_value',
-                        'delimiter': ',',
-                        'input': 'sum(to_real("Superficie_Cons"), "Ref_Cadastral") / sum(to_int("Quants"), "Ref_Cadastral")',
-                        'length': 0,
-                        'name': 'fmh',
-                        'precision': 0,
-                        'type': 6
-                    }
-                ],
-                'GROUP_BY': 'Ref_Cadastral',
-                'INPUT': buildingLayer,
-                'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-            }
-
-            agg_finquesus = processing.run('qgis:aggregate', alg_params)['OUTPUT']
-
-            alg_params = {
-                'FIELD': f'CONSUMO_{any}',
-                'INPUT': habitatgesLayer,
-                'OPERATOR': 9,
-                'VALUE': '',
-                'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-            }
-
-            consums_filtrats = processing.run('native:extractbyattribute', alg_params)['OUTPUT']
-
-            alg_params = {
-                'DISCARD_NONMATCHING': False,
-                'FIELD': 'cadastral_reference',
-                'FIELDS_TO_COPY': ['fmh'],
-                'FIELD_2': 'cadastral_reference',
-                'INPUT': consums_filtrats,
-                'INPUT_2': agg_finquesus,
-                'METHOD': 1,
-                'PREFIX': '',
-                'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-            }
-
-            join_fmh = processing.run('native:joinattributestable', alg_params)['OUTPUT']
-
-            # S'ha de mirar que el poder calorífic sigui un valor numèric i no sigui ni null ni 0 ni 0.0 ni res semblant que pugui ser incorrecte
-            # i en cas que l'usuari ho hagi introduit amb una coma, canviar-ho per un punt
             if self.dlg.poderCalorLine.text() == '' or self.dlg.poderCalorLine.text() == '0' or self.dlg.poderCalorLine.text() == '0.0' or self.dlg.poderCalorLine.text() == '0,0' :
                 QMessageBox.critical(None, "Error", "El poder calorífic no pot ser 0 ni null")
                 self.dlg.setEnabled(True)
@@ -2575,77 +3025,31 @@ class EficEnerg:
             poderCalor = self.dlg.poderCalorLine.text().replace(',', '.')
 
             alg_params = {
-                'AGGREGATES' : [
-                    {
-                        'aggregate': 'first_value',
-                        'delimiter': ',',
-                        'input': '"id"',
-                        'length': -1,
-                        'name': 'id',
-                        'precision': 0,
-                        'sub_type': 0,
-                        'type': 2,
-                        'type_name': 'integer'
-                    },
-                    {
-                        'aggregate': 'first_value',
-                        'delimiter': ',',
-                        'input': '"designator"',
-                        'length': -1,
-                        'name': 'designator',
-                        'precision': 0,
-                        'sub_type': 0,
-                        'type': 10,
-                        'type_name': 'text'
-                    },
-                    {
-                        'aggregate': 'first_value',
-                        'delimiter': ',',
-                        'input': '"cadastral_reference"',
-                        'length': -1,
-                        'name': 'cadastral_reference',
-                        'precision': 0,
-                        'sub_type': 0,
-                        'type': 10,
-                        'type_name': 'text'
-                    },
-                    {
-                        'aggregate': 'first_value',
-                        'delimiter': ',',
-                        'input': f'("CONSUMO_{any}"*{poderCalor})/"fmh"',
-                        'length': 0,
-                        'name': f'CONSUMO_{any}',
-                        'precision': 2,
-                        'sub_type': 0,
-                        'type': 6,
-                        'type_name': 'double precision'
-                    },
-                    {
-                        'aggregate': 'first_value',
-                        'delimiter': ',',
-                        'input': '"fmh"',
-                        'length': 0,
-                        'name': 'metres_cadastre',
-                        'precision': 2,
-                        'sub_type': 0,
-                        'type': 6,
-                        'type_name': 'double precision'
-                    }
-                ], 
-                'GROUP_BY' : '"id"', 
-                'INPUT' : join_fmh,
-                'OUTPUT' : QgsProcessing.TEMPORARY_OUTPUT
+                'FIELD_LENGTH': 0,
+                'FIELD_NAME': 'consum',
+                'FIELD_PRECISION': 0,
+                'FIELD_TYPE': 0,
+                'FORMULA': f'\"CONSUMO_{any}\" * {poderCalor}',
+                'INPUT': habitatgesLayer,
+                'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
             }
+            consumGasLayer = processing.run('qgis:fieldcalculator', alg_params)['OUTPUT']
 
-            habitatgesLayer = processing.run('qgis:aggregate', alg_params)['OUTPUT']
+            alg_params = {
+                'COLUMN': [f'CONSUMO_{any}'],
+                'INPUT': consumGasLayer,
+                'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+            }
+            consumSenseConsum = processing.run('qgis:deletecolumn', alg_params)['OUTPUT']
 
-        if consumElectric:
-            pass
-
-        
-
-
-
+            alg_params = {
+                'FIELD': 'consum',
+                'INPUT': consumSenseConsum,
+                'NEW_NAME': f'CONSUMO_{any}',
+                'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+            }
+            habitatgesLayer = processing.run('native:renametablefield', alg_params)['OUTPUT']
+            #QgsProject.instance().addMapLayer(habitatgesLayer).setName(f"Habitatges {any} - Gas kWh")
 
     def calculComparativa(self, any1, any2):
         global any
@@ -2659,58 +3063,83 @@ class EficEnerg:
         copiaOriginalHabitatges = habitatgesLayer
 
         any = any1
-        self.calculSuperficieGasElectricitat()
+        self.castGaskWh()
         self.calculQualificacio()
         self.calculIdEntitat()
         self.castConsumEmissions()
+        QApplication.processEvents()
         if self.dlg.checkm2_2.isChecked():
             self.castm2()
         self.joinEntitatHabitatges()
+        QApplication.processEvents()
         if self.dlg.checkNumHabit_2.isChecked():
             self.calculNumHabit()
             entitatLayerResumNumHabitAny1 = entitatLayerResumNumHabit
+            self.updateProgress(6)
+            QApplication.processEvents()
         if self.dlg.checkm2_2.isChecked():
             self.calculm2()
             entitatLayerResumm2Any1 = entitatLayerResumm2
+            self.updateProgress(7)
+            QApplication.processEvents()
         if self.dlg.checkMitjana_2.isChecked():
             self.calculMitjana()
             entitatLayerResumMitjanaAny1 = entitatLayerResumMitjana
+            self.updateProgress(8)
+            QApplication.processEvents()
             #QgsProject.instance().addMapLayer(entitatLayerResumMitjanaAny1).setName("Classificació per mitjana")
         if self.dlg.checkModa_2.isChecked():
             self.calculModa()
             entitatLayerResumModaAny1 = entitatLayerResumModa
+            self.updateProgress(9)
+            QApplication.processEvents()
         if self.dlg.checkMediana_2.isChecked():
             self.calculMediana()
             entitatLayerResumMedianaAny1 = entitatLayerResumMediana
+            self.updateProgress(10)
+            QApplication.processEvents()
         habitatgesLayerAny1 = habitatgesLayer
         QApplication.processEvents()
 
         habitatgesLayer = copiaOriginalHabitatges
+        self.updateProgress(11)
+        QApplication.processEvents()
 
         any = any2
-        self.calculSuperficieGasElectricitat()
+        self.castGaskWh()
         self.calculQualificacio()
         self.calculIdEntitat()
         self.castConsumEmissions()
+        QApplication.processEvents()
         if self.dlg.checkm2_2.isChecked():
             self.castm2()
         self.joinEntitatHabitatges()
         if self.dlg.checkNumHabit_2.isChecked():
             self.calculNumHabit()
             entitatLayerResumNumHabitAny2 = entitatLayerResumNumHabit
+            self.updateProgress(12)
+            QApplication.processEvents()
         if self.dlg.checkm2_2.isChecked():
             self.calculm2()
             entitatLayerResumm2Any2 = entitatLayerResumm2
+            self.updateProgress(13)
+            QApplication.processEvents()
         if self.dlg.checkMitjana_2.isChecked():
             self.calculMitjana()
             entitatLayerResumMitjanaAny2 = entitatLayerResumMitjana
+            self.updateProgress(14)
+            QApplication.processEvents()
             #QgsProject.instance().addMapLayer(entitatLayerResumMitjanaAny2).setName("Classificació per mitjana")
         if self.dlg.checkModa_2.isChecked():
             self.calculModa()
             entitatLayerResumModaAny2 = entitatLayerResumModa
+            self.updateProgress(15)
+            QApplication.processEvents()
         if self.dlg.checkMediana_2.isChecked():
             self.calculMediana()
             entitatLayerResumMedianaAny2 = entitatLayerResumMediana
+            self.updateProgress(16)
+            QApplication.processEvents()
         habitatgeLayerAny2 = habitatgesLayer
         QApplication.processEvents()
 
@@ -2737,6 +3166,7 @@ class EficEnerg:
                 'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
             }
             rename_any1 = processing.run('native:renametablefield', alg_params)['OUTPUT']
+            QApplication.processEvents()
 
             alg_params = {
                 'FIELD': 'indexMITJANA_2',
@@ -2745,6 +3175,7 @@ class EficEnerg:
                 'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
             }
             rename_any2 = processing.run('native:renametablefield', alg_params)['OUTPUT']
+            QApplication.processEvents()
 
             alg_params = {
                 'FIELD_LENGTH': 0,
@@ -2757,6 +3188,8 @@ class EficEnerg:
             }
             entitatLayerResumMitjana = processing.run('native:fieldcalculator', alg_params)['OUTPUT']
             entitatLayerResumMitjana.setName('Mitjana')
+            self.updateProgress(17)
+            QApplication.processEvents()
 
         if self.dlg.checkModa_2.isChecked():
             alg_params = {
@@ -2779,6 +3212,7 @@ class EficEnerg:
                 'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
             }
             rename_any1 = processing.run('native:renametablefield', alg_params)['OUTPUT']
+            QApplication.processEvents()
 
             alg_params = {
                 'FIELD': 'indexMODA_2',
@@ -2787,6 +3221,7 @@ class EficEnerg:
                 'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
             }
             rename_any2 = processing.run('native:renametablefield', alg_params)['OUTPUT']
+            QApplication.processEvents()
 
             alg_params = {
                 'FIELD_LENGTH': 0,
@@ -2799,6 +3234,8 @@ class EficEnerg:
             }
             entitatLayerResumModa = processing.run('native:fieldcalculator', alg_params)['OUTPUT']
             entitatLayerResumModa.setName('Moda')
+            self.updateProgress(18)
+            QApplication.processEvents()
 
         if self.dlg.checkMediana_2.isChecked():
             alg_params = {
@@ -2822,6 +3259,7 @@ class EficEnerg:
                 'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
             }
             rename_any1 = processing.run('native:renametablefield', alg_params)['OUTPUT']
+            QApplication.processEvents()
 
             alg_params = {
                 'FIELD': 'indexMEDIANA_2',
@@ -2830,6 +3268,7 @@ class EficEnerg:
                 'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
             }
             rename_any2 = processing.run('native:renametablefield', alg_params)['OUTPUT']
+            QApplication.processEvents()
 
             alg_params = {
                 'FIELD_LENGTH': 0,
@@ -2842,9 +3281,562 @@ class EficEnerg:
             }
             entitatLayerResumMediana = processing.run('native:fieldcalculator', alg_params)['OUTPUT']
             entitatLayerResumMediana.setName('Mediana')
+            self.updateProgress(19)
+            QApplication.processEvents()
 
         # return
 
+    def calculEvolucio(self, any_evolucio):
+        # Per a evitar incompatibilitats, no es reutilitzaran mètodes aquí, totes les passes a
+        # seguir, es tornaran a programar dins d'aquesta funció.
+        global any
+        global entitatLayer
+        global habitatgesLayer
+        global joinEntitatHabitatges
+        global entitatLayerResumNumHabit
+        global entitatLayerResumm2
+        global entitatLayerResumMitjana
+        global entitatLayerResumModa
+        global entitatLayerResumMediana
+
+        copiaOriginalHabitatges = habitatgesLayer
+
+        if not self.dlg.tabCalculs.currentIndex() == 2:
+            QMessageBox.warning(None, "Error", "Per calcular l'evolució cal que estiguis a la pestanya 'Evolució'")
+            self.dlg.setEnabled(True)
+            return
+        else:
+            if evolucioLlum or evolucioSuma:
+                self.configure_numhabit_diagram(self.dlg.anyLlumLabel.text())
+                QApplication.processEvents()
+
+            if evolucioGas:
+                self.configure_numhabit_diagram(self.dlg.anyGasLabel.text())
+
+                self.updateProgress(65)
+                QApplication.processEvents()
+
+                
+                self.updateProgress(100)
+                QApplication.processEvents()
+            if evolucioSuma:
+                pass
+
+            if evolucioGas:
+                self.dlg.evolucioGasPlay.setVisible(True)
+                self.dlg.evolucioGasPlay.setEnabled(True)
+                self.dlg.loopGasCheck.setVisible(True)
+                self.dlg.loopGasCheck.setEnabled(True)
+            if evolucioLlum:
+                self.dlg.evolucioLlumPlay.setVisible(True)
+                self.dlg.evolucioLlumPlay.setEnabled(True)
+                self.dlg.loopLlumCheck.setVisible(True)
+                self.dlg.loopLlumCheck.setEnabled(True)
+            if evolucioSuma:
+                self.dlg.evolucioSumaPlay.setVisible(True)
+                self.dlg.evolucioSumaPlay.setEnabled(True)
+                self.dlg.loopSumaCheck.setVisible(True)
+                self.dlg.loopSumaCheck.setEnabled(True)
+            self.dlg.setEnabled(True)
+
+    def configure_numhabit_diagram(self, year):
+        global primeraExecucio
+        
+        layer = evolucioLayer
+
+        categories = ['A', 'B', 'C', 'D', 'E', 'F', 'G']
+        camps = [f'Num{cat}_{year}' for cat in categories]
+
+        diagramNumHabit = QgsPieDiagram()
+        diagramNumHabitSettings = QgsDiagramSettings()
+
+        diagramNumHabitSettings.categoryColors = list(colors.values())[2:]
+        diagramNumHabitSettings.categoryAttributes = camps
+        diagramNumHabitSettings.categoryLabels = categories
+
+        diagramNumHabitSettings.scaleByArea = False
+        diagramNumHabitSettings.scaleBasedVisibility = True
+        diagramNumHabitSettings.size = QSizeF(15, 15)
+        diagramNumHabitSettings.minimumScale = minimumValue
+        diagramNumHabitSettings.maximumScale = maximumValue
+        diagramNumHabitSettings.enabled = True
+
+        layer.renderer().symbol().setColor(color)
+
+        diagramNumHabitRenderer = QgsSingleCategoryDiagramRenderer()
+        diagramNumHabitRenderer.setDiagram(diagramNumHabit)
+        diagramNumHabitRenderer.setDiagramSettings(diagramNumHabitSettings)
+        diagramNumHabitRenderer.setAttributeLegend(False)
+
+        layer.setDiagramRenderer(diagramNumHabitRenderer)
+
+        propertyx = QgsProperty()
+        propertyx.setExpressionString("x(centroid($geometry))")
+        propertyx.setActive(True)
+        propertyy = QgsProperty()
+        propertyy.setExpressionString("y(centroid($geometry))")
+        propertyy.setActive(True)
+
+        propertyVisibility = QgsProperty()
+        propertyVisibility.setExpressionString(
+            f""" CASE WHEN "TotalEE_{year}" = 0 THEN False
+                    WHEN "TotalEE_{year}" IS NULL THEN False
+                    ELSE True END """)
+        propertyVisibility.setActive(True)
+
+        propertyCollection = QgsPropertyCollection("diagram_properties")
+        propertyCollection.setProperty(3, propertyx)
+        propertyCollection.setProperty(4, propertyy)
+        propertyCollection.setProperty(9, propertyVisibility)
+
+        diagramNumHabitLayerSettings = QgsDiagramLayerSettings()
+        diagramNumHabitLayerSettings.setDataDefinedProperties(propertyCollection)
+
+        layer.setDiagramLayerSettings(diagramNumHabitLayerSettings)
+
+        single_symbol_renderer = layer.renderer().clone()
+        symbol = single_symbol_renderer.symbol()
+        symbol_layer = QgsSimpleLineSymbolLayer()
+        symbol_layer.setWidth(0)
+        layer.setRenderer(single_symbol_renderer)
+
+        layer.triggerRepaint()
+
+        QApplication.processEvents()
+
+    def update_numhabit_diagram(self, year):
+        if evolucioLayer is None:
+            return
+        if not QgsProject.instance().mapLayersByName(evolucioLayer.name()):
+            QgsProject.instance().addMapLayer(evolucioLayer)
+        capa = evolucioLayer
+
+        required_fields = [f'Num{cat}_{year}' for cat in ['A', 'B', 'C', 'D', 'E', 'F', 'G']]
+        required_fields.append(f'TotalEE_{year}')
+
+        if not all(capa.fields().indexFromName(field) != -1 for field in required_fields):
+            iface.messageBar().pushMessage("Error",f"No hi ha dades per a l'any {year}.")
+            return
+        
+        self.configure_numhabit_diagram(year)
+
+        capa.triggerRepaint()
+        iface.mapCanvas().refresh()
+    
+    def configure_m2_diagram(self, year):
+        global primeraExecucio
+
+        layer = evolucioLayer
+
+        categories = ['A', 'B', 'C', 'D', 'E', 'F', 'G']
+        camps = [f'm2{cat}_{year}' for cat in categories]
+
+        diagramm2 = QgsPieDiagram()
+        diagramm2Settings = QgsDiagramSettings()
+
+        diagramm2Settings.categoryColors = list(colors.values())[2:]
+        diagramm2Settings.categoryAttributes = camps
+        diagramm2Settings.categoryLabels = categories
+
+        diagramm2Settings.scaleByArea = False
+        diagramm2Settings.scaleBasedVisibility = True
+        diagramm2Settings.size = QSizeF(15, 15)
+        diagramm2Settings.minimumScale = minimumValue
+        diagramm2Settings.maximumScale = maximumValue
+        diagramm2Settings.enabled = True
+
+        layer.renderer().symbol().setColor(color)
+
+        diagramm2Renderer = QgsSingleCategoryDiagramRenderer()
+        diagramm2Renderer.setDiagram(diagramm2)
+        diagramm2Renderer.setDiagramSettings(diagramm2Settings)
+        diagramm2Renderer.setAttributeLegend(False)
+
+        layer.setDiagramRenderer(diagramm2Renderer)
+        propertyx = QgsProperty()
+        propertyx.setExpressionString("x(centroid($geometry))")
+        propertyx.setActive(True)
+        propertyy = QgsProperty()
+        propertyy.setExpressionString("y(centroid($geometry))")
+        propertyy.setActive(True)
+
+        propertyVisibility = QgsProperty()
+        propertyVisibility.setExpressionString(
+            f""" CASE WHEN "Totalm2_{year}" = 0 THEN False
+                    WHEN "Totalm2_{year}" IS NULL THEN False
+                    ELSE True END """)
+        propertyVisibility.setActive(True)
+
+        propertyCollection = QgsPropertyCollection("diagram_properties")
+        propertyCollection.setProperty(3, propertyx)
+        propertyCollection.setProperty(4, propertyy)
+        propertyCollection.setProperty(9, propertyVisibility)
+
+        diagramm2LayerSettings = QgsDiagramLayerSettings()
+        diagramm2LayerSettings.setDataDefinedProperties(propertyCollection)
+
+        layer.setDiagramLayerSettings(diagramm2LayerSettings)
+
+        single_symbol_renderer = layer.renderer().clone()
+        symbol = single_symbol_renderer.symbol()
+        symbol_layer = QgsSimpleLineSymbolLayer()
+        symbol_layer.setWidth(0)
+        layer.setRenderer(single_symbol_renderer)
+
+        layer.triggerRepaint()
+
+        QApplication.processEvents()
+
+
+    def update_m2_diagram(self, year):
+        if evolucioLayer is None:
+            return
+        if not QgsProject.instance().mapLayersByName(evolucioLayer.name()):
+            QgsProject.instance().addMapLayer(evolucioLayer)
+        capa = evolucioLayer
+        required_fields = [f'm2{cat}_{year}' for cat in ['A', 'B', 'C', 'D', 'E', 'F', 'G']]
+        required_fields.append(f'Totalm2_{year}')
+
+        if not all(capa.fields().indexFromName(field) != -1 for field in required_fields):
+            iface.messageBar().pushMessage("Error",f"No hi ha dades per a l'any {year}.")
+            return
+        
+        self.configure_m2_diagram(year)
+
+        capa.triggerRepaint()
+        iface.mapCanvas().refresh()
+
+    def configure_mitjana_diagram(self, year):
+        global primeraExecucio
+
+        layer = evolucioLayer
+        
+        labelMitjana = QgsPalLayerSettings()
+        labelMitjana.enabled = True
+        labelMitjana.fieldName = f"""
+        CASE
+            WHEN "indexMITJANA_{year}" IS NOT NULL AND "indexMITJANA_{year}" > 0 THEN '<div><b><font color="black">' || format_number("indexMITJANA_{year}", 1) || '</font></b></div>'
+            ELSE ''
+        END
+        """
+        labelMitjana.isExpression = True
+        labelMitjana.placement = QgsPalLayerSettings.AroundPoint
+
+        text_format = QgsTextFormat()
+        text_format.setAllowHtmlFormatting(True)
+
+        background_format = QgsTextBackgroundSettings()
+        background_format.setEnabled(True)
+        background_format.setType(QgsTextBackgroundSettings.ShapeRectangle)
+        background_format.setSizeType(QgsTextBackgroundSettings.SizeBuffer)
+        background_format.setSizeUnit(QgsUnitTypes.RenderMillimeters)
+        background_format.setSize(QSizeF(3, 3))
+        background_format.setRadiiUnit(QgsUnitTypes.RenderMillimeters)
+        background_format.setRadii(QSizeF(3, 3))
+        background_format.setFillColor(QColor("#ffffff"))
+        background_format.setStrokeColor(QColor("#808080"))
+        background_format.setStrokeWidthUnit(QgsUnitTypes.RenderMillimeters)
+        background_format.setStrokeWidth(1)
+
+        text_format.setBackground(background_format)
+
+        symbology = QgsGraduatedSymbolRenderer(f"indexMITJANA_{year}", ranges.values())
+        symbolA = QgsFillSymbol()
+        symbolA.setColor(colors["colorA"])
+        symbolB = QgsFillSymbol()
+        symbolB.setColor(colors["colorB"])
+        symbolC = QgsFillSymbol()
+        symbolC.setColor(colors["colorC"])
+        symbolD = QgsFillSymbol()
+        symbolD.setColor(colors["colorD"])
+        symbolE = QgsFillSymbol()
+        symbolE.setColor(colors["colorE"])
+        symbolF = QgsFillSymbol()
+        symbolF.setColor(colors["colorF"])
+        symbolG = QgsFillSymbol()
+        symbolG.setColor(colors["colorG"])
+
+        symbology.updateRangeSymbol(0, symbolA)
+        symbology.updateRangeSymbol(1, symbolB)
+        symbology.updateRangeSymbol(2, symbolC)
+        symbology.updateRangeSymbol(3, symbolD)
+        symbology.updateRangeSymbol(4, symbolE)
+        symbology.updateRangeSymbol(5, symbolF)
+        symbology.updateRangeSymbol(6, symbolG)
+
+        labelMitjana.setFormat(text_format)
+
+        propertyx = QgsProperty()
+        propertyx.setExpressionString("x(centroid($geometry))")
+        propertyx.setActive(True)
+
+        propertyy = QgsProperty()
+        propertyy.setExpressionString("y(centroid($geometry))")
+        propertyy.setActive(True)
+
+        propertyCollection = QgsPropertyCollection("Coordenades")
+        propertyCollection.setProperty(9, propertyx)
+        propertyCollection.setProperty(10, propertyy)
+
+        labelMitjana.setDataDefinedProperties(propertyCollection)
+
+        labelMitjana.minimumScale = minimumValue
+        labelMitjana.maximumScale = maximumValue
+
+        labelMitjana.scaleVisibility = True
+
+        layer.setLabeling(QgsVectorLayerSimpleLabeling(labelMitjana))
+        layer.setLabelsEnabled(True)
+        layer.setRenderer(symbology)
+        layer.triggerRepaint()
+
+        QApplication.processEvents()
+
+    def update_mitjana_diagram(self, year):
+        if evolucioLayer is None:
+            return
+        if not QgsProject.instance().mapLayersByName(evolucioLayer.name()):
+            QgsProject.instance().addMapLayer(evolucioLayer)
+        capa = evolucioLayer
+        required_fields = [f'indexMITJANA_{year}']
+
+        if not all(capa.fields().indexFromName(field) != -1 for field in required_fields):
+            iface.messageBar().pushMessage("Error",f"No hi ha dades per a l'any {year}.")
+            return
+        
+        self.configure_mitjana_diagram(year)
+
+        capa.triggerRepaint()
+        iface.mapCanvas().refresh()
+
+    def configure_moda_diagram(self, year):
+        global primeraExecucio
+
+        layer = evolucioLayer
+        
+        labelModa = QgsPalLayerSettings()
+        labelModa.enabled = True
+        labelModa.fieldName = f"""
+        CASE
+            WHEN "indexMODA_{year}" IS NOT NULL AND "indexMODA_{year}" > 0 THEN '<div><b><font color="black">' || format_number("indexMODA_{year}", 1) || '</font></b></div>'
+            ELSE ''
+        END
+        """
+        labelModa.isExpression = True
+        labelModa.placement = QgsPalLayerSettings.AroundPoint
+
+        text_format = QgsTextFormat()
+        text_format.setAllowHtmlFormatting(True)
+
+        background_format = QgsTextBackgroundSettings()
+        background_format.setEnabled(True)
+        background_format.setType(QgsTextBackgroundSettings.ShapeRectangle)
+        background_format.setSizeType(QgsTextBackgroundSettings.SizeBuffer)
+        background_format.setSizeUnit(QgsUnitTypes.RenderMillimeters)
+        background_format.setSize(QSizeF(3, 3))
+        background_format.setRadiiUnit(QgsUnitTypes.RenderMillimeters)
+        background_format.setRadii(QSizeF(3, 3))
+        background_format.setFillColor(QColor("#ffffff"))
+        background_format.setStrokeColor(QColor("#808080"))
+        background_format.setStrokeWidthUnit(QgsUnitTypes.RenderMillimeters)
+        background_format.setStrokeWidth(1)
+
+        text_format.setBackground(background_format)
+
+        symbology = QgsCategorizedSymbolRenderer()
+        symbology.setClassAttribute(f'QualifMaxFreq_{year}')
+
+        symbolA = QgsFillSymbol()
+        symbolA.setColor(colors["colorA"])
+        symbolB = QgsFillSymbol()
+        symbolB.setColor(colors["colorB"])
+        symbolC = QgsFillSymbol()
+        symbolC.setColor(colors["colorC"])
+        symbolD = QgsFillSymbol()
+        symbolD.setColor(colors["colorD"])
+        symbolE = QgsFillSymbol()
+        symbolE.setColor(colors["colorE"])
+        symbolF = QgsFillSymbol()
+        symbolF.setColor(colors["colorF"])
+        symbolG = QgsFillSymbol()
+        symbolG.setColor(colors["colorG"])
+
+        symbol = QgsSymbol.defaultSymbol(layer.geometryType())
+        symbol.changeSymbolLayer(0, QgsSimpleFillSymbolLayer(colors["colorA"]))
+        symbology.addCategory(QgsRendererCategory("A", symbol, "A"))
+
+        symbol = QgsSymbol.defaultSymbol(layer.geometryType())
+        symbol.changeSymbolLayer(0, QgsSimpleFillSymbolLayer(colors["colorB"]))
+        symbology.addCategory(QgsRendererCategory("B", symbol, "B"))
+
+        symbol = QgsSymbol.defaultSymbol(layer.geometryType())
+        symbol.changeSymbolLayer(0, QgsSimpleFillSymbolLayer(colors["colorC"]))
+        symbology.addCategory(QgsRendererCategory("C", symbol, "C"))
+
+        symbol = QgsSymbol.defaultSymbol(layer.geometryType())
+        symbol.changeSymbolLayer(0, QgsSimpleFillSymbolLayer(colors["colorD"]))
+        symbology.addCategory(QgsRendererCategory("D", symbol, "D"))
+
+        symbol = QgsSymbol.defaultSymbol(layer.geometryType())
+        symbol.changeSymbolLayer(0, QgsSimpleFillSymbolLayer(colors["colorE"]))
+        symbology.addCategory(QgsRendererCategory("E", symbol, "E"))
+
+        symbol = QgsSymbol.defaultSymbol(layer.geometryType())
+        symbol.changeSymbolLayer(0, QgsSimpleFillSymbolLayer(colors["colorF"]))
+        symbology.addCategory(QgsRendererCategory("F", symbol, "F"))
+
+        symbol = QgsSymbol.defaultSymbol(layer.geometryType())
+        symbol.changeSymbolLayer(0, QgsSimpleFillSymbolLayer(colors["colorG"]))
+        symbology.addCategory(QgsRendererCategory("G", symbol, "G"))
+
+        labelModa.setFormat(text_format)
+
+        propertyx = QgsProperty()
+        propertyx.setExpressionString("x(centroid($geometry))")
+        propertyx.setActive(True)
+
+        propertyy = QgsProperty()
+        propertyy.setExpressionString("y(centroid($geometry))")
+        propertyy.setActive(True)
+
+        propertyCollection = QgsPropertyCollection("Coordenades")
+        propertyCollection.setProperty(9, propertyx)
+        propertyCollection.setProperty(10, propertyy)
+
+        labelModa.setDataDefinedProperties(propertyCollection)
+
+        labelModa.minimumScale = minimumValue
+        labelModa.maximumScale = maximumValue
+
+        labelModa.scaleVisibility = True
+
+        layer.setLabeling(QgsVectorLayerSimpleLabeling(labelModa))
+        layer.setLabelsEnabled(True)
+        layer.setRenderer(symbology)
+        layer.triggerRepaint()
+
+        QApplication.processEvents()
+
+    def update_moda_diagram(self, year):
+        if evolucioLayer is None:
+            return
+        if not QgsProject.instance().mapLayersByName(evolucioLayer.name()):
+            QgsProject.instance().addMapLayer(evolucioLayer)
+        capa = evolucioLayer
+        required_fields = [f'indexMODA_{year}', f'QualifMaxFreq_{year}']
+
+        if not all(capa.fields().indexFromName(field) != -1 for field in required_fields):
+            iface.messageBar().pushMessage("Error",f"No hi ha dades per a l'any {year}.")
+            return
+        
+        self.configure_moda_diagram(year)
+
+        capa.triggerRepaint()
+        iface.mapCanvas().refresh()
+
+    def configure_mediana_diagram(self, year):
+        global primeraExecucio
+
+        layer = evolucioLayer
+        
+        labelMediana = QgsPalLayerSettings()
+        labelMediana.enabled = True
+        labelMediana.fieldName = f"""
+        CASE
+            WHEN "indexMEDIANA_{year}" IS NOT NULL AND "indexMEDIANA_{year}" > 0 THEN '<div><b><font color="black">' || format_number("indexMEDIANA_{year}", 1) || '</font></b></div>'
+            ELSE ''
+        END
+        """
+        labelMediana.isExpression = True
+        labelMediana.placement = QgsPalLayerSettings.AroundPoint
+
+        text_format = QgsTextFormat()
+        text_format.setAllowHtmlFormatting(True)
+
+        background_format = QgsTextBackgroundSettings()
+        background_format.setEnabled(True)
+        background_format.setType(QgsTextBackgroundSettings.ShapeRectangle)
+        background_format.setSizeType(QgsTextBackgroundSettings.SizeBuffer)
+        background_format.setSizeUnit(QgsUnitTypes.RenderMillimeters)
+        background_format.setSize(QSizeF(3, 3))
+        background_format.setRadiiUnit(QgsUnitTypes.RenderMillimeters)
+        background_format.setRadii(QSizeF(3, 3))
+        background_format.setFillColor(QColor("#ffffff"))
+        background_format.setStrokeColor(QColor("#808080"))
+        background_format.setStrokeWidthUnit(QgsUnitTypes.RenderMillimeters)
+        background_format.setStrokeWidth(1)
+
+        text_format.setBackground(background_format)
+
+        symbology = QgsGraduatedSymbolRenderer(f"indexMEDIANA_{year}", ranges.values())
+        
+        symbolA = QgsFillSymbol()
+        symbolA.setColor(colors["colorA"])
+        symbolB = QgsFillSymbol()
+        symbolB.setColor(colors["colorB"])
+        symbolC = QgsFillSymbol()
+        symbolC.setColor(colors["colorC"])
+        symbolD = QgsFillSymbol()
+        symbolD.setColor(colors["colorD"])
+        symbolE = QgsFillSymbol()
+        symbolE.setColor(colors["colorE"])
+        symbolF = QgsFillSymbol()
+        symbolF.setColor(colors["colorF"])
+        symbolG = QgsFillSymbol()
+        symbolG.setColor(colors["colorG"])
+
+        symbology.updateRangeSymbol(0, symbolA)
+        symbology.updateRangeSymbol(1, symbolB)
+        symbology.updateRangeSymbol(2, symbolC)
+        symbology.updateRangeSymbol(3, symbolD)
+        symbology.updateRangeSymbol(4, symbolE)
+        symbology.updateRangeSymbol(5, symbolF)
+        symbology.updateRangeSymbol(6, symbolG)
+
+        labelMediana.setFormat(text_format)
+
+        propertyx = QgsProperty()
+        propertyx.setExpressionString("x(centroid($geometry))")
+        propertyx.setActive(True)
+
+        propertyy = QgsProperty()
+        propertyy.setExpressionString("y(centroid($geometry))")
+        propertyy.setActive(True)
+
+        propertyCollection = QgsPropertyCollection("Coordenades")
+        propertyCollection.setProperty(9, propertyx)
+        propertyCollection.setProperty(10, propertyy)
+
+        labelMediana.setDataDefinedProperties(propertyCollection)
+
+        labelMediana.minimumScale = minimumValue
+        labelMediana.maximumScale = maximumValue
+
+        labelMediana.scaleVisibility = True
+
+        layer.setLabeling(QgsVectorLayerSimpleLabeling(labelMediana))
+        layer.setLabelsEnabled(True)
+        layer.setRenderer(symbology)
+        layer.triggerRepaint()
+
+        QApplication.processEvents()
+
+    def update_mediana_diagram(self, year):
+        if evolucioLayer is None:
+            return
+        if not QgsProject.instance().mapLayersByName(evolucioLayer.name()):
+            QgsProject.instance().addMapLayer(evolucioLayer)
+        capa = evolucioLayer
+        required_fields = [f'indexMEDIANA_{year}']
+
+        if not all(capa.fields().indexFromName(field) != -1 for field in required_fields):
+            iface.messageBar().pushMessage("Error",f"No hi ha dades per a l'any {year}.")
+            return
+        
+        self.configure_mediana_diagram(year)
+
+        capa.triggerRepaint()
+        iface.mapCanvas().refresh()
 
 
     def scroll_text(self):
@@ -2874,6 +3866,7 @@ class EficEnerg:
 
     def on_click_Sortir(self):
         global connexioFeta
+        global evolucioLayer
         if connexioFeta:
             self.dropFinalTables()
             cur.close()
@@ -2899,6 +3892,9 @@ class EficEnerg:
         global estandar
         global personalitzat
         global any
+        global group
+        global total_start_time
+        global primeraExecucio
 
         global habitatges
         global habitatgesLayer
@@ -2952,13 +3948,13 @@ class EficEnerg:
             conn.rollback()
             self.dlg.setEnabled(True)
             return
-        if (not self.dlg.checkNumHabit.isChecked() and not self.dlg.checkm2.isChecked() and not self.dlg.checkMitjana.isChecked() and not self.dlg.checkModa.isChecked() and not self.dlg.checkMediana.isChecked()) and (not self.dlg.checkNumHabit_2.isChecked() and not self.dlg.checkm2_2.isChecked() and not self.dlg.checkMitjana_2.isChecked() and not self.dlg.checkModa_2.isChecked() and not self.dlg.checkMediana_2.isChecked()):
+        if (not self.dlg.checkNumHabit.isChecked() and not self.dlg.checkm2.isChecked() and not self.dlg.checkMitjana.isChecked() and not self.dlg.checkModa.isChecked() and not self.dlg.checkMediana.isChecked() and not self.dlg.checkNumHabit_2.isChecked() and not self.dlg.checkm2_2.isChecked() and not self.dlg.checkMitjana_2.isChecked() and not self.dlg.checkModa_2.isChecked() and not self.dlg.checkMediana_2.isChecked()) and (not evolucioGas and evolucioLlum and evolucioSuma):
             print ("No s'ha seleccionat cap càlcul que realitzar")
             QMessageBox.warning(None, "Error", "No s'ha seleccionat cap càlcul que realitzar")
             conn.rollback()
             self.dlg.setEnabled(True)
             return
-        if (not self.dlg.consumButton.isChecked() and not self.dlg.emissionsButton.isChecked()) and (not self.dlg.consumElectricButton.isChecked() and not self.dlg.consumGasButton.isChecked() and not self.dlg.consumSumaButton.isChecked()):
+        if (not self.dlg.consumButton.isChecked() and not self.dlg.emissionsButton.isChecked()) and (not self.dlg.consumElectricButton.isChecked() and not self.dlg.consumGasButton.isChecked() and not self.dlg.consumSumaButton.isChecked()) and (not evolucioGas and not evolucioLlum and not evolucioSuma):
             print ("No s'ha seleccionat ni consum ni emissions")
             QMessageBox.warning(None, "Error", "No s'ha seleccionat ni consum ni emissions")
             conn.rollback()
@@ -2979,6 +3975,8 @@ class EficEnerg:
             any1 = self.dlg.comboAny1.currentText()
             any2 = self.dlg.comboAny2.currentText()
             group = root.insertGroup(0, f"Comparativa {any1} i {any2}")
+        if self.dlg.tabCalculs.currentIndex() == 2:
+            group = root.insertGroup(0, f"Evolució {nomEntitat.upper()} (KWh/m²any)")
 
         if not self.dlg.checkComparativa.isChecked():
             llegenda = QgsVectorLayer("MultiPolygon?crs=epsg:25831", "Llegenda", "memory")
@@ -3048,6 +4046,19 @@ class EficEnerg:
             if self.dlg.consumGasButton.isChecked():
                 if habitatges != "consums_mataro_gas":
                     self.on_change_comboEntitat()
+            if self.dlg.consumSumaButton.isChecked():
+                if habitatges != "consums_mataro_suma":
+                    self.on_change_comboEntitat()
+        if self.dlg.tabCalculs.currentIndex() == 2:
+            if evolucioGas:
+                if habitatges != "consums_mataro_gas":
+                    self.on_change_comboEntitat()
+            if evolucioLlum:
+                if habitatges != "consums_mataro_llum":
+                    self.on_change_comboEntitat()
+            if evolucioSuma:
+                if habitatges != "consums_mataro_suma":
+                    self.on_change_comboEntitat()
 
         self.updateProgress(5)
 
@@ -3065,101 +4076,26 @@ class EficEnerg:
 
         if self.dlg.checkComparativa.isChecked():
             self.calculComparativa(any1, any2)
-            # if self.dlg.checkMitjana_2.isChecked():
-            #     labelMitjana = QgsPalLayerSettings()
-            #     labelMitjana.enabled = True
-            #     labelMitjana.fieldName = """
-            #     CASE
-            #         WHEN "diferencia" IS NOT NULL THEN '<div><b><font color="black">' || format_number("diferencia", 1) || '</font></b></div>'
-            #         ELSE ''
-            #     END
-            #     """
-            #     labelMitjana.isExpression = True
-            #     labelMitjana.placement = QgsPalLayerSettings.AroundPoint
-
-            #     text_format = QgsTextFormat()
-            #     text_format.setAllowHtmlFormatting(True)
-
-            #     background_format = QgsTextBackgroundSettings()
-            #     background_format.setEnabled(True)
-            #     background_format.setType(QgsTextBackgroundSettings.ShapeRectangle)
-            #     background_format.setSizeType(QgsTextBackgroundSettings.SizeBuffer)
-            #     background_format.setSizeUnit(QgsUnitTypes.RenderMillimeters)
-            #     background_format.setSize(QSizeF(3, 3))
-            #     background_format.setRadiiUnit(QgsUnitTypes.RenderMillimeters)
-            #     background_format.setRadii(QSizeF(3, 3))
-            #     background_format.setFillColor(QColor("#ffffff"))
-            #     background_format.setStrokeColor(QColor("#808080"))
-            #     background_format.setStrokeWidthUnit(QgsUnitTypes.RenderMillimeters)
-            #     background_format.setStrokeWidth(1)
-
-            #     text_format.setBackground(background_format)
-            
-            #     symbology = QgsGraduatedSymbolRenderer("diferencia", ranges_comparativa.values())
-
-            #     symbolMoltPositiu = QgsFillSymbol()
-            #     symbolMoltPositiu.setColor(colors['colorA'])
-            #     symbolPositiu = QgsFillSymbol()
-            #     symbolPositiu.setColor(colors['colorC'])
-            #     symbolNeutre = QgsFillSymbol()
-            #     symbolNeutre.setColor(colors['colorD'])
-            #     symbolNegatiu = QgsFillSymbol()
-            #     symbolNegatiu.setColor(colors['colorE'])
-            #     symbolMoltNegatiu = QgsFillSymbol()
-            #     symbolMoltNegatiu.setColor(colors['colorG'])
-
-            #     symbology.updateRangeSymbol(0, symbolMoltPositiu)
-            #     symbology.updateRangeSymbol(1, symbolPositiu)
-            #     symbology.updateRangeSymbol(2, symbolNeutre)
-            #     symbology.updateRangeSymbol(3, symbolNegatiu)
-            #     symbology.updateRangeSymbol(4, symbolMoltNegatiu)
-
-            #     labelMitjana.setFormat(text_format)
-
-            #     propertyx = QgsProperty()
-            #     propertyx.setExpressionString("x(centroid($geometry))")
-            #     propertyx.setActive(True)
-
-            #     propertyy = QgsProperty()
-            #     propertyy.setExpressionString("y(centroid($geometry))")
-            #     propertyy.setActive(True)
-
-            #     propertyCollection = QgsPropertyCollection("Coordenades")
-            #     propertyCollection.setProperty(9, propertyx)
-            #     propertyCollection.setProperty(10, propertyy)
-            
-            #     labelMitjana.setDataDefinedProperties(propertyCollection)
-
-            #     labelMitjana.minimumScale = minimumValue
-            #     labelMitjana.maximumScale = maximumValue
-            #     labelMitjana.scaleVisibility = True
-
-            #     entitatLayerResumMitjana.setLabeling(QgsVectorLayerSimpleLabeling(labelMitjana))
-            #     entitatLayerResumMitjana.setLabelsEnabled(True)
-            #     entitatLayerResumMitjana.setRenderer(symbology)
-            #     entitatLayerResumMitjana.triggerRepaint()
-            #     QgsProject.instance().addMapLayer(entitatLayerResumMitjana, False)#.setName(f"Comparativa Mitjana {any1} i {any2}")
-            #     node = QgsLayerTreeLayer(entitatLayerResumMitjana)
-            #     node.setExpanded(True)
-            #     group.insertChildNode(3, node)
-
-            #     textBox += f"Comparativa {any1} i {any2} realitzada correctament\n"
-            #     self.dlg.textEstat.setText(textBox)
-            #     self.scroll_text()
-            #     self.updateProgress(65)
-            #     QApplication.processEvents()
-            
-            # return
-        
+        if self.dlg.tabCalculs.currentIndex() == 2:
+            if evolucioGas:
+                self.calculEvolucio(self.dlg.anyGasLabel.text())
+            if evolucioLlum:
+                self.calculEvolucio(self.dlg.anyLlumLabel.text())
+            if evolucioSuma:
+                self.calculEvolucio(self.dlg.anySumaLabel.text())
+            return
         if not self.dlg.checkComparativa.isChecked():
             any = self.dlg.comboAny.currentText()
 
+            
+
             if self.dlg.tabCalculs.currentIndex() == 1:
-                self.calculSuperficieGasElectricitat()
+                self.castGaskWh()
                 #if self.dlg.consumSumaButton.isChecked():
                     #self.calculSumaConsums()
                     #print("Calcul de suma de consums")
-                self.calculQualificacio()
+            self.eliminarNulls()
+            self.calculQualificacio()
             self.calculIdEntitat()
             self.castConsumEmissions()
             #if self.dlg.consumElectricButton.isChecked():
@@ -3733,9 +4669,9 @@ class EficEnerg:
         self.dlg.groupChecks_2.setEnabled(True)
         self.dlg.groupEntitats.setEnabled(True)
         self.updateProgress(100)
-        self.estatFinalitzat()
         print(f"Temps total de procés: {tempsFinal} segons")
         QMessageBox.information(None, "Procés finalitzat", f"El procés per a l'entitat {nomEntitat} ha finalitzat.", QMessageBox.Ok)
+        self.estatFinalitzat()
         QApplication.processEvents()
 
     def dropFinalTables(self):
