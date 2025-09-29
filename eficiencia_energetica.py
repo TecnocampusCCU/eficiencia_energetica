@@ -63,7 +63,7 @@ from .eficiencia_energetica_dialog import EficEnergDialog
 from .resources import *
 
 '''Variables globals'''
-Versio_modul = "V_Q3.250709"
+Versio_modul = "V_Q4.250929"
 nomBD1 = ""
 password1 = ""
 host1 = ""
@@ -3883,7 +3883,7 @@ class EficEnerg:
 
 
     def scroll_text(self):
-        self.dlg.textEstat.moveCursor(QTextCursor.End)
+        self.dlg.textEstat.moveCursor(QTextCursor.MoveOperation.End)
     
     def updateProgress(self, progress):
         self.dlg.progressBar.setValue(progress)
@@ -4661,7 +4661,7 @@ class EficEnerg:
         self.dlg.groupEntitats.setEnabled(True)
         self.updateProgress(100)
         print(f"Temps total de procés: {tempsFinal} segons")
-        QMessageBox.information(None, "Procés finalitzat", f"El procés per a l'entitat {nomEntitat} ha finalitzat.", QMessageBox.Ok)
+        QMessageBox.information(None, "Procés finalitzat", f"El procés per a l'entitat {nomEntitat} ha finalitzat.", QMessageBox.StandardButton.Ok)
         self.estatFinalitzat()
         QApplication.processEvents()
 
@@ -4798,7 +4798,7 @@ class EficEnerg:
         conn=self.getConnections()
         # Run the dialog event loop
         self.populateComboBox(self.dlg.comboBD, conn, 'Selecciona connexió', True)
-        result = self.dlg.exec_()
+        result = self.dlg.exec()
         # See if OK was pressed
         if result:
             # Do something useful here - delete the line containing pass and

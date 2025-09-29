@@ -4,9 +4,9 @@
 
 [general]
 name=Eficiencia Energetica
-qgisMinimumVersion=3.16
+qgisMinimumVersion=3.44
 description=EficienciaEnergetica
-version=Q3.250709
+version=Q4.250929
 author=CCU
 email=miquel.rodriguezj@tecnocampus.cat
 
@@ -45,3 +45,5 @@ Category of the plugin: Raster, Vector, Database or Web
 # If the plugin can run on QGIS Server.
 server=False
 
+# Add Qt6 compatibility
+supportsQt6=True
