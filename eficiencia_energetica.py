@@ -32,13 +32,6 @@ import time
 import processing
 import psycopg2
 import qgis.utils
-from PyQt5.QtCore import *
-from PyQt5.QtCore import QSizeF, QTimer
-from PyQt5.QtGui import *
-from PyQt5.QtGui import QColor
-from PyQt5.QtSql import *
-from PyQt5.QtWidgets import (QAction, QApplication, QColorDialog, QMessageBox,
-                             QToolBar)
 from qgis.core import (QgsCategorizedSymbolRenderer, QgsDataSourceUri,
                        QgsDiagramLayerSettings, QgsDiagramSettings,
                        QgsFillSymbol, QgsField, QgsFeature, QgsGraduatedSymbolRenderer,
@@ -52,9 +45,12 @@ from qgis.core import (QgsCategorizedSymbolRenderer, QgsDataSourceUri,
                        QgsVectorLayer, QgsVectorLayerSimpleLabeling,
                        QgsWkbTypes, QgsExpression, QgsCoordinateReferenceSystem)
 from qgis.core import NULL
-from qgis.PyQt.QtCore import QCoreApplication, QSettings, QTranslator, qVersion, QVariant, QUrl
+from qgis.PyQt.QtCore import *
+from qgis.PyQt.QtCore import QCoreApplication, QSettings, QTranslator, qVersion, QVariant, QUrl, QSizeF, QTimer
+from qgis.PyQt.QtGui import *
 from qgis.PyQt.QtGui import QIcon, QColor, QFont, QStandardItemModel, QStandardItem, QTextCursor
-from qgis.PyQt.QtWidgets import QAction, QApplication, QMessageBox
+from qgis.PyQt.QtSql import *
+from qgis.PyQt.QtWidgets import QAction, QApplication, QMessageBox, QColorDialog, QToolBar
 from qgis.utils import iface
 
 # Import the code for the dialog
