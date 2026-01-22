@@ -28,10 +28,10 @@ import datetime
 import os
 import os.path
 import time
-
 import processing
 import psycopg2
-import qgis.utils
+
+import qgis.utils 
 from PyQt5.QtCore import *
 from PyQt5.QtCore import QSizeF, QTimer
 from PyQt5.QtGui import *
@@ -59,11 +59,14 @@ from qgis.utils import iface
 
 # Import the code for the dialog
 from .eficiencia_energetica_dialog import EficEnergDialog
+# Import the code for the accessibility dialogs
+from .eficiencia_energetica_dialog_accessibility import EficEnergDialogAccessibility
+from .eficiencia_energetica_dialog_zoomed import EficEnergDialogZoomed
 # Initialize Qt resources from file resources.py
 from .resources import *
 
 '''Variables globals'''
-Versio_modul = "V_Q3.250709"
+Versio_modul = "V_Q3.260122"
 nomBD1 = ""
 password1 = ""
 host1 = ""
@@ -136,6 +139,46 @@ colors = {
     'colorG': QColor.fromCmykF(0.05, 0.95, 0.95, 0.00)
 }
 
+# Copia de la paleta por defecto para poder restaurar
+default_colors = dict(colors)
+
+# Paletas de colores para daltonismo
+colors_protanopia = {
+    'colorConsum': QColor("#000000"),
+    'colorEmissions': QColor("#000000"),
+    'colorA': QColor("#000080"),  # Azul marino - perfectamente visible
+    'colorB': QColor("#0066CC"),  # Azul medio
+    'colorC': QColor("#3399FF"),  # Azul claro  
+    'colorD': QColor("#66CCFF"),  # Azul muy claro
+    'colorE': QColor("#FFFF00"),  # Amarillo puro - excelente para protanopes
+    'colorF': QColor("#B8860B"),  # Amarillo oscuro/dorado - sin componente rojo
+    'colorG': QColor("#8B4513")   # Marrón (percibido como amarillo muy oscuro)
+}
+
+colors_deuteranopia = {
+    'colorConsum': QColor("#000000"),
+    'colorEmissions': QColor("#000000"),
+    'colorA': QColor("#663399"),  # Púrpura oscuro - muy distinguible
+    'colorB': QColor("#9966CC"),  # Púrpura
+    'colorC': QColor("#CC99FF"),  # Púrpura claro
+    'colorD': QColor("#E6CCFF"),  # Púrpura muy claro
+    'colorE': QColor("#FFCC00"),  # Amarillo dorado
+    'colorF': QColor("#FF6600"),  # Naranja intenso
+    'colorG': QColor("#CC3300")   # Naranja/rojo oscuro para continuidad
+}
+
+colors_tritanopia = {
+    'colorConsum': QColor("#000000"),
+    'colorEmissions': QColor("#000000"),
+    'colorA': QColor("#CC0033"),  # Rojo intenso - muy visible para tritanopes
+    'colorB': QColor("#FF3366"),  # Rojo claro
+    'colorC': QColor("#FF6699"),  # Rosa intenso
+    'colorD': QColor("#FF99CC"),  # Rosa claro
+    'colorE': QColor("#00CC66"),  # Verde intenso - contrasta bien
+    'colorF': QColor("#66FF99"),  # Verde claro
+    'colorG': QColor("#009966")   # Verde más oscuro para continuidad
+}
+
 symbols = {
     'symbolConsum': QgsSymbol.defaultSymbol(QgsWkbTypes.GeometryType(QgsWkbTypes.LineString)),
     'symbolEmissions': QgsSymbol.defaultSymbol(QgsWkbTypes.GeometryType(QgsWkbTypes.LineString)),
@@ -157,6 +200,25 @@ ranges = {
     'rangeF': QgsRendererRange(136.6, 170.7, symbols['symbolF'], 'F'),
     'rangeG': QgsRendererRange(170.7, 9999999, symbols['symbolG'], 'G')
 }
+
+def get_daltonism_colors(daltonism_type):
+    """
+    Retorna la paleta de colores apropiada según el tipo de daltonismo.
+    
+    Args:
+        daltonism_type (str): Tipo de daltonismo ('Protanopia', 'Deuteranopia', 'Tritanopia')
+    
+    Returns:
+        dict: Diccionario de colores apropiados para el daltonismo
+    """
+    if daltonism_type == "Protanopia":
+        return colors_protanopia
+    elif daltonism_type == "Deuteranopia":
+        return colors_deuteranopia
+    elif daltonism_type == "Tritanopia":
+        return colors_tritanopia
+    else:
+        return colors  # Retorna colores normales si no se reconoce el tipo
 
 ranges_comparativa = {
     'rangeMoltPositiu': QgsRendererRange(50.0, 999999.9, symbols['symbolA'], 'Molt positiu'),
@@ -247,9 +309,13 @@ class EficEnerg:
             if qVersion() > '4.3.3':
                 QCoreApplication.installTranslator(self.translator)
 
+        self.is_zoomed_interface = False
+        self.current_dialog_state = {}
+
         # Create the dialog and keep reference
 
         self.dlg = EficEnergDialog()
+        self.dlgAccessibilitat = EficEnergDialogAccessibility()
         
         self.dlg.pushSortir.clicked.connect(self.on_click_Sortir)
         self.dlg.pushInici.clicked.connect(self.on_click_Inici)
@@ -262,6 +328,10 @@ class EficEnerg:
         self.dlg.checkMediana.stateChanged.connect(self.on_change_checkMediana)
         self.dlg.pushColorP.clicked.connect(self.on_click_color)
         self.dlg.tabPersonalitzacio.currentChanged.connect(self.on_currentChanged_tabPersonalitzacio)
+        self.dlg.btnAccessibilitat.clicked.connect(self.on_click_accessibilitat)
+
+        self.dlg.dadesOficialsButton.clicked.connect(self.on_change_dadesOficials)
+        self.dlg.dadesOficialsEstimacionsButton.clicked.connect(self.on_change_dadesOficialsEstimacions)
 
         self.dlg.consumButton.toggled.connect(self.on_change_consum)
         self.dlg.emissionsButton.toggled.connect(self.on_change_emissions)
@@ -421,6 +491,309 @@ class EficEnerg:
 
         # will be set False in run()
         self.first_start = True
+
+    def save_dialog_state(self):
+        if not self.dlg:
+            return {}
+
+        return {
+            'comboBD_index': self.dlg.comboBD.currentIndex(),
+            'comboBD_text': self.dlg.comboBD.currentText(),
+            'comboEntitat_index': self.dlg.comboEntitat.currentIndex(),
+            'comboEntitat_text': self.dlg.comboEntitat.currentText(),
+            'checkNumHabit': self.dlg.checkNumHabit.isChecked(),
+            'checkm2': self.dlg.checkm2.isChecked(),
+            'checkMitjana': self.dlg.checkMitjana.isChecked(),
+            'checkModa': self.dlg.checkModa.isChecked(),
+            'checkMediana': self.dlg.checkMediana.isChecked(),
+            'checkNumHabit_2': self.dlg.checkNumHabit_2.isChecked(),
+            'checkm2_2': self.dlg.checkm2_2.isChecked(),
+            'checkMitjana_2': self.dlg.checkMitjana_2.isChecked(),
+            'checkModa_2': self.dlg.checkModa_2.isChecked(),
+            'checkMediana_2': self.dlg.checkMediana_2.isChecked(),
+            'dadesOficialsButton': self.dlg.dadesOficialsButton.isChecked(),
+            'dadesOficialsEstimacionsButton': self.dlg.dadesOficialsEstimacionsButton.isChecked(),
+            'consumButton': self.dlg.consumButton.isChecked(),
+            'emissionsButton': self.dlg.emissionsButton.isChecked(),
+            'consumElectricButton': self.dlg.consumElectricButton.isChecked(),
+            'consumGasButton': self.dlg.consumGasButton.isChecked(),
+            'consumSumaButton': self.dlg.consumSumaButton.isChecked(),
+            'checkComparativa': self.dlg.checkComparativa.isChecked(),
+            'textEstat': self.dlg.textEstat.toPlainText(),
+            'progressBar': self.dlg.progressBar.value(),
+            'tabCalculs_index': self.dlg.tabCalculs.currentIndex(),
+            'tabPersonalitzacio_index': self.dlg.tabPersonalitzacio.currentIndex(),
+            'evolucioGasButton': self.dlg.evolucioGasButton.isChecked(),
+            'evolucioLlumButton': self.dlg.evolucioLlumButton.isChecked(),
+            'evolucioSumaButton': self.dlg.evolucioSumaButton.isChecked(),
+            'poderCalorLine': self.dlg.poderCalorLine.text() if hasattr(self.dlg, 'poderCalorLine') else '',
+            'minScale': self.dlg.minScale.value() if hasattr(self.dlg, 'minScale') else 0,
+            'maxScale': self.dlg.maxScale.value() if hasattr(self.dlg, 'maxScale') else 0,
+            'minScaleP': self.dlg.minScaleP.value() if hasattr(self.dlg, 'minScaleP') else 0,
+            'maxScaleP': self.dlg.maxScaleP.value() if hasattr(self.dlg, 'maxScaleP') else 0,
+            'groupBD_enabled': self.dlg.groupBD.isEnabled(),
+            'groupEntitats_enabled': self.dlg.groupEntitats.isEnabled(),
+            'groupEntitats_visible': self.dlg.groupEntitats.isVisible(),
+            'groupChecks_enabled': self.dlg.groupChecks.isEnabled(),
+            'groupChecks_visible': self.dlg.groupChecks.isVisible(),
+            'groupChecks_2_enabled': self.dlg.groupChecks_2.isEnabled(),
+            'groupChecks_2_visible': self.dlg.groupChecks_2.isVisible(),
+            'pushInici_enabled': self.dlg.pushInici.isEnabled(),
+            'tabPersonalitzacio_visible': self.dlg.tabPersonalitzacio.isVisible(),
+            'consumInvisible_visible': getattr(self.dlg.consumInvisible, 'isVisible', lambda: False)(),
+            'consumInvisible_2_visible': getattr(self.dlg.consumInvisible_2, 'isVisible', lambda: False)(),
+            'evolucioInvisible_visible': getattr(self.dlg.evolucioInvisible, 'isVisible', lambda: False)(),
+            'window_geometry': self.dlg.saveGeometry() if hasattr(self.dlg, 'saveGeometry') else None,
+            'window_size': self.dlg.size(),
+            'window_pos': self.dlg.pos()
+        }
+
+    def restore_dialog_state(self, state):
+        if not state or not self.dlg:
+            return
+
+        try:
+            self.dlg.blockSignals(True)
+
+            if 'comboBD_text' in state and state['comboBD_text']:
+                index = self.dlg.comboBD.findText(state['comboBD_text'])
+                if index >= 0:
+                    self.dlg.comboBD.setCurrentIndex(index)
+                elif 'comboBD_index' in state and state['comboBD_index'] < self.dlg.comboBD.count():
+                    self.dlg.comboBD.setCurrentIndex(state['comboBD_index'])
+
+            if 'comboEntitat_text' in state and state['comboEntitat_text']:
+                index = self.dlg.comboEntitat.findText(state['comboEntitat_text'])
+                if index >= 0:
+                    self.dlg.comboEntitat.setCurrentIndex(index)
+                elif 'comboEntitat_index' in state and state['comboEntitat_index'] < self.dlg.comboEntitat.count():
+                    self.dlg.comboEntitat.setCurrentIndex(state['comboEntitat_index'])
+
+            self.dlg.checkNumHabit.setChecked(state.get('checkNumHabit', False))
+            self.dlg.checkm2.setChecked(state.get('checkm2', False))
+            self.dlg.checkMitjana.setChecked(state.get('checkMitjana', False))
+            self.dlg.checkModa.setChecked(state.get('checkModa', False))
+            self.dlg.checkMediana.setChecked(state.get('checkMediana', False))
+            self.dlg.checkNumHabit_2.setChecked(state.get('checkNumHabit_2', False))
+            self.dlg.checkm2_2.setChecked(state.get('checkm2_2', False))
+            self.dlg.checkMitjana_2.setChecked(state.get('checkMitjana_2', False))
+            self.dlg.checkModa_2.setChecked(state.get('checkModa_2', False))
+            self.dlg.checkMediana_2.setChecked(state.get('checkMediana_2', False))
+
+            self.dlg.dadesOficialsButton.setChecked(state.get('dadesOficialsButton', False))
+            self.dlg.dadesOficialsEstimacionsButton.setChecked(state.get('dadesOficialsEstimacionsButton', False))
+            self.dlg.consumButton.setChecked(state.get('consumButton', False))
+            self.dlg.emissionsButton.setChecked(state.get('emissionsButton', False))
+            self.dlg.consumElectricButton.setChecked(state.get('consumElectricButton', False))
+            self.dlg.consumGasButton.setChecked(state.get('consumGasButton', False))
+            self.dlg.consumSumaButton.setChecked(state.get('consumSumaButton', False))
+            self.dlg.checkComparativa.setChecked(state.get('checkComparativa', False))
+            self.dlg.evolucioGasButton.setChecked(state.get('evolucioGasButton', False))
+            self.dlg.evolucioLlumButton.setChecked(state.get('evolucioLlumButton', False))
+            self.dlg.evolucioSumaButton.setChecked(state.get('evolucioSumaButton', False))
+
+            self.dlg.textEstat.setPlainText(state.get('textEstat', ''))
+            self.dlg.progressBar.setValue(state.get('progressBar', 0))
+
+            if 'tabCalculs_index' in state:
+                self.dlg.tabCalculs.setCurrentIndex(state['tabCalculs_index'])
+            if 'tabPersonalitzacio_index' in state:
+                self.dlg.tabPersonalitzacio.setCurrentIndex(state['tabPersonalitzacio_index'])
+
+            if hasattr(self.dlg, 'poderCalorLine') and 'poderCalorLine' in state:
+                self.dlg.poderCalorLine.setText(state['poderCalorLine'])
+            if hasattr(self.dlg, 'minScale') and 'minScale' in state:
+                self.dlg.minScale.setValue(state['minScale'])
+            if hasattr(self.dlg, 'maxScale') and 'maxScale' in state:
+                self.dlg.maxScale.setValue(state['maxScale'])
+            if hasattr(self.dlg, 'minScaleP') and 'minScaleP' in state:
+                self.dlg.minScaleP.setValue(state['minScaleP'])
+            if hasattr(self.dlg, 'maxScaleP') and 'maxScaleP' in state:
+                self.dlg.maxScaleP.setValue(state['maxScaleP'])
+
+            if 'groupBD_enabled' in state:
+                self.dlg.groupBD.setEnabled(state['groupBD_enabled'])
+            if 'groupEntitats_enabled' in state:
+                self.dlg.groupEntitats.setEnabled(state['groupEntitats_enabled'])
+            if 'groupEntitats_visible' in state:
+                self.dlg.groupEntitats.setVisible(state['groupEntitats_visible'])
+            if 'groupChecks_enabled' in state:
+                self.dlg.groupChecks.setEnabled(state['groupChecks_enabled'])
+            if 'groupChecks_visible' in state:
+                self.dlg.groupChecks.setVisible(state['groupChecks_visible'])
+            if 'groupChecks_2_enabled' in state:
+                self.dlg.groupChecks_2.setEnabled(state['groupChecks_2_enabled'])
+            if 'groupChecks_2_visible' in state:
+                self.dlg.groupChecks_2.setVisible(state['groupChecks_2_visible'])
+            if 'pushInici_enabled' in state:
+                self.dlg.pushInici.setEnabled(state['pushInici_enabled'])
+            if 'tabPersonalitzacio_visible' in state:
+                self.dlg.tabPersonalitzacio.setVisible(state['tabPersonalitzacio_visible'])
+
+            if hasattr(self.dlg, 'consumInvisible'):
+                self.dlg.consumInvisible.setVisible(state.get('consumInvisible_visible', False))
+            if hasattr(self.dlg, 'consumInvisible_2'):
+                self.dlg.consumInvisible_2.setVisible(state.get('consumInvisible_2_visible', False))
+            if hasattr(self.dlg, 'evolucioInvisible'):
+                self.dlg.evolucioInvisible.setVisible(state.get('evolucioInvisible_visible', False))
+
+        except Exception as e:
+            print(f"Error restaurant estat de la interfície: {e}")
+        finally:
+            self.dlg.blockSignals(False)
+
+    def connect_signals(self):
+        self.dlg.pushSortir.clicked.connect(self.on_click_Sortir)
+        self.dlg.pushInici.clicked.connect(self.on_click_Inici)
+        self.dlg.comboBD.currentIndexChanged.connect(self.on_change_ComboConn)
+        self.dlg.comboEntitat.currentIndexChanged.connect(self.on_change_comboEntitat)
+        self.dlg.checkNumHabit.stateChanged.connect(self.on_change_checkNumHabit_checkm2)
+        self.dlg.checkm2.stateChanged.connect(self.on_change_checkNumHabit_checkm2)
+        self.dlg.checkMitjana.stateChanged.connect(self.on_change_checkMitjana)
+        self.dlg.checkModa.stateChanged.connect(self.on_change_checkModa)
+        self.dlg.checkMediana.stateChanged.connect(self.on_change_checkMediana)
+        self.dlg.pushColorP.clicked.connect(self.on_click_color)
+        self.dlg.tabPersonalitzacio.currentChanged.connect(self.on_currentChanged_tabPersonalitzacio)
+        self.dlg.btnAccessibilitat.clicked.connect(self.on_click_accessibilitat)
+        self.dlg.dadesOficialsButton.clicked.connect(self.on_change_dadesOficials)
+        self.dlg.dadesOficialsEstimacionsButton.clicked.connect(self.on_change_dadesOficialsEstimacions)
+        self.dlg.consumButton.toggled.connect(self.on_change_consum)
+        self.dlg.emissionsButton.toggled.connect(self.on_change_emissions)
+
+        # TODO: REVISAR QUE ESTIGUIN TOTES LES SIGNALS
+
+        self.dlg.checkNumHabit.stateChanged.connect(self.on_change_entitatsIOperacions)
+        self.dlg.checkm2.stateChanged.connect(self.on_change_entitatsIOperacions)
+        self.dlg.checkMitjana.stateChanged.connect(self.on_change_entitatsIOperacions)
+        self.dlg.checkModa.stateChanged.connect(self.on_change_entitatsIOperacions)
+        self.dlg.checkMediana.stateChanged.connect(self.on_change_entitatsIOperacions)
+
+        self.dlg.consumElectricButton.toggled.connect(self.on_change_consumElectric)
+        self.dlg.consumGasButton.toggled.connect(self.on_change_consumGas)
+        self.dlg.consumSumaButton.toggled.connect(self.on_change_consumSuma)
+
+        self.dlg.checkNumHabit_2.stateChanged.connect(self.on_change_checkNumHabit_checkm2_2)
+        self.dlg.checkm2_2.stateChanged.connect(self.on_change_checkNumHabit_checkm2_2)
+        self.dlg.checkMitjana_2.stateChanged.connect(self.on_change_checkMitjana_2)
+        self.dlg.checkModa_2.stateChanged.connect(self.on_change_checkModa_2)
+        self.dlg.checkMediana_2.stateChanged.connect(self.on_change_checkMediana_2)
+
+        self.dlg.checkNumHabit_2.stateChanged.connect(self.on_change_entitatsIOperacions)
+        self.dlg.checkm2_2.stateChanged.connect(self.on_change_entitatsIOperacions)
+        self.dlg.checkMitjana_2.stateChanged.connect(self.on_change_entitatsIOperacions)
+        self.dlg.checkModa_2.stateChanged.connect(self.on_change_entitatsIOperacions)
+        self.dlg.checkMediana_2.stateChanged.connect(self.on_change_entitatsIOperacions)
+
+        self.dlg.checkComparativa.stateChanged.connect(self.on_change_checkComparativa)
+
+        self.dlg.tabCalculs.currentChanged.connect(self.on_currentChanged_tabCalculs)
+
+        self.dlg.evolucioGasButton.toggled.connect(self.on_change_evolucioGasButton)
+        self.dlg.evolucioGasSlider.valueChanged.connect(self.on_change_evolucioGasSlider)
+        self.dlg.evolucioGasPlay.toggled.connect(self.on_change_evolucioGasPlay)
+        self.dlg.evolucioLlumButton.toggled.connect(self.on_change_evolucioLlumButton)
+        self.dlg.evolucioLlumSlider.valueChanged.connect(self.on_change_evolucioLlumSlider)
+        self.dlg.evolucioLlumPlay.toggled.connect(self.on_change_evolucioLlumPlay)
+        self.dlg.evolucioSumaButton.toggled.connect(self.on_change_evolucioSumaButton)
+        self.dlg.evolucioSumaSlider.valueChanged.connect(self.on_change_evolucioSumaSlider)
+        self.dlg.evolucioSumaPlay.toggled.connect(self.on_change_evolucioSumaPlay)
+        self.dlg.metodeEvolucioCombo.currentIndexChanged.connect(self.on_change_metodeEvolucioCombo)
+
+        self.dlg.rejected.connect(self.on_click_Sortir)
+
+    def create_dialogs(self):
+        if self.is_zoomed_interface:
+            self.dlg = EficEnergDialogZoomed()
+        else:
+            self.dlg = EficEnergDialog()
+
+        if hasattr(self.dlg, 'consumInvisible'):
+            self.dlg.consumInvisible.setVisible(False)
+            self.dlg.consumInvisible.setChecked(True)
+        if hasattr(self.dlg, 'consumInvisible_2'):
+            self.dlg.consumInvisible_2.setVisible(False)
+            self.dlg.consumInvisible_2.setChecked(True)
+        if hasattr(self.dlg, 'evolucioInvisible'):
+            self.dlg.evolucioInvisible.setVisible(False)
+            self.dlg.evolucioInvisible.setChecked(True)
+
+        self.connect_signals()
+
+    def toggle_interface_size(self, use_zoomed=False):
+        if self.is_zoomed_interface == use_zoomed:
+            return
+    
+        was_visible = False
+        current_values = {}
+
+        if self.dlg:
+            was_visible = self.dlg.isVisible()
+            current_values = self.save_dialog_state()
+
+        self.is_zoomed_interface = use_zoomed
+
+        old_dlg = self.dlg
+        self.create_dialogs()
+
+        if current_values:
+            conn = self.getConnections()
+            self.populateComboBox(self.dlg.comboBD, conn, 'Selecciona connexió', True)
+
+            # En principi, les entitats no calen, segons s'ha pogut observar
+
+        self.restore_dialog_state(current_values)
+
+        if was_visible:
+            if old_dlg:
+                old_dlg.hide()
+            
+            if use_zoomed:
+                self.dlg.showMaximized()
+            else:
+                self.dlg.showNormal()
+                if 'window_size' in current_values:
+                    self.dlg.resize(current_values['window_size'])
+                if 'window_pos' in current_values:
+                    self.dlg.move(current_values['window_pos'])
+            
+            if not self.dlg.isVisible():
+                self.dlg.show()
+
+        if old_dlg:
+            old_dlg.deleteLater()
+        
+        QApplication.processEvents()
+
+    def save_accessibility_preferences(self):
+        settings = QSettings()
+        settings.beginGroup("EficienciaEnergetica/Accessibility")
+        settings.setValue("use_zoomed_interface", self.is_zoomed_interface)
+        if hasattr(self, 'dlgAccessibilitat') and hasattr(self.dlgAccessibilitat, 'checkDaltonisme'):
+            settings.setValue("daltonism_enabled", self.dlgAccessibilitat.checkDaltonisme.isChecked())
+            if self.dlgAccessibilitat.checkDaltonisme.isChecked():
+                settings.setValue("daltonism_type", self.dlgAccessibilitat.comboDaltonisme.currentText())
+        settings.endGroup()
+
+    def load_accessibility_preferences(self):
+        settings = QSettings()
+        settings.beginGroup("EficienciaEnergetica/Accessibility")
+        
+        use_zoomed = settings.value("use_zoomed_interface", False, type=bool)
+        daltonism_enabled = settings.value("daltonism_enabled", False, type=bool)
+        daltonism_type = settings.value("daltonism_type", "Normal", type=str)
+
+        settings.endGroup()
+
+        if use_zoomed != self.is_zoomed_interface:
+            self.toggle_interface_size(use_zoomed)
+        
+        if hasattr(self, 'dlgAccessibilitat'):
+            if hasattr(self.dlgAccessibilitat, 'checkDaltonisme'):
+                self.dlgAccessibilitat.checkDaltonisme.setChecked(daltonism_enabled)
+            if hasattr(self.dlgAccessibilitat, 'comboDaltonisme') and daltonism_type:
+                index = self.dlgAccessibilitat.comboDaltonisme.findText(daltonism_type)
+                if index >= 0:
+                    self.dlgAccessibilitat.comboDaltonisme.setCurrentIndex(index)
 
     def on_change_ComboConn(self):
         global nomBD1
@@ -614,8 +987,17 @@ class EficEnerg:
         nomEntitat = self.dlg.comboEntitat.currentText()
         schema1 = "public"
 
+        if self.dlg.comboEntitat.currentIndex() == 1:
+            # Salta una box d'advertencia dient que no esta disponible parcel·les temporalment
+            QMessageBox.warning(None, "Atenció", "L'entitat 'Parcel·les' no està disponible temporalment.")
+            self.dlg.comboEntitat.setCurrentIndex(0)
+            return
+
         if self.dlg.tabCalculs.currentIndex() == 0:
-            habitatges = "cert_efi_energ_edif_mataro_geom"
+            if self.dlg.dadesOficialsButton.isChecked():
+                habitatges = "cert_efi_energ_edif_mataro_geom"
+            if self.dlg.dadesOficialsEstimacionsButton.isChecked():
+                habitatges = "cert_efi_energ_edif_mataro_geom_estimacions"
         if self.dlg.tabCalculs.currentIndex() == 1:
             if self.dlg.consumElectricButton.isChecked():
                 habitatges = "consums_mataro_llum"
@@ -688,6 +1070,9 @@ class EficEnerg:
             color = QColor("#707070")
             minimumValue = self.dlg.minScale.value()
             maximumValue = self.dlg.maxScale.value()
+
+        self.dlg.dadesOficialsButton.setEnabled(True)
+        self.dlg.dadesOficialsEstimacionsButton.setEnabled(True)
         
     def on_change_entitatsIOperacions(self):
         if numOperacions > 2:
@@ -695,6 +1080,82 @@ class EficEnerg:
         else:
             self.dlg.labelAvis.setVisible(False)
 
+    def on_change_dadesOficials(self):
+        global habitatges
+        global habitatgesLayer
+        global uri
+        global schema1
+
+        if self.dlg.dadesOficialsButton.isChecked():
+            self.dlg.dadesOficialsEstimacionsButton.setChecked(False)
+            if habitatges != "cert_efi_energ_edif_mataro_geom":
+                habitatges = "cert_efi_energ_edif_mataro_geom"
+                try:
+                    uri.setDataSource(schema1, habitatges, 'geom')
+                    habitatgesLayer = QgsVectorLayer(uri.uri(), habitatges, 'postgres')
+                except Exception as ex:
+                    print ("Error no s'ha trobat entitat")
+                    template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+                    message = template.format(type(ex).__name__, ex.args)
+                    print (message)
+                    QMessageBox.critical(None, "Error", "Error no s'ha trobat entitat")
+                    conn.rollback()
+                    self.dlg.setEnabled(True)
+                    return
+        else:
+            if habitatges != "cert_efi_energ_edif_mataro_geom_estimacions":
+                habitatges = "cert_efi_energ_edif_mataro_geom_estimacions"
+                try:
+                    uri.setDataSource(schema1, habitatges, 'geom')
+                    habitatgesLayer = QgsVectorLayer(uri.uri(), habitatges, 'postgres')
+                except Exception as ex:
+                    print ("Error no s'ha trobat entitat")
+                    template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+                    message = template.format(type(ex).__name__, ex.args)
+                    print (message)
+                    QMessageBox.critical(None, "Error", "Error no s'ha trobat entitat")
+                    conn.rollback()
+                    self.dlg.setEnabled(True)
+                    return
+
+    def on_change_dadesOficialsEstimacions(self):
+        global habitatges
+        global habitatgesLayer
+        global uri
+        global schema1
+
+        if self.dlg.dadesOficialsEstimacionsButton.isChecked():
+            self.dlg.dadesOficialsButton.setChecked(False)
+            if habitatges != "cert_efi_energ_edif_mataro_geom_estimacions":
+                habitatges = "cert_efi_energ_edif_mataro_geom_estimacions"
+                try:
+                    uri.setDataSource(schema1, habitatges, 'geom')
+                    habitatgesLayer = QgsVectorLayer(uri.uri(), habitatges, 'postgres')
+                except Exception as ex:
+                    print ("Error no s'ha trobat entitat")
+                    template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+                    message = template.format(type(ex).__name__, ex.args)
+                    print (message)
+                    QMessageBox.critical(None, "Error", "Error no s'ha trobat entitat")
+                    conn.rollback()
+                    self.dlg.setEnabled(True)
+                    return
+        else:
+            if habitatges != "cert_efi_energ_edif_mataro_geom":
+                habitatges = "cert_efi_energ_edif_mataro_geom"
+                try:
+                    uri.setDataSource(schema1, habitatges, 'geom')
+                    habitatgesLayer = QgsVectorLayer(uri.uri(), habitatges, 'postgres')
+                except Exception as ex:
+                    print ("Error no s'ha trobat entitat")
+                    template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+                    message = template.format(type(ex).__name__, ex.args)
+                    print (message)
+                    QMessageBox.critical(None, "Error", "Error no s'ha trobat entitat")
+                    conn.rollback()
+                    self.dlg.setEnabled(True)
+                    return
+            
     def on_change_checkNumHabit_checkm2(self):
         global numOperacions
 
@@ -901,6 +1362,40 @@ class EficEnerg:
         if self.dlg.tabPersonalitzacio.currentIndex() == 1:
             estandar = False
             personalitzat = True
+
+    def on_click_accessibilitat(self):
+        global colors
+        # Abre el diálogo de accesibilidad de forma modal
+        result = self.dlgAccessibilitat.exec_()
+        if result:
+            # Si el usuario aceptó el diálogo
+            if self.dlgAccessibilitat.checkDaltonisme.isChecked():
+                daltonism_type = self.dlgAccessibilitat.comboDaltonisme.currentText()
+                # Aplica la paleta seleccionada
+                colors = get_daltonism_colors(daltonism_type)
+            else:
+                # Restaura la paleta por defecto
+                colors = dict(default_colors)
+            if self.dlgAccessibilitat.checkVisioReduida.isChecked():
+                self.toggle_interface_size(use_zoomed=True)
+            else:
+                self.toggle_interface_size(use_zoomed=False)
+            self.save_accessibility_preferences()
+            # Opcional: actualizar símbolos base para reflejar la nueva paleta inmediatamente
+            try:
+                symbols['symbolA'].setColor(colors['colorA'])
+                symbols['symbolB'].setColor(colors['colorB'])
+                symbols['symbolC'].setColor(colors['colorC'])
+                symbols['symbolD'].setColor(colors['colorD'])
+                symbols['symbolE'].setColor(colors['colorE'])
+                symbols['symbolF'].setColor(colors['colorF'])
+                symbols['symbolG'].setColor(colors['colorG'])
+            except Exception:
+                # Si aún no existen los símbolos, simplemente ignorar
+                pass
+        else:
+            # Cancelado: no hacer cambios
+            return
 
     def on_change_consum(self):
         global consum
@@ -1603,6 +2098,10 @@ class EficEnerg:
         self.dlg.checkMitjana_2.setEnabled(False)
         self.dlg.checkModa_2.setEnabled(False)
         self.dlg.checkMediana_2.setEnabled(False)
+        self.dlg.dadesOficialsButton.setEnabled(False)
+        self.dlg.dadesOficialsButton.setChecked(True)
+        self.dlg.dadesOficialsEstimacionsButton.setEnabled(False)
+        self.dlg.dadesOficialsEstimacionsButton.setChecked(False)
         self.dlg.labelAvis.setVisible(False)
         self.dlg.progressBar.setValue(0)
         self.dlg.labelRestriccio.setVisible(False)
@@ -4028,8 +4527,14 @@ class EficEnerg:
             consum elèctric o consum de gas, que són tres taules diferents encara que originalment sempre s'utilitzés la primera (cert_efi_energ_edif_mataro_geom)
             que és la que es s'ha deixat escrita a la definició de la variable global habitatges '''
         if self.dlg.tabCalculs.currentIndex() == 0:
-            if habitatges != 'cert_efi_energ_edif_mataro_geom':
-                self.on_change_comboEntitat()
+            if self.dlg.dadesOficialsButton.isChecked():
+                if habitatges != 'cert_efi_energ_edif_mataro_geom':
+                    self.on_change_comboEntitat()
+            if self.dlg.dadesOficialsEstimacionsButton.isChecked():
+                if habitatges != 'cert_efi_energ_edif_mataro_geom_estimacions':
+                    self.on_change_comboEntitat()
+            #if habitatges != 'cert_efi_energ_edif_mataro_geom':
+            #    self.on_change_comboEntitat()
         if self.dlg.tabCalculs.currentIndex() == 1:
             if self.dlg.consumElectricButton.isChecked():
                 if habitatges != "consums_mataro_llum":
@@ -4769,6 +5274,16 @@ class EficEnerg:
                 combo.setCurrentIndex(0)
         combo.blockSignals(False)
 
+    def qcolor_to_rgb_tuple(self, qcolor):
+        r = qcolor.red()
+        g = qcolor.green()
+        b = qcolor.blue()
+        return (r, g, b)
+
+    def rgb_tuple_to_qcolor(self, rgb):
+        r, g, b = [int(x * 255) for x in rgb]
+        return QColor(r, g, b)
+
     def unload(self):
         """Removes the plugin menu item and icon from QGIS GUI."""
         for action in self.actions:
@@ -4781,7 +5296,9 @@ class EficEnerg:
     def run(self):
         global fitxer
         global llistaEntitats
+        global colors
         """Run method that performs all the real work"""
+        
         # show the dialog
         self.estatInicial()
         fitxer = "ccu_temp"+datetime.datetime.now().strftime("%Y%m%d%H%M%S%f")
