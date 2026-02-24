@@ -1571,7 +1571,7 @@
        </rect>
       </property>
       <property name="title">
-       <string>Índexs numèrics i diagrames temàtics</string>
+       <string>Estadístiques</string>
       </property>
       <widget class="QCheckBox" name="checkMitjana">
        <property name="geometry">
@@ -1615,6 +1615,39 @@
         <bool>false</bool>
        </property>
       </widget>
+      <widget class="QGroupBox" name="groupModels">
+       <property name="geometry">
+        <rect>
+         <x>140</x>
+         <y>10</y>
+         <width>181</width>
+         <height>91</height>
+        </rect>
+       </property>
+       <property name="title">
+        <string>Model estadístic</string>
+       </property>
+       <widget class="QComboBox" name="comboModel">
+        <property name="geometry">
+         <rect>
+          <x>10</x>
+          <y>40</y>
+          <width>161</width>
+          <height>22</height>
+         </rect>
+        </property>
+        <item>
+         <property name="text">
+          <string>Qualificació energètica</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Càlcul numèric</string>
+         </property>
+        </item>
+       </widget>
+      </widget>
      </widget>
     </widget>
     <widget class="QRadioButton" name="dadesOficialsButton">
@@ -1630,11 +1663,24 @@
       <string>Dades de consum i emissions oficials</string>
      </property>
     </widget>
+    <widget class="QRadioButton" name="dadesEstimacionsButton">
+     <property name="geometry">
+      <rect>
+       <x>20</x>
+       <y>300</y>
+       <width>331</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Dades de consum i emissions estimades</string>
+     </property>
+    </widget>
     <widget class="QRadioButton" name="dadesOficialsEstimacionsButton">
      <property name="geometry">
       <rect>
        <x>20</x>
-       <y>310</y>
+       <y>320</y>
        <width>331</width>
        <height>21</height>
       </rect>
