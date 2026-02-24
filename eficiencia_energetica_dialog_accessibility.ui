@@ -84,7 +84,7 @@
   <widget class="QPushButton" name="pushCancelar">
    <property name="geometry">
     <rect>
-     <x>240</x>
+     <x>270</x>
      <y>180</y>
      <width>101</width>
      <height>31</height>
@@ -549,7 +549,7 @@
   <widget class="QPushButton" name="pushAcceptar">
    <property name="geometry">
     <rect>
-     <x>90</x>
+     <x>120</x>
      <y>180</y>
      <width>101</width>
      <height>31</height>

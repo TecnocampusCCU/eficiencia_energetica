@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>900</width>
-    <height>770</height>
+    <height>800</height>
    </rect>
   </property>
   <property name="minimumSize">
@@ -179,7 +179,7 @@
    <property name="geometry">
     <rect>
      <x>640</x>
-     <y>670</y>
+     <y>680</y>
      <width>81</width>
      <height>31</height>
     </rect>
@@ -644,7 +644,7 @@
    <property name="geometry">
     <rect>
      <x>780</x>
-     <y>670</y>
+     <y>680</y>
      <width>81</width>
      <height>31</height>
     </rect>
@@ -1124,7 +1124,7 @@
    <property name="geometry">
     <rect>
      <x>590</x>
-     <y>710</y>
+     <y>730</y>
      <width>291</width>
      <height>51</height>
     </rect>
@@ -1633,7 +1633,7 @@
        </rect>
       </property>
       <property name="title">
-       <string>Índexs numèrics i diagrames temàtics</string>
+       <string>Estadístiques</string>
       </property>
       <widget class="QCheckBox" name="checkMitjana">
        <property name="geometry">
@@ -1677,6 +1677,39 @@
         <bool>false</bool>
        </property>
       </widget>
+      <widget class="QGroupBox" name="groupModels">
+       <property name="geometry">
+        <rect>
+         <x>280</x>
+         <y>20</y>
+         <width>251</width>
+         <height>91</height>
+        </rect>
+       </property>
+       <property name="title">
+        <string>Model estadístic</string>
+       </property>
+       <widget class="QComboBox" name="comboModel">
+        <property name="geometry">
+         <rect>
+          <x>10</x>
+          <y>30</y>
+          <width>231</width>
+          <height>31</height>
+         </rect>
+        </property>
+        <item>
+         <property name="text">
+          <string>Qualificació energètica</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Càlcul numèric</string>
+         </property>
+        </item>
+       </widget>
+      </widget>
      </widget>
      <widget class="QRadioButton" name="dadesOficialsButton">
       <property name="geometry">
@@ -1695,13 +1728,26 @@
       <property name="geometry">
        <rect>
         <x>10</x>
-        <y>360</y>
+        <y>370</y>
         <width>531</width>
         <height>31</height>
        </rect>
       </property>
       <property name="text">
        <string>Dades de consum i emissions oficials + estimacions</string>
+      </property>
+     </widget>
+     <widget class="QRadioButton" name="dadesEstimacionsButton">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>350</y>
+        <width>331</width>
+        <height>21</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Dades de consum i emissions estimades</string>
       </property>
      </widget>
     </widget>
@@ -2385,8 +2431,8 @@
   <widget class="QPushButton" name="btnAccessibilitat">
    <property name="geometry">
     <rect>
-     <x>180</x>
-     <y>715</y>
+     <x>190</x>
+     <y>750</y>
      <width>35</width>
      <height>35</height>
     </rect>
@@ -2409,7 +2455,7 @@
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>730</y>
+     <y>760</y>
      <width>201</width>
      <height>16</height>
     </rect>

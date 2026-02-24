@@ -43,7 +43,7 @@ from qgis.core import (QgsCategorizedSymbolRenderer, QgsDataSourceUri,
                        QgsDiagramLayerSettings, QgsDiagramSettings,
                        QgsFillSymbol, QgsField, QgsFeature, QgsGraduatedSymbolRenderer,
                        QgsLayerTreeLayer, QgsPalLayerSettings, QgsPieDiagram,
-                       QgsProcessing, QgsProject, QgsProperty,
+                       QgsProcessing, QgsProcessingFeedback, QgsProject, QgsProperty,
                        QgsPropertyCollection, QgsRasterLayer,
                        QgsRendererCategory, QgsRendererRange,
                        QgsSimpleFillSymbolLayer, QgsSimpleLineSymbolLayer,
@@ -65,8 +65,17 @@ from .eficiencia_energetica_dialog_zoomed import EficEnergDialogZoomed
 # Initialize Qt resources from file resources.py
 from .resources import *
 
+# Imports dels submòduls del plugin
+# from .styling.palettes import (
+#     colors, default_colors,
+#     rangescomparativa, rangesconsum, rangesemissions,
+#     symbols,
+#     get_daltonism_colors,
+# )
+from .ui.dialog_factory import create_main_dialog, create_accessibility_dialog
+
 '''Variables globals'''
-Versio_modul = "V_Q3.260122"
+Versio_modul = "V_Q3.260224"
 nomBD1 = ""
 password1 = ""
 host1 = ""
@@ -191,15 +200,15 @@ symbols = {
     'symbolG': QgsSymbol.defaultSymbol(QgsWkbTypes.GeometryType(QgsWkbTypes.LineString))
 }
 
-ranges = {
-    'rangeA': QgsRendererRange(0.0, 34.1, symbols['symbolA'], 'A'),
-    'rangeB': QgsRendererRange(34.1, 55.5, symbols['symbolB'], 'B'),
-    'rangeC': QgsRendererRange(55.5, 85.4, symbols['symbolC'], 'C'),
-    'rangeD': QgsRendererRange(85.4, 111.6, symbols['symbolD'], 'D'),
-    'rangeE': QgsRendererRange(111.6, 136.6, symbols['symbolE'], 'E'),
-    'rangeF': QgsRendererRange(136.6, 170.7, symbols['symbolF'], 'F'),
-    'rangeG': QgsRendererRange(170.7, 9999999, symbols['symbolG'], 'G')
-}
+# ranges = {
+#     'rangeA': QgsRendererRange(0.0, 34.1, symbols['symbolA'], 'A'),
+#     'rangeB': QgsRendererRange(34.1, 55.5, symbols['symbolB'], 'B'),
+#     'rangeC': QgsRendererRange(55.5, 85.4, symbols['symbolC'], 'C'),
+#     'rangeD': QgsRendererRange(85.4, 111.6, symbols['symbolD'], 'D'),
+#     'rangeE': QgsRendererRange(111.6, 136.6, symbols['symbolE'], 'E'),
+#     'rangeF': QgsRendererRange(136.6, 170.7, symbols['symbolF'], 'F'),
+#     'rangeG': QgsRendererRange(170.7, 9999999, symbols['symbolG'], 'G')
+# }
 
 def get_daltonism_colors(daltonism_type):
     """
@@ -228,29 +237,27 @@ ranges_comparativa = {
     'rangeMoltNegatiu': QgsRendererRange( -999999.9, -50.0, symbols['symbolG'], 'Molt negatiu')
 }
 
-'''
 ranges_consum = {
     'units': QgsRendererRange(-1.0, -0.1, symbols['symbolConsum'], 'Consum (KWh/m²any)'),
-    'rangeA': QgsRendererRange(0.0, 34.1, symbols['symbolA'], 'A'),
-    'rangeB': QgsRendererRange(34.1, 55.5, symbols['symbolB'], 'B'),
-    'rangeC': QgsRendererRange(55.5, 85.4, symbols['symbolC'], 'C'),
-    'rangeD': QgsRendererRange(85.4, 111.6, symbols['symbolD'], 'D'),
-    'rangeE': QgsRendererRange(111.6, 136.6, symbols['symbolE'], 'E'),
-    'rangeF': QgsRendererRange(136.6, 170.7, symbols['symbolF'], 'F'),
-    'rangeG': QgsRendererRange(170.7, 9999999, symbols['symbolG'], 'G')
+    'rangeA': QgsRendererRange(0.0, 44.6, symbols['symbolA'], 'A'),
+    'rangeB': QgsRendererRange(44.7, 72.3, symbols['symbolB'], 'B'),
+    'rangeC': QgsRendererRange(72.4, 112.1, symbols['symbolC'], 'C'),
+    'rangeD': QgsRendererRange(112.2, 172.3, symbols['symbolD'], 'D'),
+    'rangeE': QgsRendererRange(172.4, 303.7, symbols['symbolE'], 'E'),
+    'rangeF': QgsRendererRange(303.8, 382.6, symbols['symbolF'], 'F'),
+    'rangeG': QgsRendererRange(382.7, 9999999, symbols['symbolG'], 'G')
 }
 
 ranges_emissions = {
     'units': QgsRendererRange(-1.0, -0.1, symbols['symbolEmissions'], 'Emissions (kgCO₂/m²any)'),
-    'rangeA': QgsRendererRange(0.0, 34.1, symbols['symbolA'], 'A'),
-    'rangeB': QgsRendererRange(34.1, 55.5, symbols['symbolB'], 'B'),
-    'rangeC': QgsRendererRange(55.5, 85.4, symbols['symbolC'], 'C'),
-    'rangeD': QgsRendererRange(85.4, 111.6, symbols['symbolD'], 'D'),
-    'rangeE': QgsRendererRange(111.6, 136.6, symbols['symbolE'], 'E'),
-    'rangeF': QgsRendererRange(136.6, 170.7, symbols['symbolF'], 'F'),
-    'rangeG': QgsRendererRange(170.7, 9999999, symbols['symbolG'], 'G')
+    'rangeA': QgsRendererRange(0.0, 10.1, symbols['symbolA'], 'A'),
+    'rangeB': QgsRendererRange(10.2, 16.3, symbols['symbolB'], 'B'),
+    'rangeC': QgsRendererRange(16.4, 25.3, symbols['symbolC'], 'C'),
+    'rangeD': QgsRendererRange(25.4, 38.9, symbols['symbolD'], 'D'),
+    'rangeE': QgsRendererRange(39.0, 66.0, symbols['symbolE'], 'E'),
+    'rangeF': QgsRendererRange(66.1, 79.2, symbols['symbolF'], 'F'),
+    'rangeG': QgsRendererRange(79.3, 9999999, symbols['symbolG'], 'G')
 }
-'''
 
 llistaAnysElectric = [
     '2016',
@@ -314,65 +321,8 @@ class EficEnerg:
 
         # Create the dialog and keep reference
 
-        self.dlg = EficEnergDialog()
-        self.dlgAccessibilitat = EficEnergDialogAccessibility()
+        self.create_dialogs()
         
-        self.dlg.pushSortir.clicked.connect(self.on_click_Sortir)
-        self.dlg.pushInici.clicked.connect(self.on_click_Inici)
-        self.dlg.comboBD.currentIndexChanged.connect(self.on_change_ComboConn)
-        self.dlg.comboEntitat.currentIndexChanged.connect(self.on_change_comboEntitat)
-        self.dlg.checkNumHabit.stateChanged.connect(self.on_change_checkNumHabit_checkm2)
-        self.dlg.checkm2.stateChanged.connect(self.on_change_checkNumHabit_checkm2)
-        self.dlg.checkMitjana.stateChanged.connect(self.on_change_checkMitjana)
-        self.dlg.checkModa.stateChanged.connect(self.on_change_checkModa)
-        self.dlg.checkMediana.stateChanged.connect(self.on_change_checkMediana)
-        self.dlg.pushColorP.clicked.connect(self.on_click_color)
-        self.dlg.tabPersonalitzacio.currentChanged.connect(self.on_currentChanged_tabPersonalitzacio)
-        self.dlg.btnAccessibilitat.clicked.connect(self.on_click_accessibilitat)
-
-        self.dlg.dadesOficialsButton.clicked.connect(self.on_change_dadesOficials)
-        self.dlg.dadesOficialsEstimacionsButton.clicked.connect(self.on_change_dadesOficialsEstimacions)
-
-        self.dlg.consumButton.toggled.connect(self.on_change_consum)
-        self.dlg.emissionsButton.toggled.connect(self.on_change_emissions)
-
-        self.dlg.checkNumHabit.stateChanged.connect(self.on_change_entitatsIOperacions)
-        self.dlg.checkm2.stateChanged.connect(self.on_change_entitatsIOperacions)
-        self.dlg.checkMitjana.stateChanged.connect(self.on_change_entitatsIOperacions)
-        self.dlg.checkModa.stateChanged.connect(self.on_change_entitatsIOperacions)
-        self.dlg.checkMediana.stateChanged.connect(self.on_change_entitatsIOperacions)
-
-        self.dlg.consumElectricButton.toggled.connect(self.on_change_consumElectric)
-        self.dlg.consumGasButton.toggled.connect(self.on_change_consumGas)
-        self.dlg.consumSumaButton.toggled.connect(self.on_change_consumSuma)
-
-        self.dlg.checkNumHabit_2.stateChanged.connect(self.on_change_checkNumHabit_checkm2_2)
-        self.dlg.checkm2_2.stateChanged.connect(self.on_change_checkNumHabit_checkm2_2)
-        self.dlg.checkMitjana_2.stateChanged.connect(self.on_change_checkMitjana_2)
-        self.dlg.checkModa_2.stateChanged.connect(self.on_change_checkModa_2)
-        self.dlg.checkMediana_2.stateChanged.connect(self.on_change_checkMediana_2)
-
-        self.dlg.checkNumHabit_2.stateChanged.connect(self.on_change_entitatsIOperacions)
-        self.dlg.checkm2_2.stateChanged.connect(self.on_change_entitatsIOperacions)
-        self.dlg.checkMitjana_2.stateChanged.connect(self.on_change_entitatsIOperacions)
-        self.dlg.checkModa_2.stateChanged.connect(self.on_change_entitatsIOperacions)
-        self.dlg.checkMediana_2.stateChanged.connect(self.on_change_entitatsIOperacions)
-
-        self.dlg.checkComparativa.stateChanged.connect(self.on_change_checkComparativa)
-
-        self.dlg.tabCalculs.currentChanged.connect(self.on_currentChanged_tabCalculs)
-
-        self.dlg.evolucioGasButton.toggled.connect(self.on_change_evolucioGasButton)
-        self.dlg.evolucioGasSlider.valueChanged.connect(self.on_change_evolucioGasSlider)
-        self.dlg.evolucioGasPlay.toggled.connect(self.on_change_evolucioGasPlay)
-        self.dlg.evolucioLlumButton.toggled.connect(self.on_change_evolucioLlumButton)
-        self.dlg.evolucioLlumSlider.valueChanged.connect(self.on_change_evolucioLlumSlider)
-        self.dlg.evolucioLlumPlay.toggled.connect(self.on_change_evolucioLlumPlay)
-        self.dlg.evolucioSumaButton.toggled.connect(self.on_change_evolucioSumaButton)
-        self.dlg.evolucioSumaSlider.valueChanged.connect(self.on_change_evolucioSumaSlider)
-        self.dlg.evolucioSumaPlay.toggled.connect(self.on_change_evolucioSumaPlay)
-        self.dlg.metodeEvolucioCombo.currentIndexChanged.connect(self.on_change_metodeEvolucioCombo)
-
         self.playback_timer = QTimer()
         self.playback_timer.timeout.connect(self.update_playback_year)
         self.current_playback_year = 2016
@@ -390,6 +340,7 @@ class EficEnerg:
         if not trobat:
             self.toolbar = self.iface.addToolBar('CCU')
             self.toolbar.setObjectName('CCU')
+            
     # noinspection PyMethodMayBeStatic
     def tr(self, message):
         """Get the translation for a string using Qt translation API.
@@ -512,9 +463,12 @@ class EficEnerg:
             'checkModa_2': self.dlg.checkModa_2.isChecked(),
             'checkMediana_2': self.dlg.checkMediana_2.isChecked(),
             'dadesOficialsButton': self.dlg.dadesOficialsButton.isChecked(),
+            'dadesEstimacionsButton': self.dlg.dadesOficialsEstimacionsButton.isChecked(),
             'dadesOficialsEstimacionsButton': self.dlg.dadesOficialsEstimacionsButton.isChecked(),
             'consumButton': self.dlg.consumButton.isChecked(),
             'emissionsButton': self.dlg.emissionsButton.isChecked(),
+            'comboModel_index': self.dlg.comboModel.currentIndex(),
+            'comboModel_text': self.dlg.comboModel.currentText(),
             'consumElectricButton': self.dlg.consumElectricButton.isChecked(),
             'consumGasButton': self.dlg.consumGasButton.isChecked(),
             'consumSumaButton': self.dlg.consumSumaButton.isChecked(),
@@ -569,6 +523,13 @@ class EficEnerg:
                 elif 'comboEntitat_index' in state and state['comboEntitat_index'] < self.dlg.comboEntitat.count():
                     self.dlg.comboEntitat.setCurrentIndex(state['comboEntitat_index'])
 
+            if 'comboModel_text' in state and state['comboModel_text']:
+                index = self.dlg.comboModel.findText(state['comboModel_text'])
+                if index >= 0:
+                    self.dlg.comboModel.setCurrentIndex(index)
+                elif 'comboModel_index' in state and state['comboModel_index'] < self.dlg.comboModel.count():
+                    self.dlg.comboModel.setCurrentIndex(state['comboModel_index'])
+
             self.dlg.checkNumHabit.setChecked(state.get('checkNumHabit', False))
             self.dlg.checkm2.setChecked(state.get('checkm2', False))
             self.dlg.checkMitjana.setChecked(state.get('checkMitjana', False))
@@ -581,6 +542,7 @@ class EficEnerg:
             self.dlg.checkMediana_2.setChecked(state.get('checkMediana_2', False))
 
             self.dlg.dadesOficialsButton.setChecked(state.get('dadesOficialsButton', False))
+            self.dlg.dadesEstimacionsButton.setChecked(state.get('dadesEstimacionsButton', False))
             self.dlg.dadesOficialsEstimacionsButton.setChecked(state.get('dadesOficialsEstimacionsButton', False))
             self.dlg.consumButton.setChecked(state.get('consumButton', False))
             self.dlg.emissionsButton.setChecked(state.get('emissionsButton', False))
@@ -656,38 +618,31 @@ class EficEnerg:
         self.dlg.tabPersonalitzacio.currentChanged.connect(self.on_currentChanged_tabPersonalitzacio)
         self.dlg.btnAccessibilitat.clicked.connect(self.on_click_accessibilitat)
         self.dlg.dadesOficialsButton.clicked.connect(self.on_change_dadesOficials)
+        self.dlg.dadesEstimacionsButton.clicked.connect(self.on_change_dadesEstimacions)
         self.dlg.dadesOficialsEstimacionsButton.clicked.connect(self.on_change_dadesOficialsEstimacions)
         self.dlg.consumButton.toggled.connect(self.on_change_consum)
         self.dlg.emissionsButton.toggled.connect(self.on_change_emissions)
-
-        # TODO: REVISAR QUE ESTIGUIN TOTES LES SIGNALS
-
+        self.dlg.comboModel.currentIndexChanged.connect(self.on_change_modelPredictiu)
         self.dlg.checkNumHabit.stateChanged.connect(self.on_change_entitatsIOperacions)
         self.dlg.checkm2.stateChanged.connect(self.on_change_entitatsIOperacions)
         self.dlg.checkMitjana.stateChanged.connect(self.on_change_entitatsIOperacions)
         self.dlg.checkModa.stateChanged.connect(self.on_change_entitatsIOperacions)
         self.dlg.checkMediana.stateChanged.connect(self.on_change_entitatsIOperacions)
-
         self.dlg.consumElectricButton.toggled.connect(self.on_change_consumElectric)
         self.dlg.consumGasButton.toggled.connect(self.on_change_consumGas)
         self.dlg.consumSumaButton.toggled.connect(self.on_change_consumSuma)
-
         self.dlg.checkNumHabit_2.stateChanged.connect(self.on_change_checkNumHabit_checkm2_2)
         self.dlg.checkm2_2.stateChanged.connect(self.on_change_checkNumHabit_checkm2_2)
         self.dlg.checkMitjana_2.stateChanged.connect(self.on_change_checkMitjana_2)
         self.dlg.checkModa_2.stateChanged.connect(self.on_change_checkModa_2)
         self.dlg.checkMediana_2.stateChanged.connect(self.on_change_checkMediana_2)
-
         self.dlg.checkNumHabit_2.stateChanged.connect(self.on_change_entitatsIOperacions)
         self.dlg.checkm2_2.stateChanged.connect(self.on_change_entitatsIOperacions)
         self.dlg.checkMitjana_2.stateChanged.connect(self.on_change_entitatsIOperacions)
         self.dlg.checkModa_2.stateChanged.connect(self.on_change_entitatsIOperacions)
         self.dlg.checkMediana_2.stateChanged.connect(self.on_change_entitatsIOperacions)
-
         self.dlg.checkComparativa.stateChanged.connect(self.on_change_checkComparativa)
-
         self.dlg.tabCalculs.currentChanged.connect(self.on_currentChanged_tabCalculs)
-
         self.dlg.evolucioGasButton.toggled.connect(self.on_change_evolucioGasButton)
         self.dlg.evolucioGasSlider.valueChanged.connect(self.on_change_evolucioGasSlider)
         self.dlg.evolucioGasPlay.toggled.connect(self.on_change_evolucioGasPlay)
@@ -698,14 +653,14 @@ class EficEnerg:
         self.dlg.evolucioSumaSlider.valueChanged.connect(self.on_change_evolucioSumaSlider)
         self.dlg.evolucioSumaPlay.toggled.connect(self.on_change_evolucioSumaPlay)
         self.dlg.metodeEvolucioCombo.currentIndexChanged.connect(self.on_change_metodeEvolucioCombo)
-
+        self.playback_timer = QTimer()
+        self.playback_timer.timeout.connect(self.update_playback_year)
+        self.current_playback_year = 2016
         self.dlg.rejected.connect(self.on_click_Sortir)
 
     def create_dialogs(self):
-        if self.is_zoomed_interface:
-            self.dlg = EficEnergDialogZoomed()
-        else:
-            self.dlg = EficEnergDialog()
+        self.dlg = create_main_dialog(self.is_zoomed_interface)
+        self.dlgAccessibilitat = create_accessibility_dialog()
 
         if hasattr(self.dlg, 'consumInvisible'):
             self.dlg.consumInvisible.setVisible(False)
@@ -853,7 +808,29 @@ class EficEnerg:
                 uri = QgsDataSourceUri()
                 uri.setConnection(host1, port1, nomBD1, user1, password1)
                 #schema1 = "public"
-                self.detect_database_version()
+
+                # self.detect_database_version()
+                '''=== INICI PART PROVISIONAL DE DENEGAR VERSIÓ BD 1.0 ==='''
+                try:
+                    self.detect_database_version()
+                except Exception:
+                    self.dlg.comboBD.setCurrentIndex(0)
+                    nomBD1 = ''
+                    password1 = ''
+                    user1 = ''
+                    host1 = ''
+                    port1 = ''
+                    estructura = None
+                    conn = None
+                    cur = None
+                    uri = None
+                    self.barraEstat_noConnectat()
+                    textBox = "Selecciona una base de dades...\n"
+                    self.dlg.textEstat.setText(textBox)
+                    connexioFeta = False
+                    return
+                '''=== FINAL PART PROVISIONAL DE DENEGAR VERSIÓ BD 1.0 ==='''
+                
 
                 self.dlg.groupEntitats.setEnabled(True)
                 self.dlg.comboEntitat.setEnabled(True)
@@ -900,6 +877,19 @@ class EficEnerg:
         versioBD = cur.fetchone()[0]
 
         if versioBD == '1.0':
+            '''
+            ====== TODO: AIXÒ S'HAURÀ DE CANVIAR EN ALGUN MOMENT, ÉS PROVISIONAL ======
+            Es denega l'ús del plugin amb la base de dades "antiga" mostrant un messagebox,
+            es retorna la connexió a l'estat de No connectat i el combo a Selecciona base de dades.
+            '''
+
+            QMessageBox.critical(None, "Error", "La base de dades 1.0 no està disponible per a utilitzar-se en aquest plugin temporalment, si us plau, prova amb la versió refactored.")
+            raise Exception
+
+            '''
+            ====== FINAL DE LA PART PROVISIONAL ======
+            '''
+
             if textBox is not None or textBox != "":
                 textBox += "\nVersió de la base de dades: 1.0\n"
                 self.dlg.textEstat.setText(textBox)
@@ -996,8 +986,10 @@ class EficEnerg:
         if self.dlg.tabCalculs.currentIndex() == 0:
             if self.dlg.dadesOficialsButton.isChecked():
                 habitatges = "cert_efi_energ_edif_mataro_geom"
-            if self.dlg.dadesOficialsEstimacionsButton.isChecked():
+            if self.dlg.dadesEstimacionsButton.isChecked():
                 habitatges = "cert_efi_energ_edif_mataro_geom_estimacions"
+            if self.dlg.dadesOficialsEstimacionsButton.isChecked():
+                habitatges = "cert_efi_energ_edif_mataro_geom_mixta"
         if self.dlg.tabCalculs.currentIndex() == 1:
             if self.dlg.consumElectricButton.isChecked():
                 habitatges = "consums_mataro_llum"
@@ -1072,6 +1064,7 @@ class EficEnerg:
             maximumValue = self.dlg.maxScale.value()
 
         self.dlg.dadesOficialsButton.setEnabled(True)
+        self.dlg.dadesEstimacionsButton.setEnabled(True)
         self.dlg.dadesOficialsEstimacionsButton.setEnabled(True)
         
     def on_change_entitatsIOperacions(self):
@@ -1087,7 +1080,9 @@ class EficEnerg:
         global schema1
 
         if self.dlg.dadesOficialsButton.isChecked():
+            self.dlg.dadesEstimacionsButton.setChecked(False)
             self.dlg.dadesOficialsEstimacionsButton.setChecked(False)
+            self.dlg.comboModel.setEnabled(False)
             if habitatges != "cert_efi_energ_edif_mataro_geom":
                 habitatges = "cert_efi_energ_edif_mataro_geom"
                 try:
@@ -1102,7 +1097,19 @@ class EficEnerg:
                     conn.rollback()
                     self.dlg.setEnabled(True)
                     return
-        else:
+    
+    def on_change_dadesEstimacions(self):
+        global habitatges
+        global habitatgesLayer
+        global uri
+        global schema1
+        
+        if self.dlg.dadesEstimacionsButton.isChecked():
+            self.dlg.dadesOficialsButton.setChecked(False)
+            self.dlg.dadesOficialsEstimacionsButton.setChecked(False)
+            self.dlg.comboModel.setEnabled(True)
+            self.on_change_modelPredictiu()
+
             if habitatges != "cert_efi_energ_edif_mataro_geom_estimacions":
                 habitatges = "cert_efi_energ_edif_mataro_geom_estimacions"
                 try:
@@ -1126,23 +1133,12 @@ class EficEnerg:
 
         if self.dlg.dadesOficialsEstimacionsButton.isChecked():
             self.dlg.dadesOficialsButton.setChecked(False)
-            if habitatges != "cert_efi_energ_edif_mataro_geom_estimacions":
-                habitatges = "cert_efi_energ_edif_mataro_geom_estimacions"
-                try:
-                    uri.setDataSource(schema1, habitatges, 'geom')
-                    habitatgesLayer = QgsVectorLayer(uri.uri(), habitatges, 'postgres')
-                except Exception as ex:
-                    print ("Error no s'ha trobat entitat")
-                    template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-                    message = template.format(type(ex).__name__, ex.args)
-                    print (message)
-                    QMessageBox.critical(None, "Error", "Error no s'ha trobat entitat")
-                    conn.rollback()
-                    self.dlg.setEnabled(True)
-                    return
-        else:
-            if habitatges != "cert_efi_energ_edif_mataro_geom":
-                habitatges = "cert_efi_energ_edif_mataro_geom"
+            self.dlg.dadesEstimacionsButton.setChecked(False)
+            self.dlg.comboModel.setEnabled(True)
+            self.on_change_modelPredictiu()
+
+            if habitatges != "cert_efi_energ_edif_mataro_geom_mixta":
+                habitatges = "cert_efi_energ_edif_mataro_geom_mixta"
                 try:
                     uri.setDataSource(schema1, habitatges, 'geom')
                     habitatgesLayer = QgsVectorLayer(uri.uri(), habitatges, 'postgres')
@@ -1233,6 +1229,7 @@ class EficEnerg:
             self.dlg.checkMitjana_2.setEnabled(True)
             self.dlg.checkModa_2.setEnabled(True)
             self.dlg.checkMediana_2.setEnabled(False)
+            self.dlg.checkMediana_2.setChecked(False)
             self.dlg.labelRestriccio.setVisible(True)
             self.dlg.labelRestriccio.setText("Al calcular la Mitjana, la Moda i la Mediana no es tenen en compte les superfícies dels habitatges.")
 
@@ -1557,6 +1554,19 @@ class EficEnerg:
             self.dlg.consumElectricButton.setChecked(False)
             self.dlg.consumGasButton.setChecked(False)
 
+    def on_change_modelPredictiu(self):
+        if self.dlg.comboModel.currentIndex() == 0:
+            self.dlg.checkMitjana.setChecked(False)
+            self.dlg.checkMitjana.setEnabled(False)
+            self.dlg.checkModa.setChecked(False)
+            self.dlg.checkModa.setEnabled(False)
+            self.dlg.checkMediana.setChecked(False)
+            self.dlg.checkMediana.setEnabled(False)
+        if self.dlg.comboModel.currentIndex() == 1:
+            self.dlg.checkMitjana.setEnabled(True)
+            self.dlg.checkModa.setEnabled(True)
+            self.dlg.checkMediana.setEnabled(True)
+
     def on_change_checkComparativa(self):
         if self.dlg.checkComparativa.isChecked():
             self.dlg.labelAnysComp.setVisible(True)
@@ -1871,8 +1881,8 @@ class EficEnerg:
             self.dlg.anyGasLabel.setEnabled(False)
             self.dlg.evolucioLlumSlider.setEnabled(False)
             self.dlg.anyLlumLabel.setEnabled(False)
-            self.dlg.evolucioSumaPlay.setVisible(True)
             self.dlg.evolucioSumaPlay.setEnabled(True)
+            self.dlg.evolucioSumaPlay.setVisible(True)
             self.dlg.loopSumaCheck.setVisible(True)
             self.dlg.loopSumaCheck.setEnabled(True)
 
@@ -2100,6 +2110,9 @@ class EficEnerg:
         self.dlg.checkMediana_2.setEnabled(False)
         self.dlg.dadesOficialsButton.setEnabled(False)
         self.dlg.dadesOficialsButton.setChecked(True)
+        self.dlg.dadesEstimacionsButton.setEnabled(False)
+        self.dlg.dadesEstimacionsButton.setChecked(False)
+        self.dlg.comboModel.setEnabled(False)
         self.dlg.dadesOficialsEstimacionsButton.setEnabled(False)
         self.dlg.dadesOficialsEstimacionsButton.setChecked(False)
         self.dlg.labelAvis.setVisible(False)
@@ -2486,7 +2499,214 @@ class EficEnerg:
             self.dlg.setEnabled(True)
             return
 
+    def filtrarHabitatges(self):
+        global habitatgesLayer
 
+        # Primer s'agafen edificacions de la base de dades
+        try:
+            uri.setDataSource(schema1, 'building', 'geom')
+            buildingLayer = QgsVectorLayer(uri.uri(), 'building', 'postgres')
+        except Exception as ex:
+            print("Error al carregar la capa d'edificacions de la base de dades")
+            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            message = template.format(type(ex).__name__, ex.args)
+            print(message)
+            QMessageBox.critical(None, "Error", "Error no s'ha pogut carregar la capa d'edificacions a la base de dades")
+            conn.rollback()
+            self.dlg.setEnabled(True)
+            return
+
+        # Després es filtren les edificacions per a seleccionar únicament aquelles que siguin d'ús residencial
+        alg_params = {
+            'FIELD': 'current_use',
+            'INPUT': buildingLayer,
+            'OPERATOR': 0,
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT,
+            'VALUE': '1_residential'
+        }
+        try:
+            result = processing.run('qgis:extractbyattribute', alg_params)
+            buildingLayer = result['OUTPUT']
+            QApplication.processEvents()
+        except Exception as ex:
+            print("Error al extreure edificacions amb ús residencial")
+            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            message = template.format(type(ex).__name__, ex.args)
+            print(message)
+            QMessageBox.critical(None, "Error", "Error al extreure edificacions amb ús residencial")
+            conn.rollback()
+            self.dlg.setEnabled(True)
+            return
+        
+        # Per a poder ajuntar les capes, abans s'ha de calcular la referència cadastral "curta" dels habitatges
+        alg_params = {
+            'FIELD_LENGTH': 0,
+            'FIELD_NAME': 'cadastral_reference',
+            'FIELD_PRECISION': 0,
+            'FIELD_TYPE': 2,
+            'FORMULA': 'LEFT("referencia cadastral", 14)',
+            'INPUT': habitatgesLayer,
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+        try:
+            result = processing.run('qgis:fieldcalculator', alg_params)
+            habits = result["OUTPUT"]
+            QApplication.processEvents()
+        except Exception as ex:
+            print("Error al recalcular referencia cadastral d'habitatges")
+            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            message = template.format(type(ex).__name__, ex.args)
+            print(message)
+            QMessageBox.critical(None, "Error", "Error al recalcular referencia cadastral d'habitatges")
+            conn.rollback()
+            self.dlg.setEnabled(True)
+            return
+        
+        # S'ajunten habitatges amb edificacions, copiant l'ús únicament
+        alg_params = {
+            'DISCARD_NONMATCHING': False,
+            'FIELD': 'cadastral_reference',
+            'FIELDS_TO_COPY': ['current_use'],
+            'FIELD_2': 'cadastral_reference',
+            'INPUT': habits,
+            'INPUT_2': buildingLayer,
+            'METHOD': 1,
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT,
+            'PREFIX': ''
+        }
+        try:
+            result = processing.run('qgis:joinattributestable', alg_params)
+            habitatgesLayer = result["OUTPUT"]
+            QApplication.processEvents()
+        except Exception as ex:
+            print("Error al fer join d'habitatges i edificacions")
+            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            message = template.format(type(ex).__name__, ex.args)
+            print(message)
+            QMessageBox.critical(None, "Error", "Error al fer join d'habitatges i edificacions")
+            conn.rollback()
+            self.dlg.setEnabled(True)
+            return
+
+        # Netejar la taula de current_use nulls
+        alg_params = {
+            'FIELD': 'current_use',
+            'INPUT': habitatgesLayer,
+            'OPERATOR': 9,
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT,
+            'VALUE': ''
+        }
+        try:
+            result = processing.run('qgis:extractbyattribute', alg_params)
+            habitatgesLayer = result["OUTPUT"]
+            QApplication.processEvents()
+        except Exception as ex:
+            print("Error al netejar taula filtrant habitatges")
+            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            message = template.format(type(ex).__name__, ex.args)
+            print(message)
+            QMessageBox.critical(None, "Error", "Error al netejar taula filtrant habitatges")
+            conn.rollback()
+            self.dlg.setEnabled(True)
+            return
+
+        # Deixar la taula d'habitatges com estava al principi
+        alg_params = {
+            'AGGREGATES': [
+                {'aggregate': 'first_value','delimiter': ',','input': '"id"','length': -1,'name': 'id','precision': 0,'sub_type': 0,'type': 2,'type_name': 'integer'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"num_cas"','length': -1,'name': 'num_cas','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"adreça"','length': -1,'name': 'adreça','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"numero"','length': -1,'name': 'numero','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"escala"','length': -1,'name': 'escala','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"pis"','length': -1,'name': 'pis','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"porta"','length': -1,'name': 'porta','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"codi_postal"','length': -1,'name': 'codi_postal','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"poblacio"','length': -1,'name': 'poblacio','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"comarca"','length': -1,'name': 'comarca','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"nom_provincia"','length': -1,'name': 'nom_provincia','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"codi_poblacio"','length': -1,'name': 'codi_poblacio','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"codi_comarca"','length': -1,'name': 'codi_comarca','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"codi_provincia"','length': -1,'name': 'codi_provincia','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"referencia cadastral"','length': -1,'name': 'referencia cadastral','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"zona climatica"','length': -1,'name': 'zona climatica','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"metres_cadastre"','length': -1,'name': 'metres_cadastre','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"any_construccio"','length': -1,'name': 'any_construccio','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"us_edifici"','length': -1,'name': 'us_edifici','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"qualificació de consum energia primaria no renovable"','length': -1,'name': 'qualificació de consum energia primaria no renovable','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"energia primària no renovable"','length': -1,'name': 'energia primària no renovable','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"qualificacio emissions de co2"','length': -1,'name': 'qualificacio emissions de co2','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"emissions de co2"','length': -1,'name': 'emissions de co2','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"consum energia final"','length': -1,'name': 'consum energia final','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"cost anual aproximat energia per habitatge"','length': -1,'name': 'cost anual aproximat energia per habitatge','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"vehicle electric"','length': -1,'name': 'vehicle electric','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"solar termica"','length': -1,'name': 'solar termica','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"solar fotovoltaica"','length': -1,'name': 'solar fotovoltaica','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"sistema biomassa"','length': -1,'name': 'sistema biomassa','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"xarxa districte"','length': -1,'name': 'xarxa districte','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"energia geotermica"','length': -1,'name': 'energia geotermica','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"informe_ins_tecnica_edifici"','length': -1,'name': 'informe_ins_tecnica_edifici','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"eina de certificacio"','length': -1,'name': 'eina de certificacio','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"valor aillaments"','length': -1,'name': 'valor aillaments','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"valor finestres"','length': -1,'name': 'valor finestres','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"motiu de la certificacio"','length': -1,'name': 'motiu de la certificacio','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"valor aillaments cte"','length': -1,'name': 'valor aillaments cte','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"valor finestres cte"','length': -1,'name': 'valor finestres cte','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"utm_x"','length': -1,'name': 'utm_x','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"utm_y"','length': -1,'name': 'utm_y','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"normativa construcció"','length': -1,'name': 'normativa construcció','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"tipus tramit"','length': -1,'name': 'tipus tramit','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"tipus_terciari"','length': -1,'name': 'tipus_terciari','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"qualificació emissions calefacció"','length': -1,'name': 'qualificació emissions calefacció','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"emissions calefacció"','length': -1,'name': 'emissions calefacció','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"qualificació emissions refrigeració"','length': -1,'name': 'qualificació emissions refrigeració','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"emissions refrigeració"','length': -1,'name': 'emissions refrigeració','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"qualificació emissions acs"','length': -1,'name': 'qualificació emissions acs','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"emissions acs"','length': -1,'name': 'emissions acs','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"qualificació emissions enllumenament"','length': -1,'name': 'qualificació emissions enllumenament','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"emissions enllumenament"','length': -1,'name': 'emissions enllumenament','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"qualificació energia calefacció"','length': -1,'name': 'qualificació energia calefacció','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"energia calefacció"','length': -1,'name': 'energia calefacció','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"qualificació energia refrigeració"','length': -1,'name': 'qualificació energia refrigeració','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"energia refrigeració"','length': -1,'name': 'energia refrigeració','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"qualificació energia acs"','length': -1,'name': 'qualificació energia acs','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"energia acs"','length': -1,'name': 'energia acs','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"qualificació energia enllumenament"','length': -1,'name': 'qualificació energia enllumenament','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"energia enllumenament"','length': -1,'name': 'energia enllumenament','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"qualificació energia calefacció demanda"','length': -1,'name': 'qualificació energia calefacció demanda','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"energia calefacció demanda"','length': -1,'name': 'energia calefacció demanda','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"qualificació energia refrigeració demanda"','length': -1,'name': 'qualificació energia refrigeració demanda','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"energia refrigeració demanda"','length': -1,'name': 'energia refrigeració demanda','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"ventilacio us residencial"','length': -1,'name': 'ventilacio us residencial','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"longitud"','length': -1,'name': 'longitud','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"latitud"','length': -1,'name': 'latitud','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"georeferència"','length': -1,'name': 'georeferència','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"rehabilitacio_energetica"','length': -1,'name': 'rehabilitacio_energetica','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"actuacions_rehabilitacio"','length': -1,'name': 'actuacions_rehabilitacio','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"data_entrada"','length': -1,'name': 'data_entrada','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"limadm_municipi"','length': -1,'name': 'limadm_municipi','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"limadm comarca"','length': -1,'name': 'limadm comarca','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"UTM"','length': -1,'name': 'UTM','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"m2real"','length': -1,'name': 'm2real','precision': 0,'sub_type': 0,'type': 6,'type_name': 'double precision'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"consum_nreal"','length': -1,'name': 'consum_nreal','precision': 0,'sub_type': 0,'type': 6,'type_name': 'double precision'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"emissions_nreal"','length': -1,'name': 'emissions_nreal','precision': 0,'sub_type': 0,'type': 6,'type_name': 'double precision'}
+            ],
+            'GROUP_BY': '"id"',
+            'INPUT': habitatgesLayer,
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+        try:
+            result = processing.run('qgis:aggregate', alg_params)
+            habitatgesLayer = result["OUTPUT"]
+            QApplication.processEvents()
+        except Exception as ex:
+            print("Error al fer l'aggregate final del filtratge d'habitatges")
+            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            message = template.format(type(ex).__name__, ex.args)
+            print(message)
+            QMessageBox.critical(None, "Error", "Error al fer l'aggregate final del filtratge d'habitatges")
+            conn.rollback()
+            self.dlg.setEnabled(True)
+            return
         
     def calculQualificacio(self):
         # Aquest mètode només serveix per al consum elèctric i de gas,
@@ -2511,12 +2731,12 @@ class EficEnerg:
             'FIELD_TYPE': 2,
             'FORMULA':  f'''
                         CASE
-                            WHEN ("CONSUMO_{any}"/"metres_cadastre") < 34.1 THEN 'A'
-                            WHEN ("CONSUMO_{any}"/"metres_cadastre") >= 34.1 AND ("CONSUMO_{any}"/"metres_cadastre") < 55.5 THEN 'B'
-                            WHEN ("CONSUMO_{any}"/"metres_cadastre") >= 55.5 AND ("CONSUMO_{any}"/"metres_cadastre") < 85.4 THEN 'C'
-                            WHEN ("CONSUMO_{any}"/"metres_cadastre") >= 85.4 AND ("CONSUMO_{any}"/"metres_cadastre") < 111.6 THEN 'D'
-                            WHEN ("CONSUMO_{any}"/"metres_cadastre") >= 111.6 AND ("CONSUMO_{any}"/"metres_cadastre") < 136.6 THEN 'E'
-                            WHEN ("CONSUMO_{any}"/"metres_cadastre") >= 136.6 AND ("CONSUMO_{any}"/"metres_cadastre") < 170.7 THEN 'F'
+                            WHEN ("CONSUMO_{any}"/"metres_cadastre") < 44.6 THEN 'A'
+                            WHEN ("CONSUMO_{any}"/"metres_cadastre") >= 44.6 AND ("CONSUMO_{any}"/"metres_cadastre") < 72.3 THEN 'B'
+                            WHEN ("CONSUMO_{any}"/"metres_cadastre") >= 72.3 AND ("CONSUMO_{any}"/"metres_cadastre") < 112.1 THEN 'C'
+                            WHEN ("CONSUMO_{any}"/"metres_cadastre") >= 112.1 AND ("CONSUMO_{any}"/"metres_cadastre") < 172.3 THEN 'D'
+                            WHEN ("CONSUMO_{any}"/"metres_cadastre") >= 172.3 AND ("CONSUMO_{any}"/"metres_cadastre") < 303.7 THEN 'E'
+                            WHEN ("CONSUMO_{any}"/"metres_cadastre") >= 303.7 AND ("CONSUMO_{any}"/"metres_cadastre") < 382.6 THEN 'F'
                             ELSE 'G'
                         END
                         ''',
@@ -2609,15 +2829,25 @@ class EficEnerg:
             'PREFIX': '',
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
-        if consum and not self.dlg.checkm2.isChecked():
-            alg_params['JOIN_FIELDS'] = ['id','referencia cadastral','qualificació de consum energia primaria no renovable','energia primària no renovable','consum']
-        if emissions and not self.dlg.checkm2.isChecked():
-            alg_params['JOIN_FIELDS'] = ['id','referencia cadastral','qualificacio emissions de co2','emissions de co2','emissions']
-        if consum and self.dlg.checkm2.isChecked():
-            alg_params['JOIN_FIELDS'] = ['id','referencia cadastral','qualificació de consum energia primaria no renovable','energia primària no renovable','consum','m2']
-        if emissions and self.dlg.checkm2.isChecked():
-            alg_params['JOIN_FIELDS'] = ['id','referencia cadastral','qualificacio emissions de co2','emissions de co2','emissions','m2']
-        
+        if self.dlg.dadesOficialsButton.isChecked():
+            if consum and not self.dlg.checkm2.isChecked():
+                alg_params['JOIN_FIELDS'] = ['id','referencia cadastral','qualificació de consum energia primaria no renovable','energia primària no renovable','consum']
+            if emissions and not self.dlg.checkm2.isChecked():
+                alg_params['JOIN_FIELDS'] = ['id','referencia cadastral','qualificacio emissions de co2','emissions de co2','emissions']
+            if consum and self.dlg.checkm2.isChecked():
+                alg_params['JOIN_FIELDS'] = ['id','referencia cadastral','qualificació de consum energia primaria no renovable','energia primària no renovable','consum','m2']
+            if emissions and self.dlg.checkm2.isChecked():
+                alg_params['JOIN_FIELDS'] = ['id','referencia cadastral','qualificacio emissions de co2','emissions de co2','emissions','m2']
+        if self.dlg.dadesEstimacionsButton.isChecked() or self.dlg.dadesOficialsEstimacionsButton.isChecked():
+            if consum and not self.dlg.checkm2.isChecked():
+                alg_params['JOIN_FIELDS'] = ['id','cadastral_reference','qualificació de consum energia primaria no renovable','energia primària no renovable','origen_consum','consum']
+            if emissions and not self.dlg.checkm2.isChecked():
+                alg_params['JOIN_FIELDS'] = ['id','cadastral_reference','qualificacio emissions de co2','emissions de co2','origen_emissions','emissions']
+            if consum and self.dlg.checkm2.isChecked():
+                alg_params['JOIN_FIELDS'] = ['id','cadastral_reference','qualificació de consum energia primaria no renovable','energia primària no renovable','origen_consum','consum','m2']
+            if emissions and self.dlg.checkm2.isChecked():
+                alg_params['JOIN_FIELDS'] = ['id','cadastral_reference','qualificacio emissions de co2','emissions de co2','origen_emissions','emissions','m2']
+
         if (consumElectric or consumGas or self.dlg.consumSumaButton.isChecked()) and not self.dlg.checkm2_2.isChecked():
             alg_params['JOIN_FIELDS'] = ['id',f'CONSUMO_{any}','cadastral_reference','qualificacio','consum']
         if (consumElectric or consumGas or self.dlg.consumSumaButton.isChecked()) and self.dlg.checkm2_2.isChecked():
@@ -2649,12 +2879,20 @@ class EficEnerg:
                 'VALUES_FIELD_NAME':        None,
                 'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
             }
-            if consum:
-                alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat','qualificació de consum energia primaria no renovable']
-                alg_params['VALUES_FIELD_NAME'] = 'consum'
-            if emissions:
-                alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat','qualificacio emissions de co2']
-                alg_params['VALUES_FIELD_NAME'] = 'emissions'
+            if self.dlg.dadesOficialsButton.isChecked():
+                if consum:
+                    alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat','qualificació de consum energia primaria no renovable']
+                    alg_params['VALUES_FIELD_NAME'] = 'consum'
+                if emissions:
+                    alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat','qualificacio emissions de co2']
+                    alg_params['VALUES_FIELD_NAME'] = 'emissions'
+            if self.dlg.dadesEstimacionsButton.isChecked() or self.dlg.dadesOficialsEstimacionsButton.isChecked():
+                if consum:
+                    alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat','qualificació de consum energia primaria no renovable','origen_consum']
+                    alg_params['VALUES_FIELD_NAME'] = 'consum'
+                if emissions:
+                    alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat','qualificacio emissions de co2','origen_emissions']
+                    alg_params['VALUES_FIELD_NAME'] = 'emissions'
             if consumElectric or consumGas or self.dlg.consumSumaButton.isChecked():
                 alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat','qualificacio']
                 alg_params['VALUES_FIELD_NAME'] = 'consum'
@@ -2666,26 +2904,50 @@ class EficEnerg:
                 'INPUT': outputs['Estadistiques']['OUTPUT'],
                 'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
             }
-            if consum:
-                alg_params['AGGREGATES'] = [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
-                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'A\', \"count\", 0)','length': 0,'name': 'NumA','precision': 0,'type': 2},
-                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'B\', \"count\", 0)','length': 0,'name': 'NumB','precision': 0,'type': 2},
-                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'C\', \"count\", 0)','length': 0,'name': 'NumC','precision': 0,'type': 2},
-                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'D\', \"count\", 0)','length': 0,'name': 'NumD','precision': 0,'type': 2},
-                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'E\', \"count\", 0)','length': 0,'name': 'NumE','precision': 0,'type': 2},
-                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'F\', \"count\", 0)','length': 0,'name': 'NumF','precision': 0,'type': 2},
-                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'G\', \"count\", 0)','length': 0,'name': 'NumG','precision': 0,'type': 2},
-                                            {'aggregate': 'sum','delimiter': ',','input': '\"count\"','length': 0,'name': 'TotalEE','precision': 0,'type': 2}]
-            if emissions:
-                alg_params['AGGREGATES'] = [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
-                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'A\', \"count\", 0)','length': 0,'name': 'NumA','precision': 0,'type': 2},
-                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'B\', \"count\", 0)','length': 0,'name': 'NumB','precision': 0,'type': 2},
-                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'C\', \"count\", 0)','length': 0,'name': 'NumC','precision': 0,'type': 2},
-                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'D\', \"count\", 0)','length': 0,'name': 'NumD','precision': 0,'type': 2},
-                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'E\', \"count\", 0)','length': 0,'name': 'NumE','precision': 0,'type': 2},
-                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'F\', \"count\", 0)','length': 0,'name': 'NumF','precision': 0,'type': 2},
-                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'G\', \"count\", 0)','length': 0,'name': 'NumG','precision': 0,'type': 2},
-                                            {'aggregate': 'sum','delimiter': ',','input': '\"count\"','length': 0,'name': 'TotalEE','precision': 0,'type': 2}]
+            if self.dlg.dadesOficialsButton.isChecked():
+                if consum:
+                    alg_params['AGGREGATES'] = [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
+                                                {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'A\', \"count\", 0)','length': 0,'name': 'NumA','precision': 0,'type': 2},
+                                                {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'B\', \"count\", 0)','length': 0,'name': 'NumB','precision': 0,'type': 2},
+                                                {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'C\', \"count\", 0)','length': 0,'name': 'NumC','precision': 0,'type': 2},
+                                                {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'D\', \"count\", 0)','length': 0,'name': 'NumD','precision': 0,'type': 2},
+                                                {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'E\', \"count\", 0)','length': 0,'name': 'NumE','precision': 0,'type': 2},
+                                                {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'F\', \"count\", 0)','length': 0,'name': 'NumF','precision': 0,'type': 2},
+                                                {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'G\', \"count\", 0)','length': 0,'name': 'NumG','precision': 0,'type': 2},
+                                                {'aggregate': 'sum','delimiter': ',','input': '\"count\"','length': 0,'name': 'TotalEE','precision': 0,'type': 2}]
+                if emissions:
+                    alg_params['AGGREGATES'] = [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
+                                                {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'A\', \"count\", 0)','length': 0,'name': 'NumA','precision': 0,'type': 2},
+                                                {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'B\', \"count\", 0)','length': 0,'name': 'NumB','precision': 0,'type': 2},
+                                                {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'C\', \"count\", 0)','length': 0,'name': 'NumC','precision': 0,'type': 2},
+                                                {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'D\', \"count\", 0)','length': 0,'name': 'NumD','precision': 0,'type': 2},
+                                                {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'E\', \"count\", 0)','length': 0,'name': 'NumE','precision': 0,'type': 2},
+                                                {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'F\', \"count\", 0)','length': 0,'name': 'NumF','precision': 0,'type': 2},
+                                                {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'G\', \"count\", 0)','length': 0,'name': 'NumG','precision': 0,'type': 2},
+                                                {'aggregate': 'sum','delimiter': ',','input': '\"count\"','length': 0,'name': 'TotalEE','precision': 0,'type': 2}]
+            if self.dlg.dadesEstimacionsButton.isChecked() or self.dlg.dadesOficialsEstimacionsButton.isChecked():
+                if consum:
+                    alg_params['AGGREGATES'] = [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
+                                                {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'A\', \"count\", 0)','length': 0,'name': 'NumA','precision': 0,'type': 2},
+                                                {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'B\', \"count\", 0)','length': 0,'name': 'NumB','precision': 0,'type': 2},
+                                                {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'C\', \"count\", 0)','length': 0,'name': 'NumC','precision': 0,'type': 2},
+                                                {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'D\', \"count\", 0)','length': 0,'name': 'NumD','precision': 0,'type': 2},
+                                                {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'E\', \"count\", 0)','length': 0,'name': 'NumE','precision': 0,'type': 2},
+                                                {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'F\', \"count\", 0)','length': 0,'name': 'NumF','precision': 0,'type': 2},
+                                                {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'G\', \"count\", 0)','length': 0,'name': 'NumG','precision': 0,'type': 2},
+                                                {'aggregate': 'sum','delimiter': ',','input': '\"count\"','length': 0,'name': 'TotalEE','precision': 0,'type': 2},
+                                                {'aggregate': 'first_value','delimiter': ',','input': 'CASE WHEN count_distinct(\"origen_consum\",group_by:=\"idEntitat\") > 1 THEN \'mixt\' ELSE array_get(array_agg(\"origen_consum\",group_by:=\"idEntitat\"), 0) END','length': 0, 'name': 'Origen consum','precision': 0,'type': 10}]
+                if emissions:
+                    alg_params['AGGREGATES'] = [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
+                                                {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'A\', \"count\", 0)','length': 0,'name': 'NumA','precision': 0,'type': 2},
+                                                {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'B\', \"count\", 0)','length': 0,'name': 'NumB','precision': 0,'type': 2},
+                                                {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'C\', \"count\", 0)','length': 0,'name': 'NumC','precision': 0,'type': 2},
+                                                {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'D\', \"count\", 0)','length': 0,'name': 'NumD','precision': 0,'type': 2},
+                                                {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'E\', \"count\", 0)','length': 0,'name': 'NumE','precision': 0,'type': 2},
+                                                {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'F\', \"count\", 0)','length': 0,'name': 'NumF','precision': 0,'type': 2},
+                                                {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'G\', \"count\", 0)','length': 0,'name': 'NumG','precision': 0,'type': 2},
+                                                {'aggregate': 'sum','delimiter': ',','input': '\"count\"','length': 0,'name': 'TotalEE','precision': 0,'type': 2},
+                                                {'aggregate': 'first_value','delimiter': ',','input': 'CASE WHEN count_distinct(\"origen_emissions\",group_by:=\"idEntitat\") > 1 THEN \'mixt\' ELSE array_get(array_agg(\"origen_emissions\",group_by:=\"idEntitat\"), 0) END','length': 0, 'name': 'Origen emissions','precision': 0,'type': 10}]
             if consumElectric or consumGas or self.dlg.consumSumaButton.isChecked():
                 alg_params['AGGREGATES'] = [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
                                             {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio\" = \'A\', \"count\", 0)','length': 0,'name': 'NumA','precision': 0,'type': 2},
@@ -2726,8 +2988,39 @@ class EficEnerg:
                 'INPUT' : outputs['JoinFinal']['OUTPUT'], 
                 'OUTPUT' : 'TEMPORARY_OUTPUT'
             }
+            if consum and (self.dlg.dadesEstimacionsButton.isChecked() or self.dlg.dadesOficialsEstimacionsButton.isChecked()):
+                alg_params['AGGREGATES'] = [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
+                                            {'aggregate': 'first_value','delimiter': ',','input': '\"NumA\"','length': 0,'name': 'NumA','precision': 0,'type': 2},
+                                            {'aggregate': 'first_value','delimiter': ',','input': '\"NumB\"','length': 0,'name': 'NumB','precision': 0,'type': 2},
+                                            {'aggregate': 'first_value','delimiter': ',','input': '\"NumC\"','length': 0,'name': 'NumC','precision': 0,'type': 2},
+                                            {'aggregate': 'first_value','delimiter': ',','input': '\"NumD\"','length': 0,'name': 'NumD','precision': 0,'type': 2},
+                                            {'aggregate': 'first_value','delimiter': ',','input': '\"NumE\"','length': 0,'name': 'NumE','precision': 0,'type': 2},
+                                            {'aggregate': 'first_value','delimiter': ',','input': '\"NumF\"','length': 0,'name': 'NumF','precision': 0,'type': 2},
+                                            {'aggregate': 'first_value','delimiter': ',','input': '\"NumG\"','length': 0,'name': 'NumG','precision': 0,'type': 2},
+                                            {'aggregate': 'first_value','delimiter': ',','input': '\"TotalEE\"','length': 0,'name': 'TotalEE','precision': 0,'type': 2},
+                                            {'aggregate': 'first_value','delimiter': ',','input': '\"Origen consum\"','length': 0,'name': 'Origen consum','precision': 0,'type': 10}]
+            if emissions and (self.dlg.dadesEstimacionsButton.isChecked() or self.dlg.dadesOficialsEstimacionsButton.isChecked()):
+                alg_params['AGGREGATES'] = [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
+                                            {'aggregate': 'first_value','delimiter': ',','input': '\"NumA\"','length': 0,'name': 'NumA','precision': 0,'type': 2},
+                                            {'aggregate': 'first_value','delimiter': ',','input': '\"NumB\"','length': 0,'name': 'NumB','precision': 0,'type': 2},
+                                            {'aggregate': 'first_value','delimiter': ',','input': '\"NumC\"','length': 0,'name': 'NumC','precision': 0,'type': 2},
+                                            {'aggregate': 'first_value','delimiter': ',','input': '\"NumD\"','length': 0,'name': 'NumD','precision': 0,'type': 2},
+                                            {'aggregate': 'first_value','delimiter': ',','input': '\"NumE\"','length': 0,'name': 'NumE','precision': 0,'type': 2},
+                                            {'aggregate': 'first_value','delimiter': ',','input': '\"NumF\"','length': 0,'name': 'NumF','precision': 0,'type': 2},
+                                            {'aggregate': 'first_value','delimiter': ',','input': '\"NumG\"','length': 0,'name': 'NumG','precision': 0,'type': 2},
+                                            {'aggregate': 'first_value','delimiter': ',','input': '\"TotalEE\"','length': 0,'name': 'TotalEE','precision': 0,'type': 2},
+                                            {'aggregate': 'first_value','delimiter': ',','input': '\"Origen emissions\"','length': 0,'name': 'Origen emissions','precision': 0,'type': 10}]
             entitatLayerResumNumHabit = processing.run('qgis:aggregate', alg_params)['OUTPUT']
-            QgsProject.instance().addMapLayer(entitatLayerResumNumHabit, False).setName("Classificació per nombre d'habitatges")
+            if consum:
+                QgsProject.instance().addMapLayer(entitatLayerResumNumHabit, False).setName("Consum per nombre d'habitatges")
+            if emissions:
+                QgsProject.instance().addMapLayer(entitatLayerResumNumHabit, False).setName("Emissions per nombre d'habitatges")
+            if consumGas:
+                QgsProject.instance().addMapLayer(entitatLayerResumNumHabit, False).setName("Consum de gas per nombre d'habitatges")
+            if consumElectric:
+                QgsProject.instance().addMapLayer(entitatLayerResumNumHabit, False).setName("Consum elèctric per nombre d'habitatges")
+            if self.dlg.consumSumaButton.isChecked():
+                QgsProject.instance().addMapLayer(entitatLayerResumNumHabit, False).setName("Consum sumat per nombre d'habitatges")
             QApplication.processEvents()
         except Exception as ex:
             print ("Error al calcular nombre d'habitatges per categoria de " + nomEntitat)
@@ -2751,10 +3044,16 @@ class EficEnerg:
                 'VALUES_FIELD_NAME':        'm2',
                 'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
             }
-            if consum:
-                alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat','qualificació de consum energia primaria no renovable']
-            if emissions:
-                alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat','qualificacio emissions de co2']
+            if self.dlg.dadesOficialsButton.isChecked():
+                if consum:
+                    alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat','qualificació de consum energia primaria no renovable']
+                if emissions:
+                    alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat','qualificacio emissions de co2']
+            if self.dlg.dadesEstimacionsButton.isChecked() or self.dlg.dadesOficialsEstimacionsButton.isChecked():
+                if consum:
+                    alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat','qualificació de consum energia primaria no renovable','origen_consum']
+                if emissions:
+                    alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat','qualificacio emissions de co2','origen_emissions']
             if consumElectric or consumGas or self.dlg.consumSumaButton.isChecked():
                 alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat','qualificacio']
             outputs['Estadistiques'] = processing.run('qgis:statisticsbycategories', alg_params)
@@ -2766,26 +3065,50 @@ class EficEnerg:
                 'INPUT': outputs['Estadistiques']['OUTPUT'],
                 'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
             }
-            if consum:
-                alg_params['AGGREGATES'] = [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
-                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'A\', \"sum\", 0)','length': 0,'name': 'm2A','precision': 0,'type': 6},
-                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'B\', \"sum\", 0)','length': 0,'name': 'm2B','precision': 0,'type': 6},
-                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'C\', \"sum\", 0)','length': 0,'name': 'm2C','precision': 0,'type': 6},
-                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'D\', \"sum\", 0)','length': 0,'name': 'm2D','precision': 0,'type': 6},
-                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'E\', \"sum\", 0)','length': 0,'name': 'm2E','precision': 0,'type': 6},
-                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'F\', \"sum\", 0)','length': 0,'name': 'm2F','precision': 0,'type': 6},
-                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'G\', \"sum\", 0)','length': 0,'name': 'm2G','precision': 0,'type': 6},
-                                            {'aggregate': 'sum','delimiter': ',','input': '\"sum\"','length': 0,'name': 'Totalm2','precision': 0,'type': 6}]
-            if emissions:
-                alg_params['AGGREGATES'] = [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
-                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'A\', \"sum\", 0)','length': 0,'name': 'm2A','precision': 0,'type': 6},
-                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'B\', \"sum\", 0)','length': 0,'name': 'm2B','precision': 0,'type': 6},
-                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'C\', \"sum\", 0)','length': 0,'name': 'm2C','precision': 0,'type': 6},
-                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'D\', \"sum\", 0)','length': 0,'name': 'm2D','precision': 0,'type': 6},
-                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'E\', \"sum\", 0)','length': 0,'name': 'm2E','precision': 0,'type': 6},
-                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'F\', \"sum\", 0)','length': 0,'name': 'm2F','precision': 0,'type': 6},
-                                            {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'G\', \"sum\", 0)','length': 0,'name': 'm2G','precision': 0,'type': 6},
-                                            {'aggregate': 'sum','delimiter': ',','input': '\"sum\"','length': 0,'name': 'Totalm2','precision': 0,'type': 6}]
+            if self.dlg.dadesOficialsButton.isChecked():
+                if consum:
+                    alg_params['AGGREGATES'] = [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
+                                                {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'A\', \"sum\", 0)','length': 0,'name': 'm2A','precision': 0,'type': 6},
+                                                {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'B\', \"sum\", 0)','length': 0,'name': 'm2B','precision': 0,'type': 6},
+                                                {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'C\', \"sum\", 0)','length': 0,'name': 'm2C','precision': 0,'type': 6},
+                                                {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'D\', \"sum\", 0)','length': 0,'name': 'm2D','precision': 0,'type': 6},
+                                                {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'E\', \"sum\", 0)','length': 0,'name': 'm2E','precision': 0,'type': 6},
+                                                {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'F\', \"sum\", 0)','length': 0,'name': 'm2F','precision': 0,'type': 6},
+                                                {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'G\', \"sum\", 0)','length': 0,'name': 'm2G','precision': 0,'type': 6},
+                                                {'aggregate': 'sum','delimiter': ',','input': '\"sum\"','length': 0,'name': 'Totalm2','precision': 0,'type': 6}]
+                if emissions:
+                    alg_params['AGGREGATES'] = [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
+                                                {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'A\', \"sum\", 0)','length': 0,'name': 'm2A','precision': 0,'type': 6},
+                                                {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'B\', \"sum\", 0)','length': 0,'name': 'm2B','precision': 0,'type': 6},
+                                                {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'C\', \"sum\", 0)','length': 0,'name': 'm2C','precision': 0,'type': 6},
+                                                {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'D\', \"sum\", 0)','length': 0,'name': 'm2D','precision': 0,'type': 6},
+                                                {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'E\', \"sum\", 0)','length': 0,'name': 'm2E','precision': 0,'type': 6},
+                                                {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'F\', \"sum\", 0)','length': 0,'name': 'm2F','precision': 0,'type': 6},
+                                                {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'G\', \"sum\", 0)','length': 0,'name': 'm2G','precision': 0,'type': 6},
+                                                {'aggregate': 'sum','delimiter': ',','input': '\"sum\"','length': 0,'name': 'Totalm2','precision': 0,'type': 6}]
+            if self.dlg.dadesEstimacionsButton.isChecked() or self.dlg.dadesOficialsEstimacionsButton.isChecked():
+                if consum:
+                    alg_params['AGGREGATES'] = [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
+                                                {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'A\', \"sum\", 0)','length': 0,'name': 'm2A','precision': 0,'type': 6},
+                                                {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'B\', \"sum\", 0)','length': 0,'name': 'm2B','precision': 0,'type': 6},
+                                                {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'C\', \"sum\", 0)','length': 0,'name': 'm2C','precision': 0,'type': 6},
+                                                {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'D\', \"sum\", 0)','length': 0,'name': 'm2D','precision': 0,'type': 6},
+                                                {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'E\', \"sum\", 0)','length': 0,'name': 'm2E','precision': 0,'type': 6},
+                                                {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'F\', \"sum\", 0)','length': 0,'name': 'm2F','precision': 0,'type': 6},
+                                                {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificació de consum energia primaria no renovable\" = \'G\', \"sum\", 0)','length': 0,'name': 'm2G','precision': 0,'type': 6},
+                                                {'aggregate': 'sum','delimiter': ',','input': '\"sum\"','length': 0,'name': 'Totalm2','precision': 0,'type': 6},
+                                                {'aggregate': 'first_value','delimiter': ',','input': 'CASE WHEN count_distinct(\"origen_consum\",group_by:=\"idEntitat\") > 1 THEN \'mixt\' ELSE array_get(array_agg(\"origen_consum\",group_by:=\"idEntitat\"), 0) END','length': 0,'name': 'Origen consum','precision': 0,'type': 10}]
+                if emissions:
+                    alg_params['AGGREGATES'] = [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
+                                                {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'A\', \"sum\", 0)','length': 0,'name': 'm2A','precision': 0,'type': 6},
+                                                {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'B\', \"sum\", 0)','length': 0,'name': 'm2B','precision': 0,'type': 6},
+                                                {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'C\', \"sum\", 0)','length': 0,'name': 'm2C','precision': 0,'type': 6},
+                                                {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'D\', \"sum\", 0)','length': 0,'name': 'm2D','precision': 0,'type': 6},
+                                                {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'E\', \"sum\", 0)','length': 0,'name': 'm2E','precision': 0,'type': 6},
+                                                {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'F\', \"sum\", 0)','length': 0,'name': 'm2F','precision': 0,'type': 6},
+                                                {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio emissions de co2\" = \'G\', \"sum\", 0)','length': 0,'name': 'm2G','precision': 0,'type': 6},
+                                                {'aggregate': 'sum','delimiter': ',','input': '\"sum\"','length': 0,'name': 'Totalm2','precision': 0,'type': 6},
+                                                {'aggregate': 'first_value','delimiter': ',','input': 'CASE WHEN count_distinct(\"origen_emissions\",group_by:=\"idEntitat\") > 1 THEN \'mixt\' ELSE array_get(array_agg(\"origen_emissions\",group_by:=\"idEntitat\"), 0) END','length': 0,'name': 'Origen emissions','precision': 0,'type': 10}]
             if consumElectric or consumGas or self.dlg.consumSumaButton.isChecked():
                 alg_params['AGGREGATES'] = [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
                                             {'aggregate': 'sum','delimiter': ',','input': 'if( \"qualificacio\" = \'A\', \"sum\", 0)','length': 0,'name': 'm2A','precision': 0,'type': 6},
@@ -2825,8 +3148,39 @@ class EficEnerg:
                 'INPUT' : outputs['JoinFinal']['OUTPUT'], 
                 'OUTPUT' : 'TEMPORARY_OUTPUT'
             }
+            if consum and (self.dlg.dadesEstimacionsButton.isChecked() or self.dlg.dadesOficialsEstimacionsButton.isChecked()):
+                alg_params['AGGREGATES'] = [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
+                                            {'aggregate': 'first_value','delimiter': ',','input': '\"m2A\"','length': 0,'name': 'm2A','precision': 0,'type': 2},
+                                            {'aggregate': 'first_value','delimiter': ',','input': '\"m2B\"','length': 0,'name': 'm2B','precision': 0,'type': 2},
+                                            {'aggregate': 'first_value','delimiter': ',','input': '\"m2C\"','length': 0,'name': 'm2C','precision': 0,'type': 2},
+                                            {'aggregate': 'first_value','delimiter': ',','input': '\"m2D\"','length': 0,'name': 'm2D','precision': 0,'type': 2},
+                                            {'aggregate': 'first_value','delimiter': ',','input': '\"m2E\"','length': 0,'name': 'm2E','precision': 0,'type': 2},
+                                            {'aggregate': 'first_value','delimiter': ',','input': '\"m2F\"','length': 0,'name': 'm2F','precision': 0,'type': 2},
+                                            {'aggregate': 'first_value','delimiter': ',','input': '\"m2G\"','length': 0,'name': 'm2G','precision': 0,'type': 2},
+                                            {'aggregate': 'first_value','delimiter': ',','input': '\"Totalm2\"','length': 0,'name': 'Totalm2','precision': 0,'type': 2},
+                                            {'aggregate': 'first_value','delimiter': ',','input': '\"Origen consum\"','length': 0,'name': 'Origen consum','precision': 0,'type': 10}]
+            if emissions and (self.dlg.dadesEstimacionsButton.isChecked() or self.dlg.dadesOficialsEstimacionsButton.isChecked()):
+                alg_params['AGGREGATES'] = [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
+                                            {'aggregate': 'first_value','delimiter': ',','input': '\"m2A\"','length': 0,'name': 'm2A','precision': 0,'type': 2},
+                                            {'aggregate': 'first_value','delimiter': ',','input': '\"m2B\"','length': 0,'name': 'm2B','precision': 0,'type': 2},
+                                            {'aggregate': 'first_value','delimiter': ',','input': '\"m2C\"','length': 0,'name': 'm2C','precision': 0,'type': 2},
+                                            {'aggregate': 'first_value','delimiter': ',','input': '\"m2D\"','length': 0,'name': 'm2D','precision': 0,'type': 2},
+                                            {'aggregate': 'first_value','delimiter': ',','input': '\"m2E\"','length': 0,'name': 'm2E','precision': 0,'type': 2},
+                                            {'aggregate': 'first_value','delimiter': ',','input': '\"m2F\"','length': 0,'name': 'm2F','precision': 0,'type': 2},
+                                            {'aggregate': 'first_value','delimiter': ',','input': '\"m2G\"','length': 0,'name': 'm2G','precision': 0,'type': 2},
+                                            {'aggregate': 'first_value','delimiter': ',','input': '\"Totalm2\"','length': 0,'name': 'Totalm2','precision': 0,'type': 2},
+                                            {'aggregate': 'first_value','delimiter': ',','input': '\"Origen emissions\"','length': 0,'name': 'Origen emissions','precision': 0,'type': 10}]
             entitatLayerResumm2 = processing.run('qgis:aggregate', alg_params)['OUTPUT']
-            QgsProject.instance().addMapLayer(entitatLayerResumm2, False).setName("Classificació per metres quadrats")
+            if consum:
+                QgsProject.instance().addMapLayer(entitatLayerResumm2, False).setName("Consum per metres quadrats")
+            if emissions:
+                QgsProject.instance().addMapLayer(entitatLayerResumm2, False).setName("Emissions per metres quadrats")
+            if consumGas:
+                QgsProject.instance().addMapLayer(entitatLayerResumm2, False).setName("Consum de gas per metres quadrats")
+            if consumElectric:
+                QgsProject.instance().addMapLayer(entitatLayerResumm2, False).setName("Consum elèctric per metres quadrats")
+            if self.dlg.consumSumaButton.isChecked():
+                QgsProject.instance().addMapLayer(entitatLayerResumm2, False).setName("Consum sumat per metres quadrats")
             QApplication.processEvents()
         except Exception as ex:
             print ("Error al calcular metres quadrats per categoria de " + nomEntitat)
@@ -2852,13 +3206,41 @@ class EficEnerg:
                     'VALUES_FIELD_NAME':        None,
                     'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
                 }
-                if consum:
+                if consum or consumElectric or consumGas or self.dlg.consumSumaButton.isChecked():
                     alg_params['VALUES_FIELD_NAME'] = 'consum'
                 if emissions:
                     alg_params['VALUES_FIELD_NAME'] = 'emissions'
-                if consumElectric or consumGas or self.dlg.consumSumaButton.isChecked():
-                    alg_params['VALUES_FIELD_NAME'] = 'consum'
+                if self.dlg.dadesEstimacionsButton.isChecked() or self.dlg.dadesOficialsEstimacionsButton.isChecked():
+                    if consum:
+                        alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat','origen_consum']
+                    if emissions:
+                        alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat','origen_emissions']
                 outputs['Indexmitjana'] = processing.run('qgis:statisticsbycategories', alg_params)
+
+                if self.dlg.dadesEstimacionsButton.isChecked() or self.dlg.dadesOficialsEstimacionsButton.isChecked():
+                    if consum:
+                        alg_params = {
+                            'AGGREGATES': [
+                                {'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
+                                {'aggregate': 'sum', 'delimiter':',','input': '\"mean\"','length': 0,'name': 'indexMITJANA','precision': 0,'type': 6},
+                                {'aggregate': 'first_value','delimiter': ',','input': 'CASE WHEN count_distinct(\"origen_consum\",group_by:=\"idEntitat\") > 1 THEN \'mixt\' ELSE array_get(array_agg(\"origen_consum\",group_by:=\"idEntitat\"),0) END','length': 0,'name': 'Origen consum','precision': 0,'type': 10}
+                            ],
+                            'GROUP_BY': '\"idEntitat\"',
+                            'INPUT': outputs['Indexmitjana']['OUTPUT'],
+                            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+                        }
+                    if emissions:
+                        alg_params = {
+                            'AGGREGATES': [
+                                {'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
+                                {'aggregate': 'sum', 'delimiter':',','input': '\"mean\"','length': 0,'name': 'indexMITJANA','precision': 0,'type': 6},
+                                {'aggregate': 'first_value','delimiter': ',','input': 'CASE WHEN count_distinct(\"origen_emissions\",group_by:=\"idEntitat\") > 1 THEN \'mixt\' ELSE array_get(array_agg(\"origen_emissions\",group_by:=\"idEntitat\"),0) END','length': 0,'name': 'Origen emissions','precision': 0,'type': 10}
+                            ],
+                            'GROUP_BY': 'idEntitat',
+                            'INPUT': outputs['Indexmitjana']['OUTPUT'],
+                            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+                        }
+                    outputs['AggMitjanaHab'] = processing.run('qgis:aggregate', alg_params)
 
                 ''' Join Entitat - Mitjana '''
                 alg_params = {
@@ -2867,21 +3249,45 @@ class EficEnerg:
                     'FIELDS_TO_COPY': [''],
                     'FIELD_2': 'idEntitat',
                     'INPUT': entitatLayer,
-                    'INPUT_2': outputs['Indexmitjana']['OUTPUT'],
+                    'INPUT_2': None,
                     'METHOD': 1,
                     'PREFIX': '',
                     'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
                 }
+                if self.dlg.dadesOficialsButton.isChecked() or consumElectric or consumGas or self.dlg.consumSumaButton.isChecked():
+                    alg_params['INPUT_2'] = outputs['Indexmitjana']['OUTPUT']
+                if self.dlg.dadesEstimacionsButton.isChecked() or self.dlg.dadesOficialsEstimacionsButton.isChecked():
+                    alg_params['INPUT_2'] = outputs['AggMitjanaHab']['OUTPUT']
                 outputs['JoinFinal'] = processing.run('native:joinattributestable', alg_params)
 
                 ''' Clean Mitjana '''
-                alg_params = {
-                    'AGGREGATES': [{'aggregate': 'first_value', 'delimiter': ',', 'input': '\"idEntitat\"', 'length': 0, 'name': 'idEntitat', 'precision': 0, 'type': 10},
-                                   {'aggregate': 'first_value', 'delimiter': ',', 'input': '\"mean\"', 'length': 0, 'name': 'indexMITJANA', 'precision': 0, 'type': 6}],
-                    'GROUP_BY': 'idEntitat',
-                    'INPUT': outputs['JoinFinal']['OUTPUT'],
-                    'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-                }
+                if self.dlg.dadesOficialsButton.isChecked() or consumElectric or consumGas or self.dlg.consumSumaButton.isChecked():
+                    alg_params = {
+                        'AGGREGATES': [{'aggregate': 'first_value', 'delimiter': ',', 'input': '\"idEntitat\"', 'length': 0, 'name': 'idEntitat', 'precision': 0, 'type': 10},
+                                       {'aggregate': 'first_value', 'delimiter': ',', 'input': '\"mean\"', 'length': 0, 'name': 'indexMITJANA', 'precision': 0, 'type': 6}],
+                        'GROUP_BY': 'idEntitat',
+                        'INPUT': outputs['JoinFinal']['OUTPUT'],
+                        'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+                    }
+                if self.dlg.dadesEstimacionsButton.isChecked() or self.dlg.dadesOficialsEstimacionsButton.isChecked():
+                    if consum:
+                        alg_params = {
+                            'AGGREGATES': [{'aggregate': 'first_value', 'delimiter': ',', 'input': '\"idEntitat\"', 'length': 0, 'name': 'idEntitat', 'precision': 0, 'type': 10},
+                                           {'aggregate': 'first_value', 'delimiter': ',', 'input': '\"indexMITJANA\"', 'length': 0, 'name': 'indexMITJANA', 'precision': 0, 'type': 6},
+                                           {'aggregate': 'first_value', 'delimiter': ',', 'input': '\"Origen consum\"', 'length': 0, 'name': 'Origen consum', 'precision': 0, 'type': 10}],
+                            'GROUP_BY': 'idEntitat',
+                            'INPUT': outputs['JoinFinal']['OUTPUT'],
+                            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+                        }
+                    if emissions:
+                        alg_params = {
+                            'AGGREGATES': [{'aggregate': 'first_value', 'delimiter': ',', 'input': '\"idEntitat\"', 'length': 0, 'name': 'idEntitat', 'precision': 0, 'type': 10},
+                                           {'aggregate': 'first_value', 'delimiter': ',', 'input': '\"indexMITJANA\"', 'length': 0, 'name': 'indexMITJANA', 'precision': 0, 'type': 6},
+                                           {'aggregate': 'first_value', 'delimiter': ',', 'input': '\"Origen consum\"', 'length': 0, 'name': 'Origen consum', 'precision': 0, 'type': 10}],
+                            'GROUP_BY': 'idEntitat',
+                            'INPUT': outputs['JoinFinal']['OUTPUT'],
+                            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+                        }
                 entitatLayerResumMitjana = processing.run('qgis:aggregate', alg_params)['OUTPUT']
                 entitatLayerResumMitjana.setName('Mitjana')
 
@@ -2911,10 +3317,16 @@ class EficEnerg:
                     'VALUES_FIELD_NAME':        'producte',
                     'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
                 }
-                if consum:
-                    alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat', 'qualificació de consum energia primaria no renovable']
-                if emissions:
-                    alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat', 'qualificacio emissions de co2']
+                if self.dlg.dadesOficialsButton.isChecked():
+                    if consum:
+                        alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat', 'qualificació de consum energia primaria no renovable']
+                    if emissions:
+                        alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat', 'qualificacio emissions de co2']
+                if self.dlg.dadesEstimacionsButton.isChecked() or self.dlg.dadesOficialsEstimacionsButton.isChecked():
+                    if consum:
+                        alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat', 'qualificació de consum energia primaria no renovable', 'origen_consum']
+                    if emissions:
+                        alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat', 'qualificacio emissions de co2', 'origen_emissions']
                 if consumElectric or consumGas or self.dlg.consumSumaButton.isChecked():
                     alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat', 'qualificacio']
                 outputs['SumProducte'] = processing.run('qgis:statisticsbycategories', alg_params)
@@ -2926,10 +3338,16 @@ class EficEnerg:
                     'VALUES_FIELD_NAME':        'm2',
                     'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
                 }
-                if consum:
-                    alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat', 'qualificació de consum energia primaria no renovable']
-                if emissions:
-                    alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat', 'qualificacio emissions de co2']
+                if self.dlg.dadesOficialsButton.isChecked():
+                    if consum:
+                        alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat', 'qualificació de consum energia primaria no renovable']
+                    if emissions:
+                        alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat', 'qualificacio emissions de co2']
+                if self.dlg.dadesEstimacionsButton.isChecked() or self.dlg.dadesOficialsEstimacionsButton.isChecked():
+                    if consum:
+                        alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat', 'qualificació de consum energia primaria no renovable', 'origen_consum']
+                    if emissions:
+                        alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat', 'qualificacio emissions de co2', 'origen_emissions']
                 if consumElectric or consumGas or self.dlg.consumSumaButton.isChecked():
                     alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat', 'qualificacio']
                 outputs['SumM2'] = processing.run('qgis:statisticsbycategories', alg_params)
@@ -3019,25 +3437,66 @@ class EficEnerg:
                 outputs['Join2Aggregate'] = processing.run('native:joinattributestable', alg_params)
 
                 ''' Sum de Sum Producte i Sum de Sum m2 '''
-                alg_params = {
-                    'AGGREGATES' : [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
-                                    {'aggregate': 'sum','delimiter': ',','input': '\"sum_producte\"','length': 0,'name': 'sum_producte','precision': 0,'type': 6},
-                                    {'aggregate': 'sum','delimiter': ',','input': '\"sum_m2\"','length': 0,'name': 'sum_m2','precision': 0,'type': 6}],
-                    'GROUP_BY' : '\"idEntitat\"', 
-                    'INPUT' : outputs['Join2Aggregate']['OUTPUT'], 
-                    'OUTPUT' : QgsProcessing.TEMPORARY_OUTPUT
-                }
+                if self.dlg.dadesOficialsButton.isChecked():
+                    alg_params = {
+                        'AGGREGATES' : [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
+                                        {'aggregate': 'sum','delimiter': ',','input': '\"sum_producte\"','length': 0,'name': 'sum_producte','precision': 0,'type': 6},
+                                        {'aggregate': 'sum','delimiter': ',','input': '\"sum_m2\"','length': 0,'name': 'sum_m2','precision': 0,'type': 6}],
+                        'GROUP_BY' : '\"idEntitat\"', 
+                        'INPUT' : outputs['Join2Aggregate']['OUTPUT'], 
+                        'OUTPUT' : QgsProcessing.TEMPORARY_OUTPUT
+                    }
+                if self.dlg.dadesEstimacionsButton.isChecked() or self.dlg.dadesOficialsEstimacionsButton.isChecked():
+                    if consum:
+                        alg_params = {
+                            'AGGREGATES' : [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
+                                            {'aggregate': 'sum','delimiter': ',','input': '\"sum_producte\"','length': 0,'name': 'sum_producte','precision': 0,'type': 6},
+                                            {'aggregate': 'sum','delimiter': ',','input': '\"sum_m2\"','length': 0,'name': 'sum_m2','precision': 0,'type': 6},
+                                            {'aggregate': 'first_value','delimiter': ',','input': 'CASE WHEN count_distinct(\"origen_consum\",group_by:=\"idEntitat\") > 1 THEN \'mixt\' ELSE array_get(array_agg(\"origen_consum\",group_by:=\"idEntitat\"), 0) END','length': 0,'name': 'Origen consum','precision': 0,'type': 10}],
+                            'GROUP_BY' : '\"idEntitat\"', 
+                            'INPUT' : outputs['Join2Aggregate']['OUTPUT'], 
+                            'OUTPUT' : QgsProcessing.TEMPORARY_OUTPUT
+                        }
+                    if emissions:
+                        alg_params = {
+                            'AGGREGATES' : [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
+                                            {'aggregate': 'sum','delimiter': ',','input': '\"sum_producte\"','length': 0,'name': 'sum_producte','precision': 0,'type': 6},
+                                            {'aggregate': 'sum','delimiter': ',','input': '\"sum_m2\"','length': 0,'name': 'sum_m2','precision': 0,'type': 6},
+                                            {'aggregate': 'first_value','delimiter': ',','input': 'CASE WHEN count_distinct(\"origen_emissions\",group_by:=\"idEntitat\") > 1 THEN \'mixt\' ELSE array_get(array_agg(\"origen_emissions\",group_by:=\"idEntitat\"), 0) END','length': 0,'name': 'Origen emissions','precision': 0,'type': 10}],
+                            'GROUP_BY' : '\"idEntitat\"', 
+                            'INPUT' : outputs['Join2Aggregate']['OUTPUT'], 
+                            'OUTPUT' : QgsProcessing.TEMPORARY_OUTPUT
+                        }
                 outputs['SumDeSums'] = processing.run('qgis:aggregate', alg_params)
 
                 ''' Mitjana '''
-
-                alg_params = {
-                    'AGGREGATES' : [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
-                                    {'aggregate': 'first_value','delimiter': ',','input': '\"sum_producte\"/\"sum_m2\"','length': 0,'name': 'mitjana','precision': 0,'type': 6}],
-                    'GROUP_BY' : '\"idEntitat\"', 
-                    'INPUT' : outputs['SumDeSums']['OUTPUT'], 
-                    'OUTPUT' : QgsProcessing.TEMPORARY_OUTPUT
-                }
+                if self.dlg.dadesOficialsButton.isChecked():
+                    alg_params = {
+                        'AGGREGATES' : [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
+                                        {'aggregate': 'first_value','delimiter': ',','input': '\"sum_producte\"/\"sum_m2\"','length': 0,'name': 'mitjana','precision': 0,'type': 6}],
+                        'GROUP_BY' : '\"idEntitat\"', 
+                        'INPUT' : outputs['SumDeSums']['OUTPUT'], 
+                        'OUTPUT' : QgsProcessing.TEMPORARY_OUTPUT
+                    }
+                if self.dlg.dadesEstimacionsButton.isChecked() or self.dlg.dadesOficialsEstimacionsButton.isChecked():
+                    if consum:
+                        alg_params = {
+                            'AGGREGATES' : [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
+                                            {'aggregate': 'first_value','delimiter': ',','input': '\"sum_producte\"/\"sum_m2\"','length': 0,'name': 'mitjana','precision': 0,'type': 6},
+                                            {'aggregate': 'first_value','delimiter': ',','input': '\"Origen consum\"','length': 0,'name': 'Origen consum','precision': 0,'type': 10}],
+                            'GROUP_BY' : '\"idEntitat\"', 
+                            'INPUT' : outputs['SumDeSums']['OUTPUT'], 
+                            'OUTPUT' : QgsProcessing.TEMPORARY_OUTPUT
+                        }
+                    if emissions:
+                        alg_params = {
+                            'AGGREGATES' : [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
+                                            {'aggregate': 'first_value','delimiter': ',','input': '\"sum_producte\"/\"sum_m2\"','length': 0,'name': 'mitjana','precision': 0,'type': 6},
+                                            {'aggregate': 'first_value','delimiter': ',','input': '\"Origen emissions\"','length': 0,'name': 'Origen emissions','precision': 0,'type': 10}],
+                            'GROUP_BY' : '\"idEntitat\"', 
+                            'INPUT' : outputs['SumDeSums']['OUTPUT'], 
+                            'OUTPUT' : QgsProcessing.TEMPORARY_OUTPUT
+                        }
                 outputs['Mitjana'] = processing.run('qgis:aggregate', alg_params)
 
                 ''' Join Final '''
@@ -3055,13 +3514,33 @@ class EficEnerg:
                 outputs['JoinFinal'] = processing.run('native:joinattributestable', alg_params)
 
                 ''' Aggregate Final Clean '''
-                alg_params = {
-                    'AGGREGATES': [{'aggregate': 'first_value', 'delimiter': ',', 'input': '\"idEntitat\"', 'length': 0, 'name': 'idEntitat', 'precision': 0, 'type': 2},
-                                   {'aggregate': 'first_value', 'delimiter': ',', 'input': '\"mitjana\"', 'length': 0, 'name': 'indexMITJANA', 'precision': 0, 'type': 6}],
-                    'GROUP_BY': 'idEntitat',
-                    'INPUT': outputs['JoinFinal']['OUTPUT'],
-                    'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-                }
+                if self.dlg.dadesOficialsButton.isChecked():
+                    alg_params = {
+                        'AGGREGATES': [{'aggregate': 'first_value', 'delimiter': ',', 'input': '\"idEntitat\"', 'length': 0, 'name': 'idEntitat', 'precision': 0, 'type': 2},
+                                       {'aggregate': 'first_value', 'delimiter': ',', 'input': '\"mitjana\"', 'length': 0, 'name': 'indexMITJANA', 'precision': 0, 'type': 6}],
+                        'GROUP_BY': 'idEntitat',
+                        'INPUT': outputs['JoinFinal']['OUTPUT'],
+                        'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+                    }
+                if self.dlg.dadesEstimacionsButton.isChecked() or self.dlg.dadesOficialsEstimacionsButton.isChecked():
+                    if consum:
+                        alg_params = {
+                            'AGGREGATES': [{'aggregate': 'first_value', 'delimiter': ',', 'input': '\"idEntitat\"', 'length': 0, 'name': 'idEntitat', 'precision': 0, 'type': 2},
+                                           {'aggregate': 'first_value', 'delimiter': ',', 'input': '\"mitjana\"', 'length': 0, 'name': 'indexMITJANA', 'precision': 0, 'type': 6},
+                                           {'aggregate': 'first_value','delimiter': ',','input': '\"Origen consum\"','length': 0,'name': 'Origen consum','precision': 0,'type': 10}],
+                            'GROUP_BY': 'idEntitat',
+                            'INPUT': outputs['JoinFinal']['OUTPUT'],
+                            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+                        }
+                    if emissions:
+                        alg_params = {
+                            'AGGREGATES': [{'aggregate': 'first_value', 'delimiter': ',', 'input': '\"idEntitat\"', 'length': 0, 'name': 'idEntitat', 'precision': 0, 'type': 2},
+                                           {'aggregate': 'first_value', 'delimiter': ',', 'input': '\"mitjana\"', 'length': 0, 'name': 'indexMITJANA', 'precision': 0, 'type': 6},
+                                           {'aggregate': 'first_value', 'delimiter': ',','input': '\"Origen emissions\"','length': 0,'name': 'Origen emissions','precision': 0,'type': 10}],
+                            'GROUP_BY': 'idEntitat',
+                            'INPUT': outputs['JoinFinal']['OUTPUT'],
+                            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+                        }
                 entitatLayerResumMitjana = processing.run('qgis:aggregate', alg_params)['OUTPUT']
                 entitatLayerResumMitjana.setName('Mitjana')
             QApplication.processEvents()
@@ -3089,12 +3568,20 @@ class EficEnerg:
                     'VALUES_FIELD_NAME': None,
                     'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
                 }
-                if consum:
-                    alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat', 'qualificació de consum energia primaria no renovable']
-                    alg_params['VALUES_FIELD_NAME'] = 'consum'
-                if emissions:
-                    alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat', 'qualificacio emissions de co2']
-                    alg_params['VALUES_FIELD_NAME'] = 'emissions'
+                if self.dlg.dadesOficialsButton.isChecked():
+                    if consum:
+                        alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat', 'qualificació de consum energia primaria no renovable']
+                        alg_params['VALUES_FIELD_NAME'] = 'consum'
+                    if emissions:
+                        alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat', 'qualificacio emissions de co2']
+                        alg_params['VALUES_FIELD_NAME'] = 'emissions'
+                if self.dlg.dadesEstimacionsButton.isChecked() or self.dlg.dadesOficialsEstimacionsButton.isChecked():
+                    if consum:
+                        alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat', 'qualificació de consum energia primaria no renovable', 'origen_consum']
+                        alg_params['VALUES_FIELD_NAME'] = 'consum'
+                    if emissions:
+                        alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat', 'qualificacio emissions de co2', 'origen_emissions']
+                        alg_params['VALUES_FIELD_NAME'] = 'emissions'
                 if consumElectric or consumGas or self.dlg.consumSumaButton.isChecked():
                     alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat', 'qualificacio']
                     alg_params['VALUES_FIELD_NAME'] = 'consum'
@@ -3107,16 +3594,30 @@ class EficEnerg:
                     'INPUT': outputs['Indexmoda']['OUTPUT'],
                     'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
                 }
-                if consum:
-                    alg_params['AGGREGATES'] = [{'aggregate': 'first_value','delimiter': '','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
-                                                {'aggregate': 'maximum','delimiter': '','input': '\"count\"','length': 0,'name': 'MaxNum','precision': 0,'type': 2},
-                                                {'aggregate': 'concatenate','delimiter': '','input': 'if(\"count\"=maximum(\"count\",\"idEntitat\"), \"qualificació de consum energia primaria no renovable\",\'\')','length': 0,'name': 'QualifMaxFreq','precision': 0,'type': 10},
-                                                {'aggregate': 'sum','delimiter': '','input': 'if(\"qualificació de consum energia primaria no renovable\" = if(\"count\"=maximum(\"count\",\"idEntitat\"), \"qualificació de consum energia primaria no renovable\",\'\'), \"mean\", 0)','length': 0,'name': 'indexMODA','precision': 0,'type': 6}]
-                if emissions:
-                    alg_params['AGGREGATES'] = [{'aggregate': 'first_value','delimiter': '','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
-                                                {'aggregate': 'maximum','delimiter': '','input': '\"count\"','length': 0,'name': 'MaxNum','precision': 0,'type': 2},
-                                                {'aggregate': 'concatenate','delimiter': '','input': 'if(\"count\"=maximum(\"count\",\"idEntitat\"), \"qualificacio emissions de co2\",\'\')','length': 0,'name': 'QualifMaxFreq','precision': 0,'type': 10},
-                                                {'aggregate': 'sum','delimiter': '','input': 'if(\"qualificacio emissions de co2\" = if(\"count\"=maximum(\"count\",\"idEntitat\"), \"qualificacio emissions de co2\",\'\'), \"mean\", 0)','length': 0,'name': 'indexMODA','precision': 0,'type': 6}]
+                if self.dlg.dadesOficialsButton.isChecked():
+                    if consum:
+                        alg_params['AGGREGATES'] = [{'aggregate': 'first_value','delimiter': '','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
+                                                    {'aggregate': 'maximum','delimiter': '','input': '\"count\"','length': 0,'name': 'MaxNum','precision': 0,'type': 2},
+                                                    {'aggregate': 'concatenate','delimiter': '','input': 'if(\"count\"=maximum(\"count\",\"idEntitat\"), \"qualificació de consum energia primaria no renovable\",\'\')','length': 0,'name': 'QualifMaxFreq','precision': 0,'type': 10},
+                                                    {'aggregate': 'sum','delimiter': '','input': 'if(\"qualificació de consum energia primaria no renovable\" = if(\"count\"=maximum(\"count\",\"idEntitat\"), \"qualificació de consum energia primaria no renovable\",\'\'), \"mean\", 0)','length': 0,'name': 'indexMODA','precision': 0,'type': 6}]
+                    if emissions:
+                        alg_params['AGGREGATES'] = [{'aggregate': 'first_value','delimiter': '','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
+                                                    {'aggregate': 'maximum','delimiter': '','input': '\"count\"','length': 0,'name': 'MaxNum','precision': 0,'type': 2},
+                                                    {'aggregate': 'concatenate','delimiter': '','input': 'if(\"count\"=maximum(\"count\",\"idEntitat\"), \"qualificacio emissions de co2\",\'\')','length': 0,'name': 'QualifMaxFreq','precision': 0,'type': 10},
+                                                    {'aggregate': 'sum','delimiter': '','input': 'if(\"qualificacio emissions de co2\" = if(\"count\"=maximum(\"count\",\"idEntitat\"), \"qualificacio emissions de co2\",\'\'), \"mean\", 0)','length': 0,'name': 'indexMODA','precision': 0,'type': 6}]
+                if self.dlg.dadesEstimacionsButton.isChecked() or self.dlg.dadesOficialsEstimacionsButton.isChecked():
+                    if consum:
+                        alg_params['AGGREGATES'] = [{'aggregate': 'first_value','delimiter': '','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
+                                                    {'aggregate': 'maximum','delimiter': '','input': '\"count\"','length': 0,'name': 'MaxNum','precision': 0,'type': 2},
+                                                    {'aggregate': 'concatenate','delimiter': '','input': 'if(\"count\"=maximum(\"count\",\"idEntitat\"), \"qualificació de consum energia primaria no renovable\",\'\')','length': 0,'name': 'QualifMaxFreq','precision': 0,'type': 10},
+                                                    {'aggregate': 'sum','delimiter': '','input': 'if(\"qualificació de consum energia primaria no renovable\" = if(\"count\"=maximum(\"count\",\"idEntitat\"), \"qualificació de consum energia primaria no renovable\",\'\'), \"mean\", 0)','length': 0,'name': 'indexMODA','precision': 0,'type': 6},
+                                                    {'aggregate': 'first_value','delimiter': ',','input': 'CASE WHEN count_distinct(\"origen_consum\",group_by:=\"idEntitat\") > 1 THEN \'mixt\' ELSE array_get(array_agg(\"origen_consum\",group_by:=\"idEntitat\"),0) END','length': 0,'name': 'Origen consum','precision': 0,'type': 10}]
+                    if emissions:
+                        alg_params['AGGREGATES'] = [{'aggregate': 'first_value','delimiter': '','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
+                                                    {'aggregate': 'maximum','delimiter': '','input': '\"count\"','length': 0,'name': 'MaxNum','precision': 0,'type': 2},
+                                                    {'aggregate': 'concatenate','delimiter': '','input': 'if(\"count\"=maximum(\"count\",\"idEntitat\"), \"qualificacio emissions de co2\",\'\')','length': 0,'name': 'QualifMaxFreq','precision': 0,'type': 10},
+                                                    {'aggregate': 'sum','delimiter': '','input': 'if(\"qualificacio emissions de co2\" = if(\"count\"=maximum(\"count\",\"idEntitat\"), \"qualificacio emissions de co2\",\'\'), \"mean\", 0)','length': 0,'name': 'indexMODA','precision': 0,'type': 6},
+                                                    {'aggregate': 'first_value','delimiter': ',','input': 'CASE WHEN count_distinct(\"origen_emissions\",group_by:=\"idEntitat\") > 1 THEN \'mixt\' ELSE array_get(array_agg(\"origen_emissions\",group_by:=\"idEntitat\"),0) END','length': 0,'name': 'Origen emissions','precision': 0,'type': 10}]
                 if consumElectric or consumGas or self.dlg.consumSumaButton.isChecked():
                     alg_params['AGGREGATES'] = [{'aggregate': 'first_value','delimiter': '','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
                                                 {'aggregate': 'maximum','delimiter': '','input': '\"count\"','length': 0,'name': 'MaxNum','precision': 0,'type': 2},
@@ -3139,14 +3640,36 @@ class EficEnerg:
                 outputs['JoinFinalModa'] = processing.run('native:joinattributestable', alg_params)
 
                 ''' Aggregate Final Clean Moda '''
-                alg_params = {
-                    'AGGREGATES': [{'aggregate': 'first_value', 'delimiter': ',', 'input': '\"idEntitat\"', 'length': 0, 'name': 'idEntitat', 'precision': 0, 'type': 2},
-                                   {'aggregate': 'first_value', 'delimiter': ',', 'input': '\"QualifMaxFreq\"', 'length': 0, 'name': 'QualifMaxFreq', 'precision': 0, 'type': 10},
-                                   {'aggregate': 'first_value', 'delimiter': ',', 'input': '\"indexMODA\"', 'length': 0, 'name': 'indexMODA', 'precision': 0, 'type': 6}],
-                    'GROUP_BY': 'idEntitat',
-                    'INPUT': outputs['JoinFinalModa']['OUTPUT'],
-                    'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-                }
+                if self.dlg.dadesOficialsButton.isChecked() or consumGas or consumElectric or self.dlg.consumSumaButton.isChecked():
+                    alg_params = {
+                        'AGGREGATES': [{'aggregate': 'first_value', 'delimiter': ',', 'input': '\"idEntitat\"', 'length': 0, 'name': 'idEntitat', 'precision': 0, 'type': 2},
+                                    {'aggregate': 'first_value', 'delimiter': ',', 'input': '\"QualifMaxFreq\"', 'length': 0, 'name': 'QualifMaxFreq', 'precision': 0, 'type': 10},
+                                    {'aggregate': 'first_value', 'delimiter': ',', 'input': '\"indexMODA\"', 'length': 0, 'name': 'indexMODA', 'precision': 0, 'type': 6}],
+                        'GROUP_BY': 'idEntitat',
+                        'INPUT': outputs['JoinFinalModa']['OUTPUT'],
+                        'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+                    }
+                if self.dlg.dadesEstimacionsButton.isChecked() or self.dlg.dadesOficialsEstimacionsButton.isChecked():
+                    if consum:
+                        alg_params = {
+                            'AGGREGATES': [{'aggregate': 'first_value', 'delimiter': ',', 'input': '\"idEntitat\"', 'length': 0, 'name': 'idEntitat', 'precision': 0, 'type': 2},
+                                        {'aggregate': 'first_value', 'delimiter': ',', 'input': '\"QualifMaxFreq\"', 'length': 0, 'name': 'QualifMaxFreq', 'precision': 0, 'type': 10},
+                                        {'aggregate': 'first_value', 'delimiter': ',', 'input': '\"indexMODA\"', 'length': 0, 'name': 'indexMODA', 'precision': 0, 'type': 6},
+                                        {'aggregate': 'first_value', 'delimiter': ',', 'input': '\"Origen consum\"', 'length': 0, 'name': 'Origen consum', 'precision': 0, 'type': 10}], 
+                            'GROUP_BY': 'idEntitat',
+                            'INPUT': outputs['JoinFinalModa']['OUTPUT'],
+                            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+                        }
+                    if emissions:
+                        alg_params = {
+                            'AGGREGATES': [{'aggregate': 'first_value', 'delimiter': ',', 'input': '\"idEntitat\"', 'length': 0, 'name': 'idEntitat', 'precision': 0, 'type': 2},
+                                        {'aggregate': 'first_value', 'delimiter': ',', 'input': '\"QualifMaxFreq\"', 'length': 0, 'name': 'QualifMaxFreq', 'precision': 0, 'type': 10},
+                                        {'aggregate': 'first_value', 'delimiter': ',', 'input': '\"indexMODA\"', 'length': 0, 'name': 'indexMODA', 'precision': 0, 'type': 6},
+                                        {'aggregate': 'first_value', 'delimiter': ',', 'input': '\"Origen emissions\"', 'length': 0, 'name': 'Origen emissions', 'precision': 0, 'type': 10}], 
+                            'GROUP_BY': 'idEntitat',
+                            'INPUT': outputs['JoinFinalModa']['OUTPUT'],
+                            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+                        }
                 entitatLayerResumModa = processing.run('qgis:aggregate', alg_params)['OUTPUT']
                 entitatLayerResumModa.setName('Moda')
             if self.dlg.checkm2.isChecked() or self.dlg.checkm2_2.isChecked():
@@ -3183,12 +3706,18 @@ class EficEnerg:
                     'VALUES_FIELD_NAME':        'm2',
                     'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
                 }
-                if consum:
-                    alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat','qualificació de consum energia primaria no renovable']
-                if emissions:
-                    alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat','qualificacio emissions de co2']
+                if self.dlg.dadesOficialsButton.isChecked():
+                    if consum:
+                        alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat', 'qualificació de consum energia primaria no renovable']
+                    if emissions:
+                        alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat', 'qualificacio emissions de co2']
+                if self.dlg.dadesEstimacionsButton.isChecked() or self.dlg.dadesOficialsEstimacionsButton.isChecked():
+                    if consum:
+                        alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat', 'qualificació de consum energia primaria no renovable', 'origen_consum']
+                    if emissions:
+                        alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat', 'qualificacio emissions de co2', 'origen_emissions']
                 if consumElectric or consumGas or self.dlg.consumSumaButton.isChecked():
-                    alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat','qualificacio']
+                    alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat', 'qualificacio']
                 outputs['Estadistiquesm2'] = processing.run('qgis:statisticsbycategories', alg_params)
 
                 ''' 6. sum producte '''
@@ -3198,10 +3727,16 @@ class EficEnerg:
                     'VALUES_FIELD_NAME':        'producte',
                     'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
                 }
-                if consum:
-                    alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat', 'qualificació de consum energia primaria no renovable']
-                if emissions:
-                    alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat', 'qualificacio emissions de co2']
+                if self.dlg.dadesOficialsButton.isChecked():
+                    if consum:
+                        alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat', 'qualificació de consum energia primaria no renovable']
+                    if emissions:
+                        alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat', 'qualificacio emissions de co2']
+                if self.dlg.dadesEstimacionsButton.isChecked() or self.dlg.dadesOficialsEstimacionsButton.isChecked():
+                    if consum:
+                        alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat', 'qualificació de consum energia primaria no renovable', 'origen_consum']
+                    if emissions:
+                        alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat', 'qualificacio emissions de co2', 'origen_emissions']
                 if consumElectric or consumGas or self.dlg.consumSumaButton.isChecked():
                     alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat', 'qualificacio']
                 outputs['SumProducte'] = processing.run('qgis:statisticsbycategories', alg_params)
@@ -3326,16 +3861,31 @@ class EficEnerg:
                     'INPUT': outputs['Moda']['OUTPUT'],
                     'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
                 }
-                if consum:
-                    alg_params['AGGREGATES'] = [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
-                                                {'aggregate': 'maximum','delimiter': ',','input': '\"count\"','length': 0,'name': 'MaxNum','precision': 0,'type': 2},
-                                                {'aggregate': 'concatenate','delimiter': '','input': 'if(\"sum_m2\"=maximum(\"sum_m2\",\"idEntitat\"),\"qualificació de consum energia primaria no renovable\",\'\')','length': 0,'name': 'QualifMaxFreq','precision': 0,'type': 10},
-                                                {'aggregate': 'sum','delimiter': ',','input': 'if(\"sum_m2\"=maximum(\"sum_m2\",\"idEntitat\"),\"moda\",0)','length': 0,'name': 'moda','precision': 0,'type': 6}]
-                if emissions:
-                    alg_params['AGGREGATES'] = [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
-                                                {'aggregate': 'maximum','delimiter': ',','input': '\"count\"','length': 0,'name': 'MaxNum','precision': 0,'type': 2},
-                                                {'aggregate': 'concatenate','delimiter': '','input': 'if(\"sum_m2\"=maximum(\"sum_m2\",\"idEntitat\"),\"qualificacio emissions de co2\",\'\')','length': 0,'name': 'QualifMaxFreq','precision': 0,'type': 10},
-                                                {'aggregate': 'sum','delimiter': ',','input': 'if(\"sum_m2\"=maximum(\"sum_m2\",\"idEntitat\"),\"moda\",0)','length': 0,'name': 'moda','precision': 0,'type': 6}]
+                if self.dlg.dadesOficialsButton.isChecked():
+                    if consum:
+                        alg_params['AGGREGATES'] = [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
+                                                    {'aggregate': 'maximum','delimiter': ',','input': '\"count\"','length': 0,'name': 'MaxNum','precision': 0,'type': 2},
+                                                    {'aggregate': 'concatenate','delimiter': '','input': 'if(\"sum_m2\"=maximum(\"sum_m2\",\"idEntitat\"),\"qualificació de consum energia primaria no renovable\",\'\')','length': 0,'name': 'QualifMaxFreq','precision': 0,'type': 10},
+                                                    {'aggregate': 'sum','delimiter': ',','input': 'if(\"sum_m2\"=maximum(\"sum_m2\",\"idEntitat\"),\"moda\",0)','length': 0,'name': 'moda','precision': 0,'type': 6}]
+                    if emissions:
+                        alg_params['AGGREGATES'] = [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
+                                                    {'aggregate': 'maximum','delimiter': ',','input': '\"count\"','length': 0,'name': 'MaxNum','precision': 0,'type': 2},
+                                                    {'aggregate': 'concatenate','delimiter': '','input': 'if(\"sum_m2\"=maximum(\"sum_m2\",\"idEntitat\"),\"qualificacio emissions de co2\",\'\')','length': 0,'name': 'QualifMaxFreq','precision': 0,'type': 10},
+                                                    {'aggregate': 'sum','delimiter': ',','input': 'if(\"sum_m2\"=maximum(\"sum_m2\",\"idEntitat\"),\"moda\",0)','length': 0,'name': 'moda','precision': 0,'type': 6}]
+                if self.dlg.dadesEstimacionsButton.isChecked() or self.dlg.dadesOficialsEstimacionsButton.isChecked():
+                    if consum:
+                        alg_params['AGGREGATES'] = [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
+                                                    {'aggregate': 'maximum','delimiter': ',','input': '\"count\"','length': 0,'name': 'MaxNum','precision': 0,'type': 2},
+                                                    {'aggregate': 'concatenate','delimiter': '','input': 'if(\"sum_m2\"=maximum(\"sum_m2\",\"idEntitat\"),\"qualificació de consum energia primaria no renovable\",\'\')','length': 0,'name': 'QualifMaxFreq','precision': 0,'type': 10},
+                                                    {'aggregate': 'sum','delimiter': ',','input': 'if(\"sum_m2\"=maximum(\"sum_m2\",\"idEntitat\"),\"moda\",0)','length': 0,'name': 'moda','precision': 0,'type': 6},
+                                                    {'aggregate': 'first_value','delimiter': ',','input': 'CASE WHEN count_distinct(\"origen_consum\",group_by:=\"idEntitat\") > 1 THEN \'mixt\' ELSE array_get(array_agg(\"origen_consum\",group_by:=\"idEntitat\"), 0) END','length': 0,'name': 'Origen consum','precision': 0,'type': 10}]
+                    if emissions:
+                        alg_params['AGGREGATES'] = [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
+                                                    {'aggregate': 'maximum','delimiter': ',','input': '\"count\"','length': 0,'name': 'MaxNum','precision': 0,'type': 2},
+                                                    {'aggregate': 'concatenate','delimiter': '','input': 'if(\"sum_m2\"=maximum(\"sum_m2\",\"idEntitat\"),\"qualificacio emissions de co2\",\'\')','length': 0,'name': 'QualifMaxFreq','precision': 0,'type': 10},
+                                                    {'aggregate': 'sum','delimiter': ',','input': 'if(\"sum_m2\"=maximum(\"sum_m2\",\"idEntitat\"),\"moda\",0)','length': 0,'name': 'moda','precision': 0,'type': 6},
+                                                    {'aggregate': 'first_value','delimiter': ',','input': 'CASE WHEN count_distinct(\"origen_emissions\",group_by:=\"idEntitat\") > 1 THEN \'mixt\' ELSE array_get(array_agg(\"origen_emissions\",group_by:=\"idEntitat\"), 0) END','length': 0,'name': 'Origen emissions','precision': 0,'type': 10}]
+
                 if consumElectric or consumGas or self.dlg.consumSumaButton.isChecked():
                     alg_params['AGGREGATES'] = [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
                                                 {'aggregate': 'maximum','delimiter': ',','input': '\"count\"','length': 0,'name': 'MaxNum','precision': 0,'type': 2},
@@ -3397,14 +3947,36 @@ class EficEnerg:
                 outputs['JoinFinal'] = processing.run('native:joinattributestable', alg_params)
 
                 ''' 23. Aggregate Final Clean '''
-                alg_params = {
-                    'AGGREGATES': [{'aggregate': 'first_value', 'delimiter': ',', 'input': '\"idEntitat\"', 'length': 0, 'name': 'idEntitat', 'precision': 0, 'type': 2}, 
-                                   {'aggregate': 'first_value', 'delimiter': ',', 'input': '\"QualifMaxFreq\"', 'length': 0, 'name': 'QualifMaxFreq', 'precision': 0, 'type': 10},
-                                   {'aggregate': 'first_value', 'delimiter': ',', 'input': '\"moda\"', 'length': 0, 'name': 'indexMODA', 'precision': 0, 'type': 6}],
-                    'GROUP_BY': 'idEntitat',
-                    'INPUT': outputs['JoinFinal']['OUTPUT'],
-                    'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-                }
+                if self.dlg.dadesOficialsButton.isChecked() or consumGas or consumElectric or self.dlg.consumSumaButton.isChecked():
+                    alg_params = {
+                        'AGGREGATES': [{'aggregate': 'first_value', 'delimiter': ',', 'input': '\"idEntitat\"', 'length': 0, 'name': 'idEntitat', 'precision': 0, 'type': 2}, 
+                                    {'aggregate': 'first_value', 'delimiter': ',', 'input': '\"QualifMaxFreq\"', 'length': 0, 'name': 'QualifMaxFreq', 'precision': 0, 'type': 10},
+                                    {'aggregate': 'first_value', 'delimiter': ',', 'input': '\"moda\"', 'length': 0, 'name': 'indexMODA', 'precision': 0, 'type': 6}],
+                        'GROUP_BY': 'idEntitat',
+                        'INPUT': outputs['JoinFinal']['OUTPUT'],
+                        'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+                    }
+                if self.dlg.dadesEstimacionsButton.isChecked() or self.dlg.dadesOficialsEstimacionsButton.isChecked():
+                    if consum:
+                        alg_params = {
+                            'AGGREGATES': [{'aggregate': 'first_value', 'delimiter': ',', 'input': '\"idEntitat\"', 'length': 0, 'name': 'idEntitat', 'precision': 0, 'type': 2}, 
+                                        {'aggregate': 'first_value', 'delimiter': ',', 'input': '\"QualifMaxFreq\"', 'length': 0, 'name': 'QualifMaxFreq', 'precision': 0, 'type': 10},
+                                        {'aggregate': 'first_value', 'delimiter': ',', 'input': '\"moda\"', 'length': 0, 'name': 'indexMODA', 'precision': 0, 'type': 6},
+                                        {'aggregate': 'first_value', 'delimiter': ',','input': '\"Origen consum\"','length': 0,'name': 'Origen consum','precision': 0,'type': 10}],
+                            'GROUP_BY': 'idEntitat',
+                            'INPUT': outputs['JoinFinal']['OUTPUT'],
+                            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+                        }
+                    if emissions:
+                        alg_params = {
+                            'AGGREGATES': [{'aggregate': 'first_value', 'delimiter': ',', 'input': '\"idEntitat\"', 'length': 0, 'name': 'idEntitat', 'precision': 0, 'type': 2}, 
+                                        {'aggregate': 'first_value', 'delimiter': ',', 'input': '\"QualifMaxFreq\"', 'length': 0, 'name': 'QualifMaxFreq', 'precision': 0, 'type': 10},
+                                        {'aggregate': 'first_value', 'delimiter': ',', 'input': '\"moda\"', 'length': 0, 'name': 'indexMODA', 'precision': 0, 'type': 6},
+                                        {'aggregate': 'first_value', 'delimiter': ',','input': '\"Origen emissions\"','length': 0,'name': 'Origen emissions','precision': 0,'type': 10}],
+                            'GROUP_BY': 'idEntitat',
+                            'INPUT': outputs['JoinFinal']['OUTPUT'],
+                            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+                        }
                 entitatLayerResumModa = processing.run('qgis:aggregate', alg_params)['OUTPUT']
                 entitatLayerResumModa.setName('Moda')
             QApplication.processEvents()
@@ -3468,6 +4040,13 @@ class EficEnerg:
             if emissions:
                 alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat']
                 alg_params['VALUES_FIELD_NAME'] = 'emissions'
+            if self.dlg.dadesEstimacionsButton.isChecked() or self.dlg.dadesOficialsEstimacionsButton.isChecked():
+                if consum:
+                    alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat','origen_consum']
+                    alg_params['VALUES_FIELD_NAME'] = 'consum'
+                if emissions:
+                    alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat','origen_emissions']
+                    alg_params['VALUES_FIELD_NAME'] = 'consum'
             if consumElectric or consumGas or self.dlg.consumSumaButton.isChecked():
                 alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat']
                 alg_params['VALUES_FIELD_NAME'] = 'consum_m2'
@@ -3479,12 +4058,23 @@ class EficEnerg:
                 'INPUT': outputs['Indexmediana']['OUTPUT'],
                 'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
             }
-            if consum:
-                alg_params['AGGREGATES'] = [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
-                                            {'aggregate': 'first_value','delimiter': ',','input': '\"median\"','length': 0,'name': 'indexMEDIANA','precision': 0,'type': 6}]
-            if emissions:
-                alg_params['AGGREGATES'] = [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
-                                            {'aggregate': 'first_value','delimiter': ',','input': '\"median\"','length': 0,'name': 'indexMEDIANA','precision': 0,'type': 6}]
+            if self.dlg.dadesOficialsButton.isChecked():
+                if consum:
+                    alg_params['AGGREGATES'] = [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
+                                                {'aggregate': 'first_value','delimiter': ',','input': '\"median\"','length': 0,'name': 'indexMEDIANA','precision': 0,'type': 6}]
+                if emissions:
+                    alg_params['AGGREGATES'] = [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
+                                                {'aggregate': 'first_value','delimiter': ',','input': '\"median\"','length': 0,'name': 'indexMEDIANA','precision': 0,'type': 6}]
+            if self.dlg.dadesEstimacionsButton.isChecked() or self.dlg.dadesOficialsEstimacionsButton.isChecked():
+                if consum:
+                    alg_params['AGGREGATES'] = [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
+                                                {'aggregate': 'first_value','delimiter': ',','input': '\"median\"','length': 0,'name': 'indexMEDIANA','precision': 0,'type': 6},
+                                                {'aggregate': 'first_value','delimiter': ',','input': 'CASE WHEN count_distinct(\"origen_consum\",group_by:=\"idEntitat\") > 1 THEN \'mixt\' ELSE array_get(array_agg(\"origen_consum\",group_by:=\"idEntitat\"),0) END','length': 0,'name': 'Origen consum','precision': 0,'type': 10}]
+                if emissions:
+                    alg_params['AGGREGATES'] = [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
+                                                {'aggregate': 'first_value','delimiter': ',','input': '\"median\"','length': 0,'name': 'indexMEDIANA','precision': 0,'type': 6},
+                                                {'aggregate': 'first_value','delimiter': ',','input': 'CASE WHEN count_distinct(\"origen_emissions\",group_by:=\"idEntitat\") > 1 THEN \'mixt\' ELSE array_get(array_agg(\"origen_emissions\",group_by:=\"idEntitat\"),0) END','length': 0,'name': 'Origen emissions','precision': 0,'type': 10}]
+
             if consumElectric or consumGas or self.dlg.consumSumaButton.isChecked():
                 alg_params['AGGREGATES'] = [{'aggregate': 'first_value','delimiter': ',','input': '\"idEntitat\"','length': 0,'name': 'idEntitat','precision': 0,'type': 2},
                                             {'aggregate': 'first_value','delimiter': ',','input': '\"median\"','length': 0,'name': 'indexMEDIANA','precision': 0,'type': 6}]
@@ -3503,13 +4093,33 @@ class EficEnerg:
             }
             outputs['JoinFinalMediana'] = processing.run('native:joinattributestable', alg_params)
 
-            alg_params = {
-                'AGGREGATES': [{'aggregate': 'first_value', 'delimiter': ',', 'input': '\"idEntitat\"', 'length': 0, 'name': 'idEntitat', 'precision': 0, 'type': 2},
-                               {'aggregate': 'first_value', 'delimiter': ',', 'input': '\"indexMEDIANA\"', 'length': 0, 'name': 'indexMEDIANA', 'precision': 0, 'type': 6}],
-                'GROUP_BY': 'idEntitat',
-                'INPUT': outputs['JoinFinalMediana']['OUTPUT'],
-                'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-            }
+            if self.dlg.dadesOficialsButton.isChecked() or consumGas or consumElectric or self.dlg.consumSumaButton.isChecked():
+                alg_params = {
+                    'AGGREGATES': [{'aggregate': 'first_value', 'delimiter': ',', 'input': '\"idEntitat\"', 'length': 0, 'name': 'idEntitat', 'precision': 0, 'type': 2},
+                                   {'aggregate': 'first_value', 'delimiter': ',', 'input': '\"indexMEDIANA\"', 'length': 0, 'name': 'indexMEDIANA', 'precision': 0, 'type': 6}],
+                    'GROUP_BY': 'idEntitat',
+                    'INPUT': outputs['JoinFinalMediana']['OUTPUT'],
+                    'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+                }
+            if self.dlg.dadesEstimacionsButton.isChecked() or self.dlg.dadesOficialsEstimacionsButton.isChecked():
+                if consum:
+                    alg_params = {
+                        'AGGREGATES': [{'aggregate': 'first_value', 'delimiter': ',', 'input': '\"idEntitat\"', 'length': 0, 'name': 'idEntitat', 'precision': 0, 'type': 2},
+                                       {'aggregate': 'first_value', 'delimiter': ',', 'input': '\"indexMEDIANA\"', 'length': 0, 'name': 'indexMEDIANA', 'precision': 0, 'type': 6},
+                                       {'aggregate': 'first_value', 'delimiter': ',', 'input': '\"Origen consum\"', 'length': 0, 'name': 'Origen consum', 'precision': 0, 'type': 10}],
+                        'GROUP_BY': 'idEntitat',
+                        'INPUT': outputs['JoinFinalMediana']['OUTPUT'],
+                        'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+                    }
+                if emissions:
+                    alg_params = {
+                        'AGGREGATES': [{'aggregate': 'first_value', 'delimiter': ',', 'input': '\"idEntitat\"', 'length': 0, 'name': 'idEntitat', 'precision': 0, 'type': 2},
+                                       {'aggregate': 'first_value', 'delimiter': ',', 'input': '\"indexMEDIANA\"', 'length': 0, 'name': 'indexMEDIANA', 'precision': 0, 'type': 6},
+                                       {'aggregate': 'first_value', 'delimiter': ',', 'input': '\"Origen emissions\"', 'length': 0, 'name': 'Origen emissions', 'precision': 0, 'type': 10}],
+                        'GROUP_BY': 'idEntitat',
+                        'INPUT': outputs['JoinFinalMediana']['OUTPUT'],
+                        'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+                    }
             entitatLayerResumMediana = processing.run('qgis:aggregate', alg_params)['OUTPUT']
             entitatLayerResumMediana.setName('Mediana')
             QApplication.processEvents()
@@ -4380,6 +4990,46 @@ class EficEnerg:
         capa.triggerRepaint()
         iface.mapCanvas().refresh()
 
+    def recalcular_rangs(self):
+        global habitatges
+        global habitatgesLayer
+
+        feedback = QgsProcessingFeedback()
+
+        feedback.progressChanged.connect(self.dlg.progressBar.setValue)
+
+        alg_params = {
+            'AGGREGATES': [
+                {'aggregate': 'first_value','delimiter': ',','input': '"id"','length': -1,'name': 'id','precision': 0,'sub_type': 0,'type': 4,'type_name': 'int8'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"id_building"','length': -1,'name': 'id_building','precision': 0,'sub_type': 0,'type': 2,'type_name': 'integer'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"cadastral_reference"','length': -1,'name': 'cadastral_reference','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"current_use"','length': -1,'name': 'current_use','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"metres_cadastre"','length': -1,'name': 'metres_cadastre','precision': 0,'sub_type': 0,'type': 6,'type_name': 'double precision'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"antiguitat"','length': -1,'name': 'antiguitat','precision': 0,'sub_type': 0,'type': 2,'type_name': 'integer'},
+                {'aggregate': 'first_value','delimiter': ',','input': 'CASE WHEN "origen_consum" IS \'oficial\' THEN "qualificació de consum energia primaria no renovable" ELSE CASE\r\n\tWHEN "energia primària no renovable" > 0.0 AND "energia primària no renovable" <= 44.6 THEN \'A\'\r\n\tWHEN "energia primària no renovable" > 44.6 AND "energia primària no renovable" <= 72.3 THEN \'B\'\r\n\tWHEN "energia primària no renovable" > 72.3 AND "energia primària no renovable" <= 112.1 THEN \'C\'\r\n\tWHEN "energia primària no renovable" > 112.1 AND "energia primària no renovable" <= 172.3 THEN \'D\'\r\n\tWHEN "energia primària no renovable" > 172.3 AND "energia primària no renovable" <= 303.7 THEN \'E\'\r\n\tWHEN "energia primària no renovable" > 303.7 AND "energia primària no renovable" <= 382.6 THEN \'F\'\r\n\tWHEN "energia primària no renovable" > 382.6 THEN \'G\'\r\nEND END','length': -1,'name': 'qualificació de consum energia primaria no renovable','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"energia primària no renovable"','length': -1,'name': 'energia primària no renovable','precision': 0,'sub_type': 0,'type': 6,'type_name': 'double precision'},
+                {'aggregate': 'first_value','delimiter': ',','input': 'CASE WHEN "origen_emissions" IS \'oficial\' THEN "qualificacio emissions de co2" ELSE CASE\r\n\tWHEN "emissions de co2" > 0.0 AND "emissions de co2" <= 10.1 THEN \'A\'\r\n\tWHEN "emissions de co2" > 10.1 AND "emissions de co2" <= 16.3 THEN \'B\'\r\n\tWHEN "emissions de co2" > 16.3 AND "emissions de co2" <= 25.3 THEN \'C\'\r\n\tWHEN "emissions de co2" > 25.3 AND "emissions de co2" <= 38.9 THEN \'D\'\r\n\tWHEN "emissions de co2" > 38.9 AND "emissions de co2" <= 66.0 THEN \'E\'\r\n\tWHEN "emissions de co2" > 66.0 AND "emissions de co2" <= 79.2 THEN \'F\'\r\n\tWHEN "emissions de co2" > 79.2 THEN \'G\'\r\nEND END','length': -1,'name': 'qualificacio emissions de co2','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"emissions de co2"','length': -1,'name': 'emissions de co2','precision': 0,'sub_type': 0,'type': 6,'type_name': 'double precision'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"n_residents"','length': -1,'name': 'n_residents','precision': 0,'sub_type': 0,'type': 2,'type_name': 'integer'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"n_habitatges"','length': -1,'name': 'n_habitatges','precision': 0,'sub_type': 0,'type': 2,'type_name': 'integer'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"origen_consum"','length': -1,'name': 'origen_consum','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+                {'aggregate': 'first_value','delimiter': ',','input': '"origen_emissions"','length': -1,'name': 'origen_emissions','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'}],
+            'GROUP_BY': '"id"',
+            'INPUT': habitatgesLayer,
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+        try:
+            result = processing.run('qgis:aggregate', alg_params, feedback=feedback)
+            habitatgesLayer = result['OUTPUT']
+            QApplication.processEvents()
+        except Exception as ex:
+            print("Error al calcular qualificacions a partir de rangs oficials a la capa de certificacions energètiques amb estimacions")
+            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            message = template.format(type(ex).__name__, ex.args)
+            print(message)
+            QMessageBox.critical(None, "Error", "Error al calcular qualificacions a partir de rangs oficials a la capa de certificacions energètiques amb estimacions")
+            self.dlg.setEnabled(True)
+            return
 
     def scroll_text(self):
         self.dlg.textEstat.moveCursor(QTextCursor.End)
@@ -4504,9 +5154,19 @@ class EficEnerg:
             return
         
         if consum:
-            group = root.insertGroup(0, f"Consum de {nomEntitat.upper()} (KWh/m²any)")
+            if self.dlg.dadesOficialsButton.isChecked():
+                group = root.insertGroup(0, f"Consum de {nomEntitat.upper()} (KWh/m²any) (Dades oficials)")
+            if self.dlg.dadesEstimacionsButton.isChecked():
+                group = root.insertGroup(0, f"Consum de {nomEntitat.upper()} (KWh/m²any) (Dades estimades)")
+            if self.dlg.dadesOficialsEstimacionsButton.isChecked():
+                group = root.insertGroup(0, f"Consum de {nomEntitat.upper()} (KWh/m²any) (Dades mixtes)")
         if emissions:
-            group = root.insertGroup(0, f"Emissions de {nomEntitat.upper()} (kgCO₂/m²any)")
+            if self.dlg.dadesOficialsButton.isChecked():
+                group = root.insertGroup(0, f"Emissions de {nomEntitat.upper()} (kgCO₂/m²any) (Dades oficials)")
+            if self.dlg.dadesEstimacionsButton.isChecked():
+                group = root.insertGroup(0, f"Emissions de {nomEntitat.upper()} (kgCO₂/m²any) (Dades estimades)")
+            if self.dlg.dadesOficialsEstimacionsButton.isChecked():
+                group = root.insertGroup(0, f"Emissions de {nomEntitat.upper()} (kgCO₂/m²any) (Dades mixtes)")
         if consumElectric and not self.dlg.checkComparativa.isChecked():
             group = root.insertGroup(0, f"Consum Elèctric de {nomEntitat.upper()} (KWh/m²any)")
         if consumGas and not self.dlg.checkComparativa.isChecked():
@@ -4526,15 +5186,26 @@ class EficEnerg:
         ''' Aquesta comprovació serveix per a assegurar-se que s'utilitza la taula correcta segons consum d'energia primaria no renovable i emissions de co2,
             consum elèctric o consum de gas, que són tres taules diferents encara que originalment sempre s'utilitzés la primera (cert_efi_energ_edif_mataro_geom)
             que és la que es s'ha deixat escrita a la definició de la variable global habitatges '''
+        # Si estem en els càlculs de consum i emissions
         if self.dlg.tabCalculs.currentIndex() == 0:
+            # Si es volen utilitzar dades només oficials, la taula serà sempre cert_efi_energ_edif_mataro_geom 
             if self.dlg.dadesOficialsButton.isChecked():
                 if habitatges != 'cert_efi_energ_edif_mataro_geom':
                     self.on_change_comboEntitat()
-            if self.dlg.dadesOficialsEstimacionsButton.isChecked():
+            # Si es volen utilitzar dades només estimades, la taula pot canviar segons el model escollit
+            # - En el cas de que es vulgui fer servir el model B, la taula serà cert_efi_energ_edif_mataro_geom_estimacions
+            # - En el cas de que es vulgui fer servir el model A, caldrà agafar la taula cert_efi_energ_edif_mataro_geom_estimacions 
+            #   i recalcular els camps de les qualificacions energètiques d'acord al rang que li pertoca a partir del valor numèric de consum o emissions
+            if self.dlg.dadesEstimacionsButton.isChecked():
                 if habitatges != 'cert_efi_energ_edif_mataro_geom_estimacions':
+                        self.on_change_comboEntitat()
+                if self.dlg.comboModel.currentIndex() == 1:     # 0 == Qualificació energètica
+                    self.recalcular_rangs()                     # 1 == Càlcul numèric
+            if self.dlg.dadesOficialsEstimacionsButton.isChecked():
+                if habitatges != 'cert_efi_energ_edif_mataro_geom_mixta':
                     self.on_change_comboEntitat()
-            #if habitatges != 'cert_efi_energ_edif_mataro_geom':
-            #    self.on_change_comboEntitat()
+                if self.dlg.comboModel.currentIndex() == 1:
+                    self.recalcular_rangs()
         if self.dlg.tabCalculs.currentIndex() == 1:
             if self.dlg.consumElectricButton.isChecked():
                 if habitatges != "consums_mataro_llum":
@@ -4590,8 +5261,16 @@ class EficEnerg:
                 #if self.dlg.consumSumaButton.isChecked():
                     #self.calculSumaConsums()
                     #print("Calcul de suma de consums")
-            self.eliminarNulls()
-            self.calculQualificacio()
+                self.eliminarNulls()
+                self.calculQualificacio()
+
+            '''
+            IMPORTANT: abans de fer el join, s'haurien de filtrar els buildings per a ser únicament edificacions amb ús d'habitatge.
+            D'aquesta manera, no es mostraran dades d'habitatges que no acaben de quadrar, com habitatges a edificis del polígon industrial.
+            Aquesta mesura s'ha près a dia 23/02/26, ja que s'ha observat que sino aquestes dades errònies fan veure malament a les dades estimades amb els models estadístics.
+            '''
+            self.filtrarHabitatges()
+
             self.calculIdEntitat()
             self.castConsumEmissions()
             #if self.dlg.consumElectricButton.isChecked():
@@ -4614,12 +5293,10 @@ class EficEnerg:
             minimumValue = self.dlg.minScale.value()
             maximumValue = self.dlg.maxScale.value()   
 
-        '''
-        if consum:
+        if (consum or self.dlg.tabCalculs.currentIndex() == 1) and not emissions:
             ranges = ranges_consum
-        if emissions:
+        if emissions and not consum:
             ranges = ranges_emissions        
-        '''
         
         # Diagrames NumHabit
         if (self.dlg.checkNumHabit.isChecked() or self.dlg.checkNumHabit_2.isChecked()) and not self.dlg.checkComparativa.isChecked():
@@ -4813,6 +5490,11 @@ class EficEnerg:
                 symbology.updateRangeSymbol(4, symbolMoltNegatiu)
             else:
                 symbology = QgsGraduatedSymbolRenderer("indexMITJANA", ranges.values())
+                symbolUnits = QgsFillSymbol()
+                if consum:
+                    symbolUnits.setColor(colors["colorConsum"])
+                if emissions:
+                    symbolUnits.setColor(colors["colorEmissions"])
                 symbolA = QgsFillSymbol()
                 symbolA.setColor(colors["colorA"])
                 symbolB = QgsFillSymbol()
@@ -4828,13 +5510,14 @@ class EficEnerg:
                 symbolG = QgsFillSymbol()
                 symbolG.setColor(colors["colorG"])
 
-                symbology.updateRangeSymbol(0, symbolA)
-                symbology.updateRangeSymbol(1, symbolB)
-                symbology.updateRangeSymbol(2, symbolC)
-                symbology.updateRangeSymbol(3, symbolD)
-                symbology.updateRangeSymbol(4, symbolE)
-                symbology.updateRangeSymbol(5, symbolF)
-                symbology.updateRangeSymbol(6, symbolG)
+                symbology.updateRangeSymbol(0, symbolUnits)
+                symbology.updateRangeSymbol(1, symbolA)
+                symbology.updateRangeSymbol(2, symbolB)
+                symbology.updateRangeSymbol(3, symbolC)
+                symbology.updateRangeSymbol(4, symbolD)
+                symbology.updateRangeSymbol(5, symbolE)
+                symbology.updateRangeSymbol(6, symbolF)
+                symbology.updateRangeSymbol(7, symbolG)
                 
             '''
             symbolUnits = QgsFillSymbol()
@@ -5069,13 +5752,13 @@ class EficEnerg:
 
             if not self.dlg.checkComparativa.isChecked():
                 symbology = QgsGraduatedSymbolRenderer("indexMEDIANA", ranges.values())
-                '''
+                
                 symbolUnits = QgsFillSymbol()
                 if consum:
                     symbolUnits.setColor(colors["colorConsum"])
                 if emissions:
                     symbolUnits.setColor(colors["colorEmissions"])
-                '''
+                
                 symbolA = QgsFillSymbol()
                 symbolA.setColor(colors["colorA"])
                 symbolB = QgsFillSymbol()
@@ -5091,14 +5774,14 @@ class EficEnerg:
                 symbolG = QgsFillSymbol()
                 symbolG.setColor(colors["colorG"])
 
-                #symbology.updateRangeSymbol(0, symbolUnits)
-                symbology.updateRangeSymbol(0, symbolA)
-                symbology.updateRangeSymbol(1, symbolB)
-                symbology.updateRangeSymbol(2, symbolC)
-                symbology.updateRangeSymbol(3, symbolD)
-                symbology.updateRangeSymbol(4, symbolE)
-                symbology.updateRangeSymbol(5, symbolF)
-                symbology.updateRangeSymbol(6, symbolG)
+                symbology.updateRangeSymbol(0, symbolUnits)
+                symbology.updateRangeSymbol(1, symbolA)
+                symbology.updateRangeSymbol(2, symbolB)
+                symbology.updateRangeSymbol(3, symbolC)
+                symbology.updateRangeSymbol(4, symbolD)
+                symbology.updateRangeSymbol(5, symbolE)
+                symbology.updateRangeSymbol(6, symbolF)
+                symbology.updateRangeSymbol(7, symbolG)
             else:
                 symbology = QgsGraduatedSymbolRenderer("diferencia", ranges_comparativa.values())
                 symbolMoltPositiu = QgsFillSymbol()
@@ -5185,13 +5868,22 @@ class EficEnerg:
             diagramLlegendaSettings.size = QSizeF(15, 15)
             diagramLlegendaSettings.minimumScale = minimumValue
             diagramLlegendaSettings.maximumScale = maximumValue
-            diagramLlegendaSettings.categoryLabels = ['A (Menys de 34,1)', 
-                                                    'B (34,1 - 55,5)', 
-                                                    'C (55,5 - 85,4)', 
-                                                    'D (85,4 - 111,6)', 
-                                                    'E (111,6 - 136,6)', 
-                                                    'F (136,6 - 170,7)', 
-                                                    'G (Més de 170,7)']
+            if consum or consumGas or consumElectric or self.dlg.consumSumaButton.isChecked():
+                diagramLlegendaSettings.categoryLabels = ['A (Menys de 44,6)', 
+                                                        'B (44,7 - 72,3)', 
+                                                        'C (72,4 - 112,1)', 
+                                                        'D (112,2 - 172,3)', 
+                                                        'E (172,4 - 303,7)', 
+                                                        'F (303,8 - 382,6)', 
+                                                        'G (Més de 382,7)']
+            if emissions:
+                diagramLlegendaSettings.categoryLabels = ['A (Menys de 10,1)', 
+                                                        'B (10,2 - 16,3)', 
+                                                        'C (16,4 - 25,3)', 
+                                                        'D (25,4 - 38,9)', 
+                                                        'E (39,0 - 66,0)', 
+                                                        'F (66,1 - 79,2)', 
+                                                        'G (Més de 79,3)']
             diagramLlegendaSettings.enabled = True
             llegenda.renderer().symbol().setColor(color)
             diagramLlegendaRenderer = QgsSingleCategoryDiagramRenderer()
