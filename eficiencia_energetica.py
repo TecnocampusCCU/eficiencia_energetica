@@ -75,7 +75,7 @@ from .resources import *
 from .ui.dialog_factory import create_main_dialog, create_accessibility_dialog
 
 '''Variables globals'''
-Versio_modul = "V_Q3.260224"
+Versio_modul = "V_Q3.260316"
 nomBD1 = ""
 password1 = ""
 host1 = ""
@@ -5244,6 +5244,7 @@ class EficEnerg:
         if self.dlg.checkComparativa.isChecked():
             self.calculComparativa(any1, any2)
         if self.dlg.tabCalculs.currentIndex() == 2:
+            ranges = ranges_consum
             if evolucioGas:
                 self.calculEvolucio(self.dlg.anyGasLabel.text())
             if evolucioLlum:
