@@ -75,7 +75,7 @@ from .resources import *
 from .ui.dialog_factory import create_main_dialog, create_accessibility_dialog
 
 '''Variables globals'''
-Versio_modul = "V_Q3.260316"
+Versio_modul = "V_Q3.260327"
 nomBD1 = ""
 password1 = ""
 host1 = ""
@@ -277,6 +277,21 @@ llistaAnysGas = [
     '2022'
 ]
 
+# Es poden afegir més anys perfectament, això es fa d'aquesta manera per a resultar més atractiu a la vista
+llistaAnysCertificats = [
+    '2020',
+    '2021',
+    '2022',
+    '2023',
+    '2024',
+    '2025',
+    '2026',
+    '2027',
+    '2028',
+    '2029',
+    '2030'
+]
+
 play_button_style = """
 QPushButton {
     background-color: rgba(240, 240, 240, 128);
@@ -473,6 +488,7 @@ class EficEnerg:
             'consumGasButton': self.dlg.consumGasButton.isChecked(),
             'consumSumaButton': self.dlg.consumSumaButton.isChecked(),
             'checkComparativa': self.dlg.checkComparativa.isChecked(),
+            'checkComparativa_cert': self.dlg.checkComparativa_cert.isChecked(),
             'textEstat': self.dlg.textEstat.toPlainText(),
             'progressBar': self.dlg.progressBar.value(),
             'tabCalculs_index': self.dlg.tabCalculs.currentIndex(),
@@ -550,6 +566,7 @@ class EficEnerg:
             self.dlg.consumGasButton.setChecked(state.get('consumGasButton', False))
             self.dlg.consumSumaButton.setChecked(state.get('consumSumaButton', False))
             self.dlg.checkComparativa.setChecked(state.get('checkComparativa', False))
+            self.dlg.checkComparativa_cert.setChecked(state.get('checkComparativa_cert', False))
             self.dlg.evolucioGasButton.setChecked(state.get('evolucioGasButton', False))
             self.dlg.evolucioLlumButton.setChecked(state.get('evolucioLlumButton', False))
             self.dlg.evolucioSumaButton.setChecked(state.get('evolucioSumaButton', False))
@@ -628,6 +645,7 @@ class EficEnerg:
         self.dlg.checkMitjana.stateChanged.connect(self.on_change_entitatsIOperacions)
         self.dlg.checkModa.stateChanged.connect(self.on_change_entitatsIOperacions)
         self.dlg.checkMediana.stateChanged.connect(self.on_change_entitatsIOperacions)
+        self.dlg.checkComparativa_cert.stateChanged.connect(self.on_change_checkComparativa_cert)
         self.dlg.consumElectricButton.toggled.connect(self.on_change_consumElectric)
         self.dlg.consumGasButton.toggled.connect(self.on_change_consumGas)
         self.dlg.consumSumaButton.toggled.connect(self.on_change_consumSuma)
@@ -1292,6 +1310,7 @@ class EficEnerg:
         self.dlg.checkMitjana.setChecked(False)
         self.dlg.checkModa.setChecked(False)
         self.dlg.checkMediana.setChecked(False)
+        self.dlg.checkComparativa_cert.setChecked(False)
         self.dlg.checkNumHabit_2.setChecked(False)
         self.dlg.checkm2_2.setChecked(False)
         self.dlg.checkMitjana_2.setChecked(False)
@@ -1476,6 +1495,7 @@ class EficEnerg:
         self.dlg.checkMitjana.setChecked(False)
         self.dlg.checkModa.setChecked(False)
         self.dlg.checkMediana.setChecked(False)
+        self.dlg.checkComparativa_cert.setChecked(False)
         consum = False
         emissions = False
 
@@ -1515,6 +1535,7 @@ class EficEnerg:
         self.dlg.checkMitjana.setChecked(False)
         self.dlg.checkModa.setChecked(False)
         self.dlg.checkMediana.setChecked(False)
+        self.dlg.checkComparativa_cert.setChecked(False)
         consum = False
         emissions = False
 
@@ -1551,6 +1572,7 @@ class EficEnerg:
             self.dlg.checkMitjana.setChecked(False)
             self.dlg.checkModa.setChecked(False)
             self.dlg.checkMediana.setChecked(False)
+            self.dlg.checkComparativa_cert.setChecked(False)
             self.dlg.consumElectricButton.setChecked(False)
             self.dlg.consumGasButton.setChecked(False)
 
@@ -1575,6 +1597,8 @@ class EficEnerg:
             self.dlg.comboAny2.setVisible(True)
             self.dlg.lblAny.setVisible(False)
             self.dlg.comboAny.setVisible(False)
+            if self.dlg.checkComparativa.isChecked():
+                self.dlg.checkComparativa_cert.setChecked(False)
         else:
             self.dlg.labelAnysComp.setVisible(False)
             self.dlg.labelAnysVs.setVisible(False)
@@ -1582,6 +1606,23 @@ class EficEnerg:
             self.dlg.comboAny2.setVisible(False)
             self.dlg.lblAny.setVisible(True)
             self.dlg.comboAny.setVisible(True)
+
+    def on_change_checkComparativa_cert(self):
+        if self.dlg.checkComparativa_cert.isChecked():
+            self.dlg.labelAnysComp_cert.setVisible(True)
+            self.dlg.labelAnysVs_cert.setVisible(True)
+            self.dlg.comboAny1_cert.setVisible(True)
+            self.dlg.comboAny2_cert.setVisible(True)
+            if self.dlg.checkComparativa.isChecked():
+                self.dlg.checkComparativa.setChecked(False)
+            
+            self.dlg.comboAny1_cert.addItems(llistaAnysCertificats)
+            self.dlg.comboAny2_cert.addItems(llistaAnysCertificats)
+        else:
+            self.dlg.labelAnysComp_cert.setVisible(False)
+            self.dlg.labelAnysVs_cert.setVisible(False)
+            self.dlg.comboAny1_cert.setVisible(False)
+            self.dlg.comboAny2_cert.setVisible(False)
 
     def on_change_evolucioGasButton(self):
         global uri
@@ -2132,6 +2173,7 @@ class EficEnerg:
         self.dlg.tabCalculs.setCurrentIndex(0)
         self.dlg.consumSumaButton.setChecked(False)
         self.dlg.checkComparativa.setChecked(False)
+        self.dlg.checkComparativa_cert.setChecked(False)
         self.dlg.labelAnysComp.setVisible(False)
         self.dlg.labelAnysVs.setVisible(False)
         self.dlg.comboAny1.setVisible(False)
@@ -4181,7 +4223,11 @@ class EficEnerg:
             #QgsProject.instance().addMapLayer(habitatgesLayer).setName(f"Habitatges {any} - Gas kWh")
 
     def calculComparativa(self, any1, any2):
+        global uri
+        global entitat
+        global nomEntitat
         global any
+        global habitatges
         global habitatgesLayer
         global entitatLayerResumNumHabit
         global entitatLayerResumm2
@@ -4190,39 +4236,73 @@ class EficEnerg:
         global entitatLayerResumMediana
 
         copiaOriginalHabitatges = habitatgesLayer
-
+        
         any = any1
-        self.castGaskWh()
-        self.calculQualificacio()
+
+        # Per si de cas, encara que potser no caldria, comprovar que l'entitat agrupadora seleccionada és la correcta
+        # entitat = llistaEntitats[self.dlg.comboEntitat.currentIndex()]
+        # nomEntitat = self.dlg.comboEntitat.currentText()
+        # try:
+        #     uri.setDataSource(schema1, entitat, 'geom')
+        #     entitatLayer = QgsVectorLayer(uri.uri(), entitat, "postgres")
+        # except Exception as ex:
+        #     print ("Error no s'ha trobat entitat")
+        #     template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+        #     message = template.format(type(ex).__name__, ex.args)
+        #     print (message)
+        #     QMessageBox.critical(None, "Error", "Error no s'ha trobat entitat")
+        #     conn.rollback()
+        #     self.dlg.setEnabled(True)
+        #     return
+
+        if self.dlg.checkComparativa_cert.isChecked():
+            # Tenim el primer any seleccionat, ara cal carregar la capa de l'any corresponent
+            habitatges = f"cert_efi_energ_edif_mataro_geom_estimacions_{any}"
+            try:
+                uri.setDataSource("eficiencia", habitatges, 'geom')
+                habitatgesLayer = QgsVectorLayer(uri.uri(), habitatges, 'postgres')
+            except Exception as ex:
+                print (f"Error no s'ha trobat habitatges per l'any {any}")
+                template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+                message = template.format(type(ex).__name__, ex.args)
+                print (message)
+                QMessageBox.critical(None, "Error", "Error no s'ha trobat entitat")
+                conn.rollback()
+                self.dlg.setEnabled(True)
+                return
+
+        if self.dlg.checkComparativa.isChecked():
+            self.castGaskWh()
+            self.calculQualificacio()
         self.calculIdEntitat()
         self.castConsumEmissions()
         QApplication.processEvents()
-        if self.dlg.checkm2_2.isChecked():
+        if self.dlg.checkm2.isChecked() or self.dlg.checkm2_2.isChecked():
             self.castm2()
         self.joinEntitatHabitatges()
         QApplication.processEvents()
-        if self.dlg.checkNumHabit_2.isChecked():
+        if self.dlg.checkNumHabit.isChecked() or self.dlg.checkNumHabit_2.isChecked():
             self.calculNumHabit()
             entitatLayerResumNumHabitAny1 = entitatLayerResumNumHabit
             self.updateProgress(6)
             QApplication.processEvents()
-        if self.dlg.checkm2_2.isChecked():
+        if self.dlg.checkm2.isChecked() or self.dlg.checkm2_2.isChecked():
             self.calculm2()
             entitatLayerResumm2Any1 = entitatLayerResumm2
             self.updateProgress(7)
             QApplication.processEvents()
-        if self.dlg.checkMitjana_2.isChecked():
+        if self.dlg.checkMitjana.isChecked() or self.dlg.checkMitjana_2.isChecked():
             self.calculMitjana()
             entitatLayerResumMitjanaAny1 = entitatLayerResumMitjana
             self.updateProgress(8)
             QApplication.processEvents()
             #QgsProject.instance().addMapLayer(entitatLayerResumMitjanaAny1).setName("Classificació per mitjana")
-        if self.dlg.checkModa_2.isChecked():
+        if self.dlg.checkModa.isChecked() or self.dlg.checkModa_2.isChecked():
             self.calculModa()
             entitatLayerResumModaAny1 = entitatLayerResumModa
             self.updateProgress(9)
             QApplication.processEvents()
-        if self.dlg.checkMediana_2.isChecked():
+        if self.dlg.checkMediana.isChecked() or self.dlg.checkMediana_2.isChecked():
             self.calculMediana()
             entitatLayerResumMedianaAny1 = entitatLayerResumMediana
             self.updateProgress(10)
@@ -4235,36 +4315,54 @@ class EficEnerg:
         QApplication.processEvents()
 
         any = any2
-        self.castGaskWh()
-        self.calculQualificacio()
+
+        if self.dlg.checkComparativa_cert.isChecked():
+            # Tenim seleccionat el segon any, cal tornar a carregar la capa de l'any corresponent
+            habitatges = f"cert_efi_energ_edif_mataro_geom_estimacions_{any}"
+            try:
+                uri.setDataSource("eficiencia", habitatges, 'geom')
+                habitatgesLayer = QgsVectorLayer(uri.uri(), habitatges, 'postgres')
+            except Exception as ex:
+                print (f"Error no s'ha trobat habitatges per l'any {any}")
+                template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+                message = template.format(type(ex).__name__, ex.args)
+                print (message)
+                QMessageBox.critical(None, "Error", "Error no s'ha trobat entitat")
+                conn.rollback()
+                self.dlg.setEnabled(True)
+                return
+
+        if self.dlg.checkComparativa.isChecked():
+            self.castGaskWh()
+            self.calculQualificacio()
         self.calculIdEntitat()
         self.castConsumEmissions()
         QApplication.processEvents()
-        if self.dlg.checkm2_2.isChecked():
+        if self.dlg.checkm2.isChecked() or self.dlg.checkm2_2.isChecked():
             self.castm2()
         self.joinEntitatHabitatges()
-        if self.dlg.checkNumHabit_2.isChecked():
+        if self.dlg.checkNumHabit.isChecked() or self.dlg.checkNumHabit_2.isChecked():
             self.calculNumHabit()
             entitatLayerResumNumHabitAny2 = entitatLayerResumNumHabit
             self.updateProgress(12)
             QApplication.processEvents()
-        if self.dlg.checkm2_2.isChecked():
+        if self.dlg.checkm2.isChecked() or self.dlg.checkm2_2.isChecked():
             self.calculm2()
             entitatLayerResumm2Any2 = entitatLayerResumm2
             self.updateProgress(13)
             QApplication.processEvents()
-        if self.dlg.checkMitjana_2.isChecked():
+        if self.dlg.checkMitjana.isChecked() or self.dlg.checkMitjana_2.isChecked():
             self.calculMitjana()
             entitatLayerResumMitjanaAny2 = entitatLayerResumMitjana
             self.updateProgress(14)
             QApplication.processEvents()
             #QgsProject.instance().addMapLayer(entitatLayerResumMitjanaAny2).setName("Classificació per mitjana")
-        if self.dlg.checkModa_2.isChecked():
+        if self.dlg.checkModa.isChecked() or self.dlg.checkModa_2.isChecked():
             self.calculModa()
             entitatLayerResumModaAny2 = entitatLayerResumModa
             self.updateProgress(15)
             QApplication.processEvents()
-        if self.dlg.checkMediana_2.isChecked():
+        if self.dlg.checkMediana.isChecked() or self.dlg.checkMediana_2.isChecked():
             self.calculMediana()
             entitatLayerResumMedianaAny2 = entitatLayerResumMediana
             self.updateProgress(16)
@@ -4274,7 +4372,7 @@ class EficEnerg:
 
         # Un cop tenim les dues taules, cal fer crear una nova columna amb la diferència entre els consums dels dos anys a comparar
 
-        if self.dlg.checkMitjana_2.isChecked():
+        if self.dlg.checkMitjana.isChecked() or self.dlg.checkMitjana_2.isChecked():
             alg_params = {
                 'INPUT': entitatLayerResumMitjanaAny1,
                 'FIELD': 'idEntitat',
@@ -4320,7 +4418,7 @@ class EficEnerg:
             self.updateProgress(17)
             QApplication.processEvents()
 
-        if self.dlg.checkModa_2.isChecked():
+        if self.dlg.checkModa.isChecked() or self.dlg.checkModa_2.isChecked():
             alg_params = {
                 'INPUT': entitatLayerResumModaAny1,
                 'FIELD': 'idEntitat',
@@ -4366,7 +4464,7 @@ class EficEnerg:
             self.updateProgress(18)
             QApplication.processEvents()
 
-        if self.dlg.checkMediana_2.isChecked():
+        if self.dlg.checkMediana.isChecked() or self.dlg.checkMediana_2.isChecked():
             alg_params = {
                 'INPUT': entitatLayerResumMedianaAny1,
                 'FIELD': 'idEntitat',
@@ -5153,14 +5251,14 @@ class EficEnerg:
             self.dlg.setEnabled(True)
             return
         
-        if consum:
+        if consum and not self.dlg.checkComparativa_cert.isChecked():
             if self.dlg.dadesOficialsButton.isChecked():
                 group = root.insertGroup(0, f"Consum de {nomEntitat.upper()} (KWh/m²any) (Dades oficials)")
             if self.dlg.dadesEstimacionsButton.isChecked():
                 group = root.insertGroup(0, f"Consum de {nomEntitat.upper()} (KWh/m²any) (Dades estimades)")
             if self.dlg.dadesOficialsEstimacionsButton.isChecked():
                 group = root.insertGroup(0, f"Consum de {nomEntitat.upper()} (KWh/m²any) (Dades mixtes)")
-        if emissions:
+        if emissions and not self.dlg.checkComparativa_cert.isChecked():
             if self.dlg.dadesOficialsButton.isChecked():
                 group = root.insertGroup(0, f"Emissions de {nomEntitat.upper()} (kgCO₂/m²any) (Dades oficials)")
             if self.dlg.dadesEstimacionsButton.isChecked():
@@ -5176,6 +5274,10 @@ class EficEnerg:
         if self.dlg.checkComparativa.isChecked():
             any1 = self.dlg.comboAny1.currentText()
             any2 = self.dlg.comboAny2.currentText()
+            group = root.insertGroup(0, f"Comparativa {any1} i {any2}")
+        if self.dlg.checkComparativa_cert.isChecked():
+            any1 = self.dlg.comboAny1_cert.currentText()
+            any2 = self.dlg.comboAny2_cert.currentText()
             group = root.insertGroup(0, f"Comparativa {any1} i {any2}")
         if self.dlg.tabCalculs.currentIndex() == 2:
             group = root.insertGroup(0, f"Evolució {nomEntitat.upper()} (KWh/m²any)")
@@ -5198,9 +5300,10 @@ class EficEnerg:
             #   i recalcular els camps de les qualificacions energètiques d'acord al rang que li pertoca a partir del valor numèric de consum o emissions
             if self.dlg.dadesEstimacionsButton.isChecked():
                 if habitatges != 'cert_efi_energ_edif_mataro_geom_estimacions':
-                        self.on_change_comboEntitat()
-                if self.dlg.comboModel.currentIndex() == 1:     # 0 == Qualificació energètica
-                    self.recalcular_rangs()                     # 1 == Càlcul numèric
+                    self.on_change_comboEntitat()
+                if self.dlg.comboModel.currentIndex() == 1 and not self.dlg.checkComparativa_cert.isChecked(): 
+                    self.recalcular_rangs()     # 0 == Qualificació energètica
+                                                # 1 == Càlcul numèric
             if self.dlg.dadesOficialsEstimacionsButton.isChecked():
                 if habitatges != 'cert_efi_energ_edif_mataro_geom_mixta':
                     self.on_change_comboEntitat()
@@ -5241,7 +5344,7 @@ class EficEnerg:
 
         QApplication.processEvents()
 
-        if self.dlg.checkComparativa.isChecked():
+        if self.dlg.checkComparativa.isChecked() or self.dlg.checkComparativa_cert.isChecked():
             self.calculComparativa(any1, any2)
         if self.dlg.tabCalculs.currentIndex() == 2:
             ranges = ranges_consum
@@ -5270,7 +5373,8 @@ class EficEnerg:
             D'aquesta manera, no es mostraran dades d'habitatges que no acaben de quadrar, com habitatges a edificis del polígon industrial.
             Aquesta mesura s'ha près a dia 23/02/26, ja que s'ha observat que sino aquestes dades errònies fan veure malament a les dades estimades amb els models estadístics.
             '''
-            self.filtrarHabitatges()
+            if self.dlg.tabCalculs.currentIndex() == 0 and self.dlg.dadesOficialsButton.isChecked():
+                self.filtrarHabitatges()
 
             self.calculIdEntitat()
             self.castConsumEmissions()
@@ -5300,7 +5404,7 @@ class EficEnerg:
             ranges = ranges_emissions        
         
         # Diagrames NumHabit
-        if (self.dlg.checkNumHabit.isChecked() or self.dlg.checkNumHabit_2.isChecked()) and not self.dlg.checkComparativa.isChecked():
+        if (self.dlg.checkNumHabit.isChecked() or self.dlg.checkNumHabit_2.isChecked()) and not self.dlg.checkComparativa.isChecked() and not self.dlg.checkComparativa_cert.isChecked():
             self.calculNumHabit()
 
             diagramNumHabit = QgsPieDiagram()
@@ -5364,7 +5468,7 @@ class EficEnerg:
             self.updateProgress(35)
             QApplication.processEvents()
 
-        if self.dlg.checkm2.isChecked() or self.dlg.checkm2_2.isChecked() and not self.dlg.checkComparativa.isChecked():
+        if self.dlg.checkm2.isChecked() or self.dlg.checkm2_2.isChecked() and not self.dlg.checkComparativa.isChecked() and not self.dlg.checkComparativa_cert.isChecked():
             self.calculm2()
 
             diagramm2 = QgsPieDiagram()
@@ -5431,12 +5535,12 @@ class EficEnerg:
         # Labels Mitjana
 
         if self.dlg.checkMitjana.isChecked() or self.dlg.checkMitjana_2.isChecked():
-            if not self.dlg.checkComparativa.isChecked():
+            if not self.dlg.checkComparativa.isChecked() and not self.dlg.checkComparativa_cert.isChecked():
                 self.calculMitjana()
             
             labelMitjana = QgsPalLayerSettings()
             labelMitjana.enabled = True
-            if self.dlg.checkComparativa.isChecked():
+            if self.dlg.checkComparativa.isChecked() or self.dlg.checkComparativa_cert.isChecked():
                 labelMitjana.fieldName = """
                 CASE
                     WHEN "diferencia" IS NOT NULL THEN '<div><b><font color="black">' || format_number("diferencia", 1) || '</font></b></div>'
@@ -5471,7 +5575,7 @@ class EficEnerg:
 
             text_format.setBackground(background_format)
             
-            if self.dlg.checkComparativa.isChecked():
+            if self.dlg.checkComparativa.isChecked() or self.dlg.checkComparativa_cert.isChecked():
                 symbology = QgsGraduatedSymbolRenderer("diferencia", ranges_comparativa.values())
                 symbolMoltPositiu = QgsFillSymbol()
                 symbolMoltPositiu.setColor(colors['colorA'])
@@ -5570,13 +5674,13 @@ class EficEnerg:
         # Labels Moda
 
         if self.dlg.checkModa.isChecked() or self.dlg.checkModa_2.isChecked():
-            if not self.dlg.checkComparativa.isChecked():
+            if not self.dlg.checkComparativa.isChecked() and not self.dlg.checkComparativa_cert.isChecked():
                 self.calculModa()
 
             labelModa = QgsPalLayerSettings()
             labelModa.enabled = True
 
-            if self.dlg.checkComparativa.isChecked():
+            if self.dlg.checkComparativa.isChecked() or self.dlg.checkComparativa_cert.isChecked():
                 labelModa.fieldName = """
                 CASE
                     WHEN "diferencia" IS NOT NULL THEN '<div><b><font color="black">' || format_number("diferencia", 1) || '</font></b></div>'
@@ -5612,7 +5716,7 @@ class EficEnerg:
 
             text_format.setBackground(background_format)
 
-            if not self.dlg.checkComparativa.isChecked():          
+            if not self.dlg.checkComparativa.isChecked() and not self.dlg.checkComparativa_cert.isChecked():          
                 symbology = QgsCategorizedSymbolRenderer()
                 symbology.setClassAttribute("QualifMaxFreq")
                 '''
@@ -5710,12 +5814,12 @@ class EficEnerg:
         # Labels Mediana
 
         if self.dlg.checkMediana.isChecked() or self.dlg.checkMediana_2.isChecked():
-            if not self.dlg.checkComparativa.isChecked():
+            if not self.dlg.checkComparativa.isChecked() and not self.dlg.checkComparativa_cert.isChecked():
                 self.calculMediana()
 
             labelMediana = QgsPalLayerSettings()
             labelMediana.enabled = True
-            if self.dlg.checkComparativa.isChecked():
+            if self.dlg.checkComparativa.isChecked() or self.dlg.checkComparativa_cert.isChecked():
                 labelMediana.fieldName = """
                 CASE
                     WHEN "diferencia" IS NOT NULL THEN '<div><b><font color="black">' || format_number("diferencia", 1) || '</font></b></div>'
@@ -5751,7 +5855,7 @@ class EficEnerg:
 
             text_format.setBackground(background_format)
 
-            if not self.dlg.checkComparativa.isChecked():
+            if not self.dlg.checkComparativa.isChecked() and not self.dlg.checkComparativa_cert.isChecked():
                 symbology = QgsGraduatedSymbolRenderer("indexMEDIANA", ranges.values())
                 
                 symbolUnits = QgsFillSymbol()

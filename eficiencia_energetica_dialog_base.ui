@@ -6,20 +6,20 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>690</width>
-    <height>700</height>
+    <width>800</width>
+    <height>800</height>
    </rect>
   </property>
   <property name="minimumSize">
    <size>
-    <width>690</width>
-    <height>700</height>
+    <width>800</width>
+    <height>800</height>
    </size>
   </property>
   <property name="maximumSize">
    <size>
-    <width>690</width>
-    <height>700</height>
+    <width>800</width>
+    <height>800</height>
    </size>
   </property>
   <property name="windowTitle">
@@ -40,8 +40,8 @@
     <rect>
      <x>10</x>
      <y>20</y>
-     <width>261</width>
-     <height>81</height>
+     <width>291</width>
+     <height>91</height>
     </rect>
    </property>
    <property name="title">
@@ -64,7 +64,7 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>50</y>
+      <y>60</y>
       <width>241</width>
       <height>21</height>
      </rect>
@@ -103,9 +103,9 @@
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>110</y>
-     <width>261</width>
-     <height>71</height>
+     <y>120</y>
+     <width>291</width>
+     <height>101</height>
     </rect>
    </property>
    <property name="title">
@@ -163,8 +163,8 @@
   <widget class="QPushButton" name="pushInici">
    <property name="geometry">
     <rect>
-     <x>410</x>
-     <y>600</y>
+     <x>520</x>
+     <y>690</y>
      <width>81</width>
      <height>31</height>
     </rect>
@@ -628,8 +628,8 @@
   <widget class="QPushButton" name="pushSortir">
    <property name="geometry">
     <rect>
-     <x>550</x>
-     <y>600</y>
+     <x>660</x>
+     <y>690</y>
      <width>81</width>
      <height>31</height>
     </rect>
@@ -1094,17 +1094,17 @@
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>200</y>
-     <width>261</width>
-     <height>351</height>
+     <y>230</y>
+     <width>291</width>
+     <height>421</height>
     </rect>
    </property>
   </widget>
   <widget class="QLabel" name="labelAvis">
    <property name="geometry">
     <rect>
-     <x>370</x>
-     <y>640</y>
+     <x>480</x>
+     <y>730</y>
      <width>281</width>
      <height>31</height>
     </rect>
@@ -1123,7 +1123,7 @@
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>600</y>
+     <y>700</y>
      <width>91</width>
      <height>16</height>
     </rect>
@@ -1143,7 +1143,7 @@
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>570</y>
+     <y>670</y>
      <width>261</width>
      <height>23</height>
     </rect>
@@ -1156,8 +1156,8 @@
    <property name="geometry">
     <rect>
      <x>310</x>
-     <y>390</y>
-     <width>371</width>
+     <y>490</y>
+     <width>471</width>
      <height>161</height>
     </rect>
    </property>
@@ -1414,10 +1414,10 @@
   <widget class="QTabWidget" name="tabCalculs">
    <property name="geometry">
     <rect>
-     <x>310</x>
-     <y>10</y>
-     <width>371</width>
-     <height>371</height>
+     <x>300</x>
+     <y>0</y>
+     <width>471</width>
+     <height>471</height>
     </rect>
    </property>
    <property name="currentIndex">
@@ -1432,8 +1432,8 @@
       <rect>
        <x>10</x>
        <y>10</y>
-       <width>351</width>
-       <height>261</height>
+       <width>451</width>
+       <height>351</height>
       </rect>
      </property>
      <property name="title">
@@ -1443,7 +1443,7 @@
       <property name="geometry">
        <rect>
         <x>10</x>
-        <y>225</y>
+        <y>310</y>
         <width>301</width>
         <height>31</height>
        </rect>
@@ -1463,7 +1463,7 @@
        <rect>
         <x>10</x>
         <y>20</y>
-        <width>161</width>
+        <width>211</width>
         <height>80</height>
        </rect>
       </property>
@@ -1506,9 +1506,9 @@
      <widget class="QGroupBox" name="groupBox_2">
       <property name="geometry">
        <rect>
-        <x>169</x>
+        <x>219</x>
         <y>19</y>
-        <width>171</width>
+        <width>221</width>
         <height>81</height>
        </rect>
       </property>
@@ -1566,7 +1566,7 @@
        <rect>
         <x>10</x>
         <y>110</y>
-        <width>331</width>
+        <width>441</width>
         <height>111</height>
        </rect>
       </property>
@@ -1618,10 +1618,10 @@
       <widget class="QGroupBox" name="groupModels">
        <property name="geometry">
         <rect>
-         <x>140</x>
-         <y>10</y>
-         <width>181</width>
-         <height>91</height>
+         <x>210</x>
+         <y>50</y>
+         <width>221</width>
+         <height>61</height>
         </rect>
        </property>
        <property name="title">
@@ -1631,7 +1631,7 @@
         <property name="geometry">
          <rect>
           <x>10</x>
-          <y>40</y>
+          <y>20</y>
           <width>161</width>
           <height>22</height>
          </rect>
@@ -1648,13 +1648,72 @@
         </item>
        </widget>
       </widget>
+      <widget class="QCheckBox" name="checkComparativa_cert">
+       <property name="geometry">
+        <rect>
+         <x>290</x>
+         <y>20</y>
+         <width>131</width>
+         <height>20</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Comparativa d'anys</string>
+       </property>
+      </widget>
+     </widget>
+     <widget class="QLabel" name="labelAnysVs_cert">
+      <property name="geometry">
+       <rect>
+        <x>240</x>
+        <y>265</y>
+        <width>47</width>
+        <height>13</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>vs.</string>
+      </property>
+     </widget>
+     <widget class="QComboBox" name="comboAny2_cert">
+      <property name="geometry">
+       <rect>
+        <x>270</x>
+        <y>260</y>
+        <width>69</width>
+        <height>22</height>
+       </rect>
+      </property>
+     </widget>
+     <widget class="QLabel" name="labelAnysComp_cert">
+      <property name="geometry">
+       <rect>
+        <x>20</x>
+        <y>265</y>
+        <width>101</width>
+        <height>13</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Anys a comparar:</string>
+      </property>
+     </widget>
+     <widget class="QComboBox" name="comboAny1_cert">
+      <property name="geometry">
+       <rect>
+        <x>150</x>
+        <y>260</y>
+        <width>69</width>
+        <height>22</height>
+       </rect>
+      </property>
      </widget>
     </widget>
     <widget class="QRadioButton" name="dadesOficialsButton">
      <property name="geometry">
       <rect>
        <x>20</x>
-       <y>280</y>
+       <y>370</y>
        <width>331</width>
        <height>21</height>
       </rect>
@@ -1667,7 +1726,7 @@
      <property name="geometry">
       <rect>
        <x>20</x>
-       <y>300</y>
+       <y>390</y>
        <width>331</width>
        <height>21</height>
       </rect>
@@ -1680,7 +1739,7 @@
      <property name="geometry">
       <rect>
        <x>20</x>
-       <y>320</y>
+       <y>410</y>
        <width>331</width>
        <height>21</height>
       </rect>
@@ -1699,8 +1758,8 @@
       <rect>
        <x>10</x>
        <y>10</y>
-       <width>351</width>
-       <height>331</height>
+       <width>451</width>
+       <height>431</height>
       </rect>
      </property>
      <property name="title">
@@ -1710,7 +1769,7 @@
       <property name="geometry">
        <rect>
         <x>10</x>
-        <y>295</y>
+        <y>390</y>
         <width>191</width>
         <height>31</height>
        </rect>
@@ -1730,7 +1789,7 @@
        <rect>
         <x>10</x>
         <y>20</y>
-        <width>131</width>
+        <width>201</width>
         <height>101</height>
        </rect>
       </property>
@@ -1773,9 +1832,9 @@
      <widget class="QGroupBox" name="groupBox_3">
       <property name="geometry">
        <rect>
-        <x>139</x>
+        <x>209</x>
         <y>19</y>
-        <width>201</width>
+        <width>231</width>
         <height>101</height>
        </rect>
       </property>
@@ -1880,8 +1939,8 @@
        <rect>
         <x>10</x>
         <y>130</y>
-        <width>331</width>
-        <height>111</height>
+        <width>431</width>
+        <height>151</height>
        </rect>
       </property>
       <property name="title">
@@ -1932,7 +1991,7 @@
       <widget class="QCheckBox" name="checkComparativa">
        <property name="geometry">
         <rect>
-         <x>186</x>
+         <x>290</x>
          <y>20</y>
          <width>131</width>
          <height>20</height>
@@ -1946,8 +2005,8 @@
      <widget class="QComboBox" name="comboAny">
       <property name="geometry">
        <rect>
-        <x>266</x>
-        <y>300</y>
+        <x>366</x>
+        <y>400</y>
         <width>69</width>
         <height>22</height>
        </rect>
@@ -1956,8 +2015,8 @@
      <widget class="QLabel" name="lblAny">
       <property name="geometry">
        <rect>
-        <x>240</x>
-        <y>300</y>
+        <x>340</x>
+        <y>400</y>
         <width>21</width>
         <height>20</height>
        </rect>
@@ -1975,9 +2034,9 @@
       <property name="geometry">
        <rect>
         <x>20</x>
-        <y>255</y>
+        <y>325</y>
         <width>101</width>
-        <height>16</height>
+        <height>13</height>
        </rect>
       </property>
       <property name="text">
@@ -1988,7 +2047,7 @@
       <property name="geometry">
        <rect>
         <x>150</x>
-        <y>250</y>
+        <y>320</y>
         <width>69</width>
         <height>22</height>
        </rect>
@@ -1998,7 +2057,7 @@
       <property name="geometry">
        <rect>
         <x>270</x>
-        <y>250</y>
+        <y>320</y>
         <width>69</width>
         <height>22</height>
        </rect>
@@ -2008,7 +2067,7 @@
       <property name="geometry">
        <rect>
         <x>240</x>
-        <y>255</y>
+        <y>325</y>
         <width>47</width>
         <height>13</height>
        </rect>
@@ -2365,7 +2424,7 @@
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>650</y>
+     <y>750</y>
      <width>35</width>
      <height>35</height>
     </rect>
@@ -2388,7 +2447,7 @@
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>630</y>
+     <y>730</y>
      <width>161</width>
      <height>16</height>
     </rect>
