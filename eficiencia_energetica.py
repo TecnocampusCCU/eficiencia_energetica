@@ -27,6 +27,7 @@
 import datetime
 import os
 import os.path
+from pathlib import Path
 import time
 import processing
 import psycopg2
@@ -75,7 +76,7 @@ from .resources import *
 from .ui.dialog_factory import create_main_dialog, create_accessibility_dialog
 
 '''Variables globals'''
-Versio_modul = "V_Q3.260327"
+Versio_modul = "V_Q3.260409"
 nomBD1 = ""
 password1 = ""
 host1 = ""
@@ -2154,6 +2155,7 @@ class EficEnerg:
         self.dlg.dadesEstimacionsButton.setEnabled(False)
         self.dlg.dadesEstimacionsButton.setChecked(False)
         self.dlg.comboModel.setEnabled(False)
+        self.ompleComboModels()
         self.dlg.dadesOficialsEstimacionsButton.setEnabled(False)
         self.dlg.dadesOficialsEstimacionsButton.setChecked(False)
         self.dlg.labelAvis.setVisible(False)
@@ -2264,6 +2266,16 @@ class EficEnerg:
         joinEntitatHabitatges = None
 
         llegendaAfegida = False
+
+    def ompleComboModels(self):
+        ruta_script = Path(__file__).parent.resolve()
+        ruta_config = ruta_script / "models_prediccio" / "config_models.txt"
+
+        with open(ruta_config, "r", encoding="utf-8") as f:
+            lines = [line.strip() for line in f if line.strip()]
+
+        noms_models = lines[::3]
+        self.ompleCombos(self.dlg.comboModel, noms_models, "Selecciona un model", False)
 
     def calculIdEntitat(self):
         global entitatLayer
@@ -5088,6 +5100,225 @@ class EficEnerg:
         capa.triggerRepaint()
         iface.mapCanvas().refresh()
 
+    def config_model(self, model_escollit):
+        global habitatgesLayer
+
+        self.dlg.setEnabled(False)
+
+        ruta_config = Path(__file__).resolve().parent / "models_prediccio" / "config_models.txt"
+
+        with open(ruta_config, "r", encoding="utf-8") as f:
+            lines = [line.strip() for line in f if line.strip()]
+
+        # Busca l'índex de la línia amb el nom del model
+        try:
+            index = lines.index(model_escollit)
+        except ValueError:
+            raise ValueError(f"Model '{model_escollit}' no trobat al fitxer de configuració")
+        
+        # Les dues "fórmules" són les dues línies inmediatament següents
+        formula1 = lines[index + 1]
+        formula2 = lines[index + 2]
+
+        # Separar cada fórmula en tipus i valor pel caracter '#'
+        tipus1, value1 = formula1.split("#", 1)
+        tipus2, value2 = formula2.split('#', 1)
+
+        # Valors per defecte
+        default_case_consum = '"qualificació de consum energia primaria no renovable"'
+        default_formula_consum = '"energia primària no renovable"'
+        default_case_emissions = '"qualificacio emissions de co2"'
+        default_formula_emissions = '"emissions de co2"'
+
+        # tipus1 i tipus2 haurien de ser iguals, sino seria raro
+        if tipus1 != tipus2:
+            raise ValueError(f"Tipus de model diferent per a consum i emissions, haurien de ser iguals. {tipus1} != {tipus2}")
+        
+        # Assignació segons el tipus de model escollit
+        if tipus1 == "LLETRA":
+            case_certificats_consum     = value1
+            qgis_formula_consum         = default_formula_consum
+            case_certificats_emissions  = value2
+            qgis_formula_emissions      = default_formula_emissions
+        elif tipus1 == "NUMERO":
+            case_certificats_consum     = default_case_consum
+            qgis_formula_consum         = value1
+            case_certificats_emissions  = default_case_emissions
+            qgis_formula_emissions      = value2
+        else:
+            raise ValueError(f"Tipus de model desconegut: '{tipus1}'")
+
+        feedback = QgsProcessingFeedback()
+
+        feedback.progressChanged.connect(self.updateProgress)
+
+        # Paràmetres de l'aggregate
+        alg_params = {
+            'AGGREGATES': [{
+                'aggregate': 'first_value',
+                'delimiter': ',',
+                'input': '"id"',
+                'length': 0,
+                'name': 'id',
+                'precision': 0,
+                'sub_type': 0,
+                'type': 2,
+                'type_name': 'integer'
+            },{
+                'aggregate': 'first_value',
+                'delimiter': ',',
+                'input': '"id_building"',
+                'length': -1,
+                'name': 'id_building',
+                'precision': 0,
+                'sub_type': 0,
+                'type': 2,
+                'type_name': 'integer'
+            },{
+                'aggregate': 'first_value',
+                'delimiter': ',',
+                'input': '"cadastral_reference"',
+                'length': -1,
+                'name': 'cadastral_reference',
+                'precision': 0,
+                'sub_type': 0,
+                'type': 10,
+                'type_name': 'text'
+            },{
+                'aggregate': 'first_value',
+                'delimiter': ',',
+                'input': '"current_use"',
+                'length': -1,
+                'name': 'current_use',
+                'precision': 0,
+                'sub_type': 0,
+                'type': 10,
+                'type_name': 'text'
+            },{
+                'aggregate': 'first_value',
+                'delimiter': ',',
+                'input': '"metres_cadastre"',
+                'length': -1,
+                'name': 'metres_cadastre',
+                'precision': 0,
+                'sub_type': 0,
+                'type': 6,
+                'type_name': 'double precision'
+            },{
+                'aggregate': 'first_value',
+                'delimiter': ',',
+                'input': '"antiguitat"',
+                'length': -1,
+                'name': 'antiguitat',
+                'precision': 0,
+                'sub_type': 0,
+                'type': 2,
+                'type_name': 'integer'
+            },{
+                'aggregate': 'first_value',
+                'delimiter': ',',
+                'input': case_certificats_consum,
+                'length': -1,
+                'name': 'qualificació de consum energia primaria no renovable',
+                'precision': 0,
+                'sub_type': 0,
+                'type': 10,
+                'type_name': 'text'
+            },{
+                'aggregate': 'first_value',
+                'delimiter': ',',
+                'input': qgis_formula_consum,
+                'length': -1,
+                'name': 'energia primària no renovable',
+                'precision': 0,
+                'sub_type': 0,
+                'type': 10,
+                'type_name': 'text'
+            },{
+                'aggregate': 'first_value',
+                'delimiter': ',',
+                'input': case_certificats_emissions,
+                'length': -1,
+                'name': 'qualificacio emissions de co2',
+                'precision': 0,
+                'sub_type': 0,
+                'type': 10,
+                'type_name': 'text'
+            },{
+                'aggregate': 'first_value',
+                'delimiter': ',',
+                'input': qgis_formula_emissions,
+                'length': -1,
+                'name': 'emissions de co2',
+                'precision': 0,
+                'sub_type': 0,
+                'type': 10,
+                'type_name': 'text'
+            },{
+                'aggregate': 'first_value',
+                'delimiter': ',',
+                'input': '"n_residents"',
+                'length': 0,
+                'name': 'n_residents',
+                'precision': 0,
+                'sub_type': 0,
+                'type': 2,
+                'type_name': 'integer'
+            },{
+                'aggregate': 'first_value',
+                'delimiter': ',',
+                'input': '"n_habitatges"',
+                'length': 0,
+                'name': 'n_habitatges',
+                'precision': 0,
+                'sub_type': 0,
+                'type': 2,
+                'type_name': 'integer'
+            },{
+                'aggregate': 'first_value',
+                'delimiter': ',',
+                'input': '"origen_consum"',
+                'length': 0,
+                'name': 'origen_consum',
+                'precision': 0,
+                'sub_type': 0,
+                'type': 10,
+                'type_name': 'text'
+            },{
+                'aggregate': 'first_value',
+                'delimiter': ',',
+                'input': '"origen_emissions"',
+                'length': 0,
+                'name': 'origen_emissions',
+                'precision': 0,
+                'sub_type': 0,
+                'type': 10,
+                'type_name': 'text'
+            }],
+            'GROUP_BY': 'id',
+            'INPUT': habitatgesLayer,
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+        try:
+            result = processing.run('qgis:aggregate', alg_params, feedback=feedback)
+            habitatgesLayer = result['OUTPUT']
+            QApplication.processEvents()
+        except Exception as ex:
+            print("Error al fer aggregate final del model")
+            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            message = template.format(type(ex).__name__, ex.args)
+            print(message)
+            QMessageBox.critical(None, "Error", "Error al fer aggregate final del model.")
+            self.dlg.setEnabled(True)
+            return
+
+        if tipus1 == "NUMERO":
+            self.recalcular_rangs()
+        elif tipus1 == "LLETRA":
+            self.dlg.checkMitjana.setChecked(False)
+            self.dlg.checkModa.setChecked(False)
+            self.dlg.checkMediana.setChecked(False)
+
     def recalcular_rangs(self):
         global habitatges
         global habitatgesLayer
@@ -5250,6 +5481,13 @@ class EficEnerg:
             conn.rollback()
             self.dlg.setEnabled(True)
             return
+        if self.dlg.dadesEstimacionsButton.isChecked() or self.dlg.dadesOficialsEstimacionsButton.isChecked():
+            if self.dlg.comboModel.currentIndex() == 0 or self.dlg.comboModel.currentText() == "Selecciona un model":
+                print("No s'ha seleccionat cap model a utilitzar tot i voler-se utilitzar un")
+                QMessageBox.warning(None, "Error", "No s'ha seleccionat cap model a utilitzar tot i voler-se utilitzar un")
+                conn.rollback()
+                self.dlg.setEnabled(True)
+                return
         
         if consum and not self.dlg.checkComparativa_cert.isChecked():
             if self.dlg.dadesOficialsButton.isChecked():
@@ -5301,14 +5539,22 @@ class EficEnerg:
             if self.dlg.dadesEstimacionsButton.isChecked():
                 if habitatges != 'cert_efi_energ_edif_mataro_geom_estimacions':
                     self.on_change_comboEntitat()
-                if self.dlg.comboModel.currentIndex() == 1 and not self.dlg.checkComparativa_cert.isChecked(): 
-                    self.recalcular_rangs()     # 0 == Qualificació energètica
-                                                # 1 == Càlcul numèric
+                #if self.dlg.comboModel.currentIndex() == 1:     # 0 == Qualificació energètica
+                #    self.recalcular_rangs()                     # 1 == Càlcul numèric
             if self.dlg.dadesOficialsEstimacionsButton.isChecked():
                 if habitatges != 'cert_efi_energ_edif_mataro_geom_mixta':
                     self.on_change_comboEntitat()
-                if self.dlg.comboModel.currentIndex() == 1:
-                    self.recalcular_rangs()
+                #if self.dlg.comboModel.currentIndex() == 1:
+                #    self.recalcular_rangs()
+            if self.dlg.dadesEstimacionsButton.isChecked() or self.dlg.dadesOficialsEstimacionsButton.isChecked():
+                # En el moment d'afegir l'arxiu de text configurable per als models de predicció...
+                # Es crida un mètode que:
+                # - controla quin tipus de model s'està escollint
+                # - agafa la informació necessària per consum i per emissions
+                # - fa un aggregate per a canviar la capa original i canviar els camps que siguin necessaris segons el tipus de model escollit
+                # - si s'ha utilitzat un model numèric, cal recalcular els rangs
+                model_escollit = self.dlg.comboModel.currentText()
+                self.config_model(model_escollit)
         if self.dlg.tabCalculs.currentIndex() == 1:
             if self.dlg.consumElectricButton.isChecked():
                 if habitatges != "consums_mataro_llum":
