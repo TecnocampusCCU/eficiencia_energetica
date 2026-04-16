@@ -76,7 +76,7 @@ from .resources import *
 from .ui.dialog_factory import create_main_dialog, create_accessibility_dialog
 
 '''Variables globals'''
-Versio_modul = "V_Q3.260409"
+Versio_modul = "V_Q3.260416"
 nomBD1 = ""
 password1 = ""
 host1 = ""
@@ -278,7 +278,7 @@ llistaAnysGas = [
     '2022'
 ]
 
-# Es poden afegir més anys perfectament, això es fa d'aquesta manera per a resultar més atractiu a la vista
+# Es poden afegir més anys perfectament, això es fa d'aquesta manera per a resultar més pràctic de primeres
 llistaAnysCertificats = [
     '2020',
     '2021',
@@ -497,6 +497,9 @@ class EficEnerg:
             'evolucioGasButton': self.dlg.evolucioGasButton.isChecked(),
             'evolucioLlumButton': self.dlg.evolucioLlumButton.isChecked(),
             'evolucioSumaButton': self.dlg.evolucioSumaButton.isChecked(),
+            'evolucioDadesOficialsButton': self.dlg.evolucioDadesOficialsButton.isChecked() if hasattr(self.dlg, 'evolucioDadesOficialsButton') else False,
+            'evolucioDadesEstimadesButton': self.dlg.evolucioDadesEstimadesButton.isChecked() if hasattr(self.dlg, 'evolucioDadesEstimadesButton') else False,
+            'evolucioDadesOficialsEstimadesButton': self.dlg.evolucioDadesOficialsEstimadesButton.isChecked() if hasattr(self.dlg, 'evolucioDadesOficialsEstimadesButton') else False,
             'poderCalorLine': self.dlg.poderCalorLine.text() if hasattr(self.dlg, 'poderCalorLine') else '',
             'minScale': self.dlg.minScale.value() if hasattr(self.dlg, 'minScale') else 0,
             'maxScale': self.dlg.maxScale.value() if hasattr(self.dlg, 'maxScale') else 0,
@@ -571,6 +574,9 @@ class EficEnerg:
             self.dlg.evolucioGasButton.setChecked(state.get('evolucioGasButton', False))
             self.dlg.evolucioLlumButton.setChecked(state.get('evolucioLlumButton', False))
             self.dlg.evolucioSumaButton.setChecked(state.get('evolucioSumaButton', False))
+            self.dlg.evolucioDadesOficialsButton.setChecked(state.get('evolucioDadesOficialsButton', False))
+            self.dlg.evolucioDadesEstimadesButton.setChecked(state.get('evolucioDadesEstimadesButton', False))
+            self.dlg.evolucioDadesOficialsEstimadesButton.setChecked(state.get('evolucioDadesOficialsEstimadesButton', False))
 
             self.dlg.textEstat.setPlainText(state.get('textEstat', ''))
             self.dlg.progressBar.setValue(state.get('progressBar', 0))
@@ -672,6 +678,16 @@ class EficEnerg:
         self.dlg.evolucioSumaSlider.valueChanged.connect(self.on_change_evolucioSumaSlider)
         self.dlg.evolucioSumaPlay.toggled.connect(self.on_change_evolucioSumaPlay)
         self.dlg.metodeEvolucioCombo.currentIndexChanged.connect(self.on_change_metodeEvolucioCombo)
+        self.dlg.evolucioDadesOficialsButton.toggled.connect(self.on_change_evolucioDadesOficialsButton)
+        self.dlg.evolucioDadesOficialsSlider.valueChanged.connect(self.on_change_evolucioDadesOficialsSlider)
+        self.dlg.evolucioDadesOficialsPlay.toggled.connect(self.on_change_evolucioDadesOficialsPlay)
+        self.dlg.evolucioDadesEstimadesButton.toggled.connect(self.on_change_evolucioDadesEstimadesButton)
+        self.dlg.evolucioDadesEstimadesSlider.valueChanged.connect(self.on_change_evolucioDadesEstimadesSlider)
+        self.dlg.evolucioDadesEstimadesPlay.toggled.connect(self.on_change_evolucioDadesEstimadesPlay)
+        self.dlg.evolucioDadesOficialsEstimadesButton.toggled.connect(self.on_change_evolucioDadesOficialsEstimadesButton)
+        self.dlg.evolucioDadesOficialsEstimadesSlider.valueChanged.connect(self.on_change_evolucioDadesOficialsEstimadesSlider)
+        self.dlg.evolucioDadesOficialsEstimadesPlay.toggled.connect(self.on_change_evolucioDadesOficialsEstimadesPlay)
+        self.dlg.metodeEvolucioCombo_cert.currentIndexChanged.connect(self.on_change_metodeEvolucioCombo_cert)
         self.playback_timer = QTimer()
         self.playback_timer.timeout.connect(self.update_playback_year)
         self.current_playback_year = 2016
@@ -862,6 +878,10 @@ class EficEnerg:
                 self.dlg.groupChecks.setVisible(True)
                 self.dlg.groupChecks_2.setVisible(True)
 
+                self.dlg.dadesOficialsButton.setVisible(True)
+                self.dlg.dadesEstimacionsButton.setVisible(True)
+                self.dlg.dadesOficialsEstimacionsButton.setVisible(True)
+
             except Exception as ex:
                 self.estatInicial()
                 print ("I am unable to connect to the database")
@@ -988,6 +1008,9 @@ class EficEnerg:
         global evolucioGas
         global evolucioLlum
         global evolucioSuma
+        global evolucioDadesOficials
+        global evolucioDadesEstimades
+        global evolucioDadesOficialsEstimades
         global color
         global minimumValue
         global maximumValue
@@ -1023,6 +1046,13 @@ class EficEnerg:
                 self.on_change_evolucioLlumButton()
             if self.dlg.evolucioSumaButton.isChecked():
                 self.on_change_evolucioSumaButton()
+        if self.dlg.tabCalculs.currentIndex() == 3:
+            if self.dlg.evolucioDadesOficialsButton.isChecked():
+                self.on_change_evolucioDadesOficialsButton()
+            if self.dlg.evolucioDadesEstimadesButton.isChecked():
+                self.on_change_evolucioDadesEstimadesButton()
+            if self.dlg.evolucioDadesOficialsEstimadesButton.isChecked():
+                self.on_change_evolucioDadesOficialsEstimadesButton()
 
         try:
             uri.setDataSource(schema1, entitat, 'geom')
@@ -1077,11 +1107,18 @@ class EficEnerg:
         if self.dlg.evolucioSumaButton.isChecked():
             self.on_change_evolucioSumaButton()
 
+        if self.dlg.evolucioDadesOficialsButton.isChecked():
+            self.on_change_evolucioDadesOficialsButton()
+        if self.dlg.evolucioDadesEstimadesButton.isChecked():
+            self.on_change_evolucioDadesEstimadesButton()
+        if self.dlg.evolucioDadesOficialsEstimadesButton.isChecked():
+            self.on_change_evolucioDadesOficialsEstimadesButton()
+
         if self.dlg.tabCalculs.currentIndex() == 2:
             color = QColor("#707070")
             minimumValue = self.dlg.minScale.value()
             maximumValue = self.dlg.maxScale.value()
-
+        
         self.dlg.dadesOficialsButton.setEnabled(True)
         self.dlg.dadesEstimacionsButton.setEnabled(True)
         self.dlg.dadesOficialsEstimacionsButton.setEnabled(True)
@@ -1127,6 +1164,8 @@ class EficEnerg:
             self.dlg.dadesOficialsButton.setChecked(False)
             self.dlg.dadesOficialsEstimacionsButton.setChecked(False)
             self.dlg.comboModel.setEnabled(True)
+            self.dlg.comboAny_cert.setVisible(True)
+            self.dlg.lblAny_cert.setVisible(True)
             self.on_change_modelPredictiu()
 
             if habitatges != "cert_efi_energ_edif_mataro_geom_estimacions":
@@ -1338,10 +1377,25 @@ class EficEnerg:
         self.dlg.anyGasLabel.setText("2016")
         self.dlg.anyLlumLabel.setText("2016")
         self.dlg.anySumaLabel.setText("2016")
+        self.dlg.evolucioDadesOficialsButton.setChecked(False)
+        self.dlg.evolucioDadesEstimadesButton.setChecked(False)
+        self.dlg.evolucioDadesOficialsEstimadesButton.setChecked(False)
+        self.dlg.evolucioDadesOficialsSlider.setEnabled(False)
+        self.dlg.evolucioDadesEstimadesSlider.setEnabled(False)
+        self.dlg.evolucioDadesOficialsEstimadesSlider.setEnabled(False)
+        self.dlg.anyDadesOficialsLabel.setEnabled(False)
+        self.dlg.anyDadesEstimadesLabel.setEnabled(False)
+        self.dlg.anyDadesOficialsEstimadesLabel.setEnabled(False)
+        self.dlg.evolucioDadesOficialsSlider.setValue(2020)
+        self.dlg.evolucioDadesEstimadesSlider.setValue(2020)
+        self.dlg.evolucioDadesOficialsEstimadesSlider.setValue(2020)
+        self.dlg.anyDadesOficialsLabel.setText("2020")
+        self.dlg.anyDadesEstimadesLabel.setText("2020")
+        self.dlg.anyDadesOficialsEstimadesLabel.setText("2020")
         self.dlg.labelRestriccio.setVisible(False)
         self.dlg.labelRestriccio.setText(" ")           
         
-        if self.dlg.tabCalculs.currentIndex() == 2:
+        if self.dlg.tabCalculs.currentIndex() == 2 or self.dlg.tabCalculs.currentIndex() == 3:
             self.dlg.pushInici.setVisible(False)
             self.dlg.pushInici.setEnabled(False)
             self.dlg.comboEntitat.setCurrentIndex(0)
@@ -1614,6 +1668,8 @@ class EficEnerg:
             self.dlg.labelAnysVs_cert.setVisible(True)
             self.dlg.comboAny1_cert.setVisible(True)
             self.dlg.comboAny2_cert.setVisible(True)
+            self.dlg.lblAny_cert.setVisible(False)
+            self.dlg.comboAny_cert.setVisible(False)
             if self.dlg.checkComparativa.isChecked():
                 self.dlg.checkComparativa.setChecked(False)
             
@@ -1624,6 +1680,8 @@ class EficEnerg:
             self.dlg.labelAnysVs_cert.setVisible(False)
             self.dlg.comboAny1_cert.setVisible(False)
             self.dlg.comboAny2_cert.setVisible(False)
+            self.dlg.lblAny_cert.setVisible(True)
+            self.dlg.comboAny_cert.setVisible(True)
 
     def on_change_evolucioGasButton(self):
         global uri
@@ -1634,10 +1692,17 @@ class EficEnerg:
         global evolucioSuma
         global evolucioLayer
 
+        global evolucioDadesOficials
+        global evolucioDadesEstimades
+        global evolucioDadesOficialsEstimades
+
         if self.dlg.evolucioGasButton.isChecked():
             evolucioGas = True
             evolucioLlum = False
             evolucioSuma = False
+            evolucioDadesOficials = False
+            evolucioDadesEstimades = False
+            evolucioDadesOficialsEstimades = False
             self.dlg.evolucioGasSlider.setEnabled(True)
             self.dlg.anyGasLabel.setEnabled(True)
             self.dlg.evolucioLlumSlider.setEnabled(False)
@@ -1786,6 +1851,43 @@ class EficEnerg:
                     self.playback_timer.stop()
             else:
                 self.current_playback_year += 1
+        # Afegir les opcions de certificacions: dades oficials, dades estimades i dades mixtes
+        if self.dlg.evolucioDadesOficialsPlay.isChecked():
+            self.dlg.evolucioDadesOficialsSlider.setValue(self.current_playback_year)
+            self.dlg.anyDadesOficialsLabel.setText(str(self.current_playback_year))
+            if self.current_playback_year >= 2030:
+                if self.dlg.loopDadesOficialsCheck.isChecked():
+                    self.current_playback_year = 2020
+                else:
+                    self.dlg.evolucioDadesOficialsPlay.setChecked(False)
+                    self.dlg.evolucioDadesOficialsSlider.setEnabled(True)
+                    self.playback_timer.stop()
+            else:
+                self.current_playback_year += 1
+        if self.dlg.evolucioDadesEstimadesPlay.isChecked():
+            self.dlg.evolucioDadesEstimadesSlider.setValue(self.current_playback_year)
+            self.dlg.anyDadesEstimadesLabel.setText(str(self.current_playback_year))
+            if self.current_playback_year >= 2030:
+                if self.dlg.loopDadesEstimadesCheck.isChecked():
+                    self.current_playback_year = 2020
+                else:
+                    self.dlg.evolucioDadesEstimadesPlay.setChecked(False)
+                    self.dlg.evolucioDadesEstimadesSlider.setEnabled(True)
+                    self.playback_timer.stop()
+            else:
+                self.current_playback_year += 1
+        if self.dlg.evolucioDadesOficialsEstimadesPlay.isChecked():
+            self.dlg.evolucioDadesOficialsEstimadesSlider.setValue(self.current_playback_year)
+            self.dlg.anyDadesOficialsEstimadesLabel.setText(str(self.current_playback_year))
+            if self.current_playback_year >= 2030:
+                if self.dlg.loopDadesOficialsEstimadesCheck.isChecked():
+                    self.current_playback_year = 2020
+                else:
+                    self.dlg.evolucioDadesOficialsEstimadesPlay.setChecked(False)
+                    self.dlg.evolucioDadesOficialsEstimadesSlider.setEnabled(True)
+                    self.playback_timer.stop()
+            else:
+                self.current_playback_year += 1
 
     def on_change_evolucioLlumButton(self):
         global uri
@@ -1796,10 +1898,17 @@ class EficEnerg:
         global evolucioSuma
         global evolucioLayer
 
+        global evolucioDadesOficials
+        global evolucioDadesEstimades
+        global evolucioDadesOficialsEstimades
+
         if self.dlg.evolucioLlumButton.isChecked():
             evolucioLlum = True
             evolucioGas = False
             evolucioSuma = False
+            evolucioDadesOficials = False
+            evolucioDadesEstimades = False
+            evolucioDadesOficialsEstimades = False
             self.dlg.evolucioLlumSlider.setEnabled(True)
             self.dlg.anyLlumLabel.setEnabled(True)
             self.dlg.evolucioGasSlider.setEnabled(False)
@@ -2041,6 +2150,480 @@ class EficEnerg:
         elif self.dlg.evolucioSumaButton.isChecked():
             self.on_change_evolucioSumaButton()
 
+    def on_change_metodeEvolucioCombo_cert(self):
+        global metodeEvolucio
+
+        if self.dlg.metodeEvolucioCombo_cert.currentIndex() == 1:
+            metodeEvolucio = 'numhab'
+        elif self.dlg.metodeEvolucioCombo_cert.currentIndex() == 2:
+            metodeEvolucio = 'm2'
+        elif self.dlg.metodeEvolucioCombo_cert.currentIndex() == 3:
+            metodeEvolucio = 'mitjana'
+        elif self.dlg.metodeEvolucioCombo_cert.currentIndex() == 4:
+            metodeEvolucio = 'moda'
+        elif self.dlg.metodeEvolucioCombo_cert.currentIndex() == 5:
+            metodeEvolucio = 'mediana'
+        
+        if self.dlg.evolucioDadesOficialsButton.isChecked():
+            self.on_change_evolucioDadesOficialsButton()
+        elif self.dlg.evolucioDadesEstimadesButton.isChecked():
+            self.on_change_evolucioDadesEstimadesButton()
+        elif self.dlg.evolucioDadesOficialsEstimadesButton.isChecked():
+            self.on_change_evolucioDadesOficialsEstimadesButton()
+
+    def on_change_evolucioDadesOficialsButton(self):
+        global uri
+        global conn
+
+        global evolucioGas
+        global evolucioLlum
+        global evolucioSuma
+
+        global evolucioDadesOficials
+        global evolucioDadesEstimades
+        global evolucioDadesOficialsEstimades
+        global evolucioLayer
+
+        if self.dlg.evolucioDadesOficialsButton.isChecked():
+            evolucioDadesOficials = True
+            evolucioDadesEstimades = False
+            evolucioDadesOficialsEstimades = False
+            evolucioGas = False
+            evolucioLlum = False
+            evolucioSuma = False
+            self.dlg.evolucioDadesOficialsSlider.setEnabled(True)
+            self.dlg.anyDadesOficialsLabel.setEnabled(True)
+            self.dlg.evolucioDadesEstimadesSlider.setEnabled(False)
+            self.dlg.anyDadesEstimadesLabel.setEnabled(False)
+            self.dlg.evolucioDadesOficialsEstimadesSlider.setEnabled(False)
+            self.dlg.anyDadesOficialsEstimadesLabel.setEnabled(False)
+            self.dlg.evolucioDadesOficialsPlay.setVisible(True)
+            self.dlg.evolucioDadesOficialsPlay.setEnabled(True)
+            self.dlg.loopDadesOficialsCheck.setVisible(True)
+            self.dlg.loopDadesOficialsCheck.setEnabled(True)
+
+            if evolucioLayer is not None:
+                QgsProject.instance().removeMapLayer(evolucioLayer.id())
+                evolucioLayer = None
+
+                if self.dlg.comboEntitat.currentIndex() != 0 and self.dlg.metodeEvolucioCombo_cert.currentIndex != 0:
+                    if self.dlg.metodeEvolucioCombo_cert.currentIndex == 1:
+                        metodeEvolucio = 'numhab'
+                        nom_metode = 'nombre d\'habitatges'
+                    if self.dlg.metodeEvolucioCombo_cert.currentIndex() == 2:
+                        metodeEvolucio = 'm2'
+                        nom_metode = 'metres quadrats'
+                    if self.dlg.metodeEvolucioCombo_cert.currentIndex() == 3:
+                        metodeEvolucio = 'mitjana'
+                        nom_metode = 'mitjana'
+                    if self.dlg.metodeEvolucioCombo_cert.currentIndex() == 4:
+                        metodeEvolucio = 'moda'
+                        nom_metode = 'moda'
+                    if self.dlg.metodeEvolucioCombo_cert.currentIndex() == 5:
+                        metodeEvolucio = 'mediana'
+                        nom_metode = 'mediana'
+
+                    if self.dlg.consumButtonEvolucio.isChecked():
+                        if self.dlg.comboEntitat.currentIndex() == 1:
+                            entity = 'parcel'
+                            nom_capa = f'Evolució del consum amb dades oficials per {nom_metode} a PARCEL·LES'
+                        if self.dlg.comboEntitat.currentIndex() == 2:
+                            entity = 'zone'
+                            nom_capa = f'Evolució del consum amb dades oficials per {nom_metode} a ILLES'
+                        if self.dlg.comboEntitat.currentIndex() == 3:
+                            entity = 'seccions'
+                            nom_capa = f'Evolució del consum amb dades oficials per {nom_metode} a SECCIONS'
+                        if self.dlg.comboEntitat.currentIndex() == 4:
+                            entity = 'barris'
+                            nom_capa = f'Evolució del consum amb dades oficials per {nom_metode} a BARRIS'
+                        if self.dlg.comboEntitat.currentIndex() == 5:
+                            entity = 'districtes'
+                            nom_capa = f'Evolució del consum amb dades oficials per {nom_metode} a DISTRICTES'
+                        if self.dlg.comboEntitat.currentIndex() == 6:
+                            entity = 'districtes_postals'
+                            nom_capa = f'Evolució del consum amb dades oficials per {nom_metode} a DISTRICTES POSTALS'
+                    if self.dlg.consumButtonEvolucio.isChecked():
+                        if self.dlg.comboEntitat.currentIndex() == 1:
+                            entity = 'parcel'
+                            nom_capa = f'Evolució de les emissions amb dades oficials per {nom_metode} a PARCEL·LES'
+                        if self.dlg.comboEntitat.currentIndex() == 2:
+                            entity = 'zone'
+                            nom_capa = f'Evolució de les emissions amb dades oficials per {nom_metode} a ILLES'
+                        if self.dlg.comboEntitat.currentIndex() == 3:
+                            entity = 'seccions'
+                            nom_capa = f'Evolució de les emissions amb dades oficials per {nom_metode} a SECCIONS'
+                        if self.dlg.comboEntitat.currentIndex() == 4:
+                            entity = 'barris'
+                            nom_capa = f'Evolució de les emissions amb dades oficials per {nom_metode} a BARRIS'
+                        if self.dlg.comboEntitat.currentIndex() == 5:
+                            entity = 'districtes'
+                            nom_capa = f'Evolució de les emissions amb dades oficials per {nom_metode} a DISTRICTES'
+                        if self.dlg.comboEntitat.currentIndex() == 6:
+                            entity = 'districtes_postals'
+                            nom_capa = f'Evolució de les emissions amb dades oficials per {nom_metode} a DISTRICTES POSTALS'
+                    
+                    try:
+                        #uri.setDataSource('visualitzar_evolucio', f'{entity}_dades_oficials_{metodeEvolucio}', 'geom')
+                        if self.dlg.consumButtonEvolucio.isChecked():
+                            uri.setDataSource('visualitzar_evolucio', f'{entity}_dades_oficials_{metodeEvolucio}_consum', 'geom')
+                        if self.dlg.emissionsButtonEvolucio.isChecked():
+                            uri.setDataSource('visualitzar_evolucio', f'{entity}_dades_oficials_{metodeEvolucio}_emissions', 'geom')
+                        evolucioLayer = QgsVectorLayer(uri.uri(), nom_capa, 'postgres')
+                        QgsProject.instance().addMapLayer(evolucioLayer).setName(nom_capa)
+                        self.on_change_evolucioDadesOficialsSlider()
+                    except Exception as ex:
+                        print("Error: No s'ha pogut carregar la capa d'evolució del consum amb dades oficials per a l'entitat seleccionada")
+                        template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+                        message = template.format(type(ex).__name__, ex.args)
+                        print(message)
+                        QMessageBox.critical(None, "Error", "Error: No s'ha pogut carregar la capa d'evolució del consum amb dades oficials per a l'entitat seleccionada")
+                        conn.rollback()
+                        self.dlg.setEnabled(True)
+                        return
+                else:
+                    evolucioDadesOficials = False
+                    self.dlg.evolucioDadesOficialsSlider.setEnabled(False)
+                    self.dlg.evolucioDadesOficialsSlider.setValue(2020)
+                    self.dlg.anyDadesOficialsLabel.setEnabled(False)
+                    self.dlg.anyDadesOficialsLabel.setText("2020")
+                    self.dlg.evolucioDadesOficialsPlay.setVisible(False)
+                    self.dlg.evolucioDadesOficialsPlay.setEnabled(False)
+                    self.dlg.evolucioDadesOficialsPlay.setChecked(False)
+                    self.dlg.loopDadesOficialsCheck.setVisible(False)
+                    self.dlg.loopDadesOficialsCheck.setEnabled(False)
+                    self.dlg.loopDadesOficialsCheck.setChecked(False)
+
+    def on_change_evolucioDadesOficialsSlider(self):
+        global group
+        if group is not None:
+            self.mostrarCapaLlegenda()
+        else:
+            group = QgsProject.instance().layerTreeRoot()
+            self.mostrarCapaLlegenda()
+        any = self.dlg.evolucioDadesOficialsSlider.value()
+        self.dlg.anyDadesOficialsLabel.setText(str(any))
+        if self.dlg.metodeEvolucioCombo_cert.currentIndex() == 1:
+            self.update_numhabit_diagram(any)
+        if self.dlg.metodeEvolucioCombo_cert.currentIndex() == 2:
+            self.update_m2_diagram(any)
+        if self.dlg.metodeEvolucioCombo_cert.currentIndex() == 3:
+            self.update_mitjana_diagram(any)
+        if self.dlg.metodeEvolucioCombo_cert.currentIndex() == 4:
+            self.update_moda_diagram(any)
+        if self.dlg.metodeEvolucioCombo_cert.currentIndex() == 5:
+            self.update_mediana_diagram(any)
+    
+    def on_change_evolucioDadesOficialsPlay(self):
+        if self.dlg.evolucioDadesOficialsPlay.isChecked():
+            self.dlg.evolucioDadesOficialsSlider.setEnabled(False)
+            self.current_playback_year = 2020
+            self.playback_timer.start(1000) # 1000 ms, 1 segon
+        else:
+            self.playback_timer.stop()
+            self.dlg.evolucioDadesOficialsSlider.setEnabled(True)
+
+    def on_change_evolucioDadesEstimadesButton(self):
+        global uri
+        global conn
+
+        global evolucioGas
+        global evolucioLlum
+        global evolucioSuma
+
+        global evolucioDadesOficials
+        global evolucioDadesEstimades
+        global evolucioDadesOficialsEstimades
+        global evolucioLayer
+
+        if self.dlg.evolucioDadesEstimadesButton.isChecked():
+            evolucioDadesEstimades = True
+            evolucioDadesOficials = False
+            evolucioDadesOficialsEstimades = False
+            evolucioGas = False
+            evolucioLlum = False
+            evolucioSuma = False
+            self.dlg.evolucioDadesEstimadesSlider.setEnabled(True)
+            self.dlg.anyDadesEstimadesLabel.setEnabled(True)
+            self.dlg.evolucioDadesOficialsSlider.setEnabled(False)
+            self.dlg.anyDadesOficialsLabel.setEnabled(False)
+            self.dlg.evolucioDadesOficialsEstimadesSlider.setEnabled(False)
+            self.dlg.anyDadesOficialsEstimadesLabel.setEnabled(False)
+            self.dlg.evolucioDadesEstimadesPlay.setVisible(True)
+            self.dlg.evolucioDadesEstimadesPlay.setEnabled(True)
+            self.dlg.loopDadesEstimadesCheck.setVisible(True)
+            self.dlg.loopDadesEstimadesCheck.setEnabled(True)
+
+            if evolucioLayer is not None:
+                QgsProject.instance().removeMapLayer(evolucioLayer.id())
+                evolucioLayer = None
+            
+            if self.dlg.comboEntitat.currentIndex() != 0 and self.dlg.metodeEvolucioCombo_cert.currentIndex != 0:
+                if self.dlg.metodeEvolucioCombo_cert.currentIndex == 1:
+                    metodeEvolucio = 'numhab'
+                    nom_metode = 'nombre d\'habitatges'
+                if self.dlg.metodeEvolucioCombo_cert.currentIndex() == 2:
+                    metodeEvolucio = 'm2'
+                    nom_metode = 'metres quadrats'
+                if self.dlg.metodeEvolucioCombo_cert.currentIndex() == 3:
+                    metodeEvolucio = 'mitjana'
+                    nom_metode = 'mitjana'
+                if self.dlg.metodeEvolucioCombo_cert.currentIndex() == 4:
+                    metodeEvolucio = 'moda'
+                    nom_metode = 'moda'
+                if self.dlg.metodeEvolucioCombo_cert.currentIndex() == 5:
+                    metodeEvolucio = 'mediana'
+                    nom_metode = 'mediana'
+
+                if self.dlg.consumButtonEvolucio.isChecked():
+                    if self.dlg.comboEntitat.currentIndex() == 1:
+                        entity = 'parcel'
+                        nom_capa = f'Evolució del consum amb dades estimades per {nom_metode} a PARCEL·LES'
+                    if self.dlg.comboEntitat.currentIndex() == 2:
+                        entity = 'zone'
+                        nom_capa = f'Evolució del consum amb dades estimades per {nom_metode} a ILLES'
+                    if self.dlg.comboEntitat.currentIndex() == 3:
+                        entity = 'seccions'
+                        nom_capa = f'Evolució del consum amb dades estimades per {nom_metode} a SECCIONS'
+                    if self.dlg.comboEntitat.currentIndex() == 4:
+                        entity = 'barris'
+                        nom_capa = f'Evolució del consum amb dades estimades per {nom_metode} a BARRIS'
+                    if self.dlg.comboEntitat.currentIndex() == 5:
+                        entity = 'districtes'
+                        nom_capa = f'Evolució del consum amb dades estimades per {nom_metode} a DISTRICTES'
+                    if self.dlg.comboEntitat.currentIndex() == 6:
+                        entity = 'districtes_postals'
+                        nom_capa = f'Evolució del consum amb dades estimades per {nom_metode} a DISTRICTES POSTALS'
+                if self.dlg.emissionsButtonEvolucio.isChecked():
+                    if self.dlg.comboEntitat.currentIndex() == 1:
+                        entity = 'parcel'
+                        nom_capa = f'Evolució de les emissions amb dades estimades per {nom_metode} a PARCEL·LES'
+                    if self.dlg.comboEntitat.currentIndex() == 2:
+                        entity = 'zone'
+                        nom_capa = f'Evolució de les emissions amb dades estimades per {nom_metode} a ILLES'
+                    if self.dlg.comboEntitat.currentIndex() == 3:
+                        entity = 'seccions'
+                        nom_capa = f'Evolució de les emissions amb dades estimades per {nom_metode} a SECCIONS'
+                    if self.dlg.comboEntitat.currentIndex() == 4:
+                        entity = 'barris'
+                        nom_capa = f'Evolució de les emissions amb dades estimades per {nom_metode} a BARRIS'
+                    if self.dlg.comboEntitat.currentIndex() == 5:
+                        entity = 'districtes'
+                        nom_capa = f'Evolució de les emissions amb dades estimades per {nom_metode} a DISTRICTES'
+                    if self.dlg.comboEntitat.currentIndex() == 6:
+                        entity = 'districtes_postals'
+                        nom_capa = f'Evolució de les emissions amb dades estimades per {nom_metode} a DISTRICTES POSTALS'
+                
+                try:
+                    #uri.setDataSource('visualitzar_evolucio', f'{entity}_dades_estimades_{metodeEvolucio}', 'geom')
+                    if self.dlg.consumButtonEvolucio.isChecked():
+                        uri.setDataSource('visualitzar_evolucio', f'{entity}_dades_estimades_{metodeEvolucio}_consum', 'geom')
+                    if self.dlg.emissionsButtonEvolucio.isChecked():
+                        uri.setDataSource('visualitzar_evolucio', f'{entity}_dades_estimades_{metodeEvolucio}_emissions', 'geom')
+                    evolucioLayer = QgsVectorLayer(uri.uri(), nom_capa, 'postgres')
+                    QgsProject.instance().addMapLayer(evolucioLayer).setName(nom_capa)
+                    self.on_change_evolucioDadesEstimadesSlider()
+                except Exception as ex:
+                    print("Error: No s'ha pogut carregar la capa d'evolució del consum amb dades estimades per a l'entitat seleccionada")
+                    template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+                    message = template.format(type(ex).__name__, ex.args)
+                    print(message)
+                    QMessageBox.critical(None, "Error", "Error: No s'ha pogut carregar la capa d'evolució del consum amb dades estimades per a l'entitat seleccionada")
+                    conn.rollback()
+                    self.dlg.setEnabled(True)
+                    return
+        else:
+            evolucioDadesEstimades = False
+            self.dlg.evolucioDadesEstimadesSlider.setEnabled(False)
+            self.dlg.evolucioDadesEstimadesSlider.setValue(2020)
+            self.dlg.anyDadesEstimadesLabel.setEnabled(False)
+            self.dlg.anyDadesEstimadesLabel.setText("2020")
+            self.dlg.evolucioDadesEstimadesPlay.setVisible(False)
+            self.dlg.evolucioDadesEstimadesPlay.setEnabled(False)
+            self.dlg.evolucioDadesEstimadesPlay.setChecked(False)
+            self.dlg.loopDadesEstimadesCheck.setVisible(False)
+            self.dlg.loopDadesEstimadesCheck.setEnabled(False)
+            self.dlg.loopDadesEstimadesCheck.setChecked(False)
+
+    def on_change_evolucioDadesEstimadesSlider(self):
+        global group
+        if group is not None:
+            self.mostrarCapaLlegenda()
+        else:
+            group = QgsProject.instance().layerTreeRoot()
+            self.mostrarCapaLlegenda()
+        any = self.dlg.evolucioDadesEstimadesSlider.value()
+        self.dlg.anyDadesEstimadesLabel.setText(str(any))
+        if self.dlg.metodeEvolucioCombo_cert.currentIndex() == 1:
+            self.update_numhabit_diagram(any)
+        if self.dlg.metodeEvolucioCombo_cert.currentIndex() == 2:
+            self.update_m2_diagram(any)
+        if self.dlg.metodeEvolucioCombo_cert.currentIndex() == 3:
+            self.update_mitjana_diagram(any)
+        if self.dlg.metodeEvolucioCombo_cert.currentIndex() == 4:
+            self.update_moda_diagram(any)
+        if self.dlg.metodeEvolucioCombo_cert.currentIndex() == 5:
+            self.update_mediana_diagram(any)
+
+    def on_change_evolucioDadesEstimadesPlay(self):
+        if self.dlg.evolucioDadesEstimadesPlay.isChecked():
+            self.dlg.evolucioDadesEstimadesSlider.setEnabled(False)
+            self.current_playback_year = 2020
+            self.playback_timer.start(1000) # 1000 ms, 1 segon
+        else:
+            self.playback_timer.stop()
+            self.dlg.evolucioDadesEstimadesSlider.setEnabled(True)
+
+    def on_change_evolucioDadesOficialsEstimadesButton(self):
+        global uri
+        global conn
+
+        global evolucioGas
+        global evolucioLlum
+        global evolucioSuma
+
+        global evolucioDadesOficials
+        global evolucioDadesEstimades
+        global evolucioDadesOficialsEstimades
+        global evolucioLayer
+
+        if self.dlg.evolucioDadesOficialsEstimadesButton.isChecked():
+            evolucioDadesOficialsEstimades = True
+            evolucioDadesOficials = False
+            evolucioDadesEstimades = False
+            evolucioGas = False
+            evolucioLlum = False
+            evolucioSuma = False
+            self.dlg.evolucioDadesOficialsEstimadesSlider.setEnabled(True)
+            self.dlg.anyDadesOficialsEstimadesLabel.setEnabled(True)
+            self.dlg.evolucioDadesOficialsSlider.setEnabled(False)
+            self.dlg.anyDadesOficialsLabel.setEnabled(False)
+            self.dlg.evolucioDadesEstimadesSlider.setEnabled(False)
+            self.dlg.anyDadesEstimadesLabel.setEnabled(False)
+            self.dlg.evolucioDadesOficialsEstimadesPlay.setVisible(True)
+            self.dlg.evolucioDadesOficialsEstimadesPlay.setEnabled(True)
+            self.dlg.loopDadesOficialsEstimadesCheck.setVisible(True)
+            self.dlg.loopDadesOficialsEstimadesCheck.setEnabled(True)
+
+            if evolucioLayer is not None:
+                QgsProject.instance().removeMapLayer(evolucioLayer.id())
+                evolucioLayer = None
+            
+            if self.dlg.comboEntitat.currentIndex() != 0 and self.dlg.metodeEvolucioCombo_cert.currentIndex != 0:
+                if self.dlg.metodeEvolucioCombo_cert.currentIndex == 1:
+                    metodeEvolucio = 'numhab'
+                    nom_metode = 'nombre d\'habitatges'
+                if self.dlg.metodeEvolucioCombo_cert.currentIndex == 2:
+                    metodeEvolucio = 'm2'
+                    nom_metode = 'metres quadrats'
+                if self.dlg.metodeEvolucioCombo_cert.currentIndex == 3:
+                    metodeEvolucio = 'mitjana'
+                    nom_metode = 'mitjana'
+                if self.dlg.metodeEvolucioCombo_cert.currentIndex == 4:
+                    metodeEvolucio = 'moda'
+                    nom_metode = 'moda'
+                if self.dlg.metodeEvolucioCombo_cert.currentIndex() == 5:
+                    metodeEvolucio = 'mediana'
+                    nom_metode = 'mediana'
+
+                if self.dlg.consumButtonEvolucio.isChecked():
+                    if self.dlg.comboEntitat.currentIndex() == 1:
+                        entity = 'parcel'
+                        nom_capa = f'Evolució del consum amb dades oficials i estimades per {nom_metode} a PARCEL·LES'
+                    if self.dlg.comboEntitat.currentIndex() == 2:
+                        entity = 'zone'
+                        nom_capa = f'Evolució del consum amb dades oficials i estimades per {nom_metode} a ILLES'
+                    if self.dlg.comboEntitat.currentIndex() == 3:
+                        entity = 'seccions'
+                        nom_capa = f'Evolució del consum amb dades oficials i estimades per {nom_metode} a SECCIONS'
+                    if self.dlg.comboEntitat.currentIndex() == 4:
+                        entity = 'barris'
+                        nom_capa = f'Evolució del consum amb dades oficials i estimades per {nom_metode} a BARRIS'
+                    if self.dlg.comboEntitat.currentIndex() == 5:
+                        entity = 'districtes'
+                        nom_capa = f'Evolució del consum amb dades oficials i estimades per {nom_metode} a DISTRICTES'
+                    if self.dlg.comboEntitat.currentIndex() == 6:
+                        entity = 'districtes_postals'
+                        nom_capa = f'Evolució del consum amb dades oficials i estimades per {nom_metode} a DISTRICTES POSTALS'
+                if self.dlg.emissionsButtonEvolucio.isChecked():
+                    if self.dlg.comboEntitat.currentIndex() == 1:
+                        entity = 'parcel'
+                        nom_capa = f'Evolució de les emissions amb dades oficials i estimades per {nom_metode} a PARCEL·LES'
+                    if self.dlg.comboEntitat.currentIndex() == 2:
+                        entity = 'zone'
+                        nom_capa = f'Evolució de les emissions amb dades oficials i estimades per {nom_metode} a ILLES'
+                    if self.dlg.comboEntitat.currentIndex() == 3:
+                        entity = 'seccions'
+                        nom_capa = f'Evolució de les emissions amb dades oficials i estimades per {nom_metode} a SECCIONS'
+                    if self.dlg.comboEntitat.currentIndex() == 4:
+                        entity = 'barris'
+                        nom_capa = f'Evolució de les emissions amb dades oficials i estimades per {nom_metode} a BARRIS'
+                    if self.dlg.comboEntitat.currentIndex() == 5:
+                        entity = 'districtes'
+                        nom_capa = f'Evolució de les emissions amb dades oficials i estimades per {nom_metode} a DISTRICTES'
+                    if self.dlg.comboEntitat.currentIndex() == 6:
+                        entity = 'districtes_postals'
+                        nom_capa = f'Evolució de les emissions amb dades oficials i estimades per {nom_metode} a DISTRICTES POSTALS'
+
+                try:
+                    #uri.setDataSource('visualitzar_evolucio', f'{entity}_dades_oficials_estimades_{metodeEvolucio}', 'geom')
+                    if self.dlg.consumButtonEvolucio.isChecked():
+                        uri.setDataSource('visualitzar_evolucio', f'{entity}_dades_oficials_estimades_{metodeEvolucio}_consum', 'geom')
+                    if self.dlg.emissionsButtonEvolucio.isChecked():
+                        uri.setDataSource('visualitzar_evolucio', f'{entity}_dades_oficials_estimades_{metodeEvolucio}_emissions', 'geom')
+                    evolucioLayer = QgsVectorLayer(uri.uri(), nom_capa, 'postgres')
+                    QgsProject.instance().addMapLayer(evolucioLayer).setName(nom_capa)
+                    self.on_change_evolucioDadesOficialsEstimadesSlider()
+                except Exception as ex:
+                    print("Error: No s'ha pogut carregar la capa d'evolució del consum amb dades oficials i estimades per a l'entitat seleccionada")
+                    template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+                    message = template.format(type(ex).__name__, ex.args)
+                    print(message)
+                    QMessageBox.critical(None, "Error", "Error: No s'ha pogut carregar la capa d'evolució del consum amb dades oficials i estimades per a l'entitat seleccionada")
+                    conn.rollback()
+                    self.dlg.setEnabled(True)
+                    return
+        else:
+            evolucioDadesOficialsEstimades = False
+            self.dlg.evolucioDadesOficialsEstimadesSlider.setEnabled(False)
+            self.dlg.evolucioDadesOficialsEstimadesSlider.setValue(2020)
+            self.dlg.anyDadesOficialsEstimadesLabel.setEnabled(False)
+            self.dlg.anyDadesOficialsEstimadesLabel.setText("2020")
+            self.dlg.evolucioDadesOficialsEstimadesPlay.setVisible(False)
+            self.dlg.evolucioDadesOficialsEstimadesPlay.setEnabled(False)
+            self.dlg.evolucioDadesOficialsEstimadesPlay.setChecked(False)
+            self.dlg.loopDadesOficialsEstimadesCheck.setVisible(False)
+            self.dlg.loopDadesOficialsEstimadesCheck.setEnabled(False)
+            self.dlg.loopDadesOficialsEstimadesCheck.setChecked(False)
+        
+    def on_change_evolucioDadesOficialsEstimadesSlider(self):
+        global group
+        if group is not None:
+            self.mostrarCapaLlegenda()
+        else:
+            group = QgsProject.instance().layerTreeRoot()
+            self.mostrarCapaLlegenda()
+        any = self.dlg.evolucioDadesOficialsEstimadesSlider.value()
+        self.dlg.anyDadesOficialsEstimadesLabel.setText(str(any))
+        if self.dlg.metodeEvolucioCombo_cert.currentIndex() == 1:
+            self.update_numhabit_diagram(any)
+        if self.dlg.metodeEvolucioCombo_cert.currentIndex() == 2:
+            self.update_m2_diagram(any)
+        if self.dlg.metodeEvolucioCombo_cert.currentIndex() == 3:
+            self.update_mitjana_diagram(any)
+        if self.dlg.metodeEvolucioCombo_cert.currentIndex() == 4:
+            self.update_moda_diagram(any)
+        if self.dlg.metodeEvolucioCombo_cert.currentIndex() == 5:
+            self.update_mediana_diagram(any)
+
+    def on_change_evolucioDadesOficialsEstimadesPlay(self):
+        if self.dlg.evolucioDadesOficialsEstimadesPlay.isChecked():
+            self.dlg.evolucioDadesOficialsEstimadesSlider.setEnabled(False)
+            self.current_playback_year = 2020
+            self.playback_timer.start(1000) # 1000 ms, 1 segon
+        else:
+            self.playback_timer.stop()
+            self.dlg.evolucioDadesOficialsEstimadesSlider.setEnabled(True)
+
     def desagregarConsumsElectrics(self):
         # Funció que va quedar en desús, només es va crear per a provar com seria calcular els consums elèctrics per habitatge i no per agrupacions d'edificacions.
 
@@ -2080,8 +2663,6 @@ class EficEnerg:
         nova_capa.updateExtents()
 
         habitatgesLayer = nova_capa
-
-
 
     def ompleCombos(self, combo, llista, predef, sort):
         combo.blockSignals(True)
@@ -2147,15 +2728,22 @@ class EficEnerg:
         self.dlg.checkMitjana.setEnabled(False)
         self.dlg.checkModa.setEnabled(False)
         self.dlg.checkMediana.setEnabled(False)
+        self.dlg.labelAnysComp_cert.setVisible(False)
+        self.dlg.comboAny1_cert.setVisible(False)
+        self.dlg.comboAny2_cert.setVisible(False)
+        self.dlg.labelAnysVs_cert.setVisible(False)
         self.dlg.checkMitjana_2.setEnabled(False)
         self.dlg.checkModa_2.setEnabled(False)
         self.dlg.checkMediana_2.setEnabled(False)
+        self.dlg.dadesOficialsButton.setVisible(False)
         self.dlg.dadesOficialsButton.setEnabled(False)
         self.dlg.dadesOficialsButton.setChecked(True)
+        self.dlg.dadesEstimacionsButton.setVisible(False)
         self.dlg.dadesEstimacionsButton.setEnabled(False)
         self.dlg.dadesEstimacionsButton.setChecked(False)
         self.dlg.comboModel.setEnabled(False)
         self.ompleComboModels()
+        self.dlg.dadesOficialsEstimacionsButton.setVisible(False)
         self.dlg.dadesOficialsEstimacionsButton.setEnabled(False)
         self.dlg.dadesOficialsEstimacionsButton.setChecked(False)
         self.dlg.labelAvis.setVisible(False)
@@ -2178,6 +2766,9 @@ class EficEnerg:
         self.dlg.checkComparativa_cert.setChecked(False)
         self.dlg.labelAnysComp.setVisible(False)
         self.dlg.labelAnysVs.setVisible(False)
+        self.dlg.lblAny_cert.setVisible(False)
+        self.dlg.comboAny_cert.setVisible(False)
+        self.dlg.comboAny_cert.addItems([str(any) for any in range(2020, 2031)])
         self.dlg.comboAny1.setVisible(False)
         self.dlg.comboAny2.setVisible(False)
         self.dlg.evolucioGasButton.setEnabled(True)
@@ -2209,6 +2800,34 @@ class EficEnerg:
         self.dlg.evolucioSumaSlider.setValue(2016)
         self.dlg.comboAny.setCurrentIndex(0)
         self.dlg.metodeEvolucioCombo.setCurrentIndex(0)
+        self.dlg.evolucioDadesOficialsButton.setEnabled(True)
+        self.dlg.evolucioDadesOficialsButton.setChecked(False)
+        self.dlg.evolucioDadesOficialsSlider.setEnabled(False)
+        self.dlg.evolucioDadesEstimadesButton.setEnabled(True)
+        self.dlg.evolucioDadesEstimadesButton.setChecked(False)
+        self.dlg.evolucioDadesEstimadesSlider.setEnabled(False)
+        self.dlg.evolucioDadesOficialsEstimadesButton.setEnabled(True)
+        self.dlg.evolucioDadesOficialsEstimadesButton.setChecked(False)
+        self.dlg.evolucioDadesOficialsEstimadesSlider.setEnabled(False)
+        self.dlg.evolucioDadesOficialsPlay.setStyleSheet(play_button_style)
+        self.dlg.evolucioDadesOficialsPlay.setVisible(False)
+        self.dlg.loopDadesOficialsCheck.setVisible(False)
+        self.dlg.evolucioDadesEstimadesPlay.setStyleSheet(play_button_style)
+        self.dlg.evolucioDadesEstimadesPlay.setVisible(False)
+        self.dlg.loopDadesEstimadesCheck.setVisible(False)
+        self.dlg.evolucioDadesOficialsEstimadesPlay.setStyleSheet(play_button_style)
+        self.dlg.evolucioDadesOficialsEstimadesPlay.setVisible(False)
+        self.dlg.loopDadesOficialsEstimadesCheck.setVisible(False)
+        self.dlg.anyDadesOficialsLabel.setText("2020")
+        self.dlg.anyDadesOficialsLabel.setEnabled(False)
+        self.dlg.anyDadesEstimadesLabel.setText("2020")
+        self.dlg.anyDadesEstimadesLabel.setEnabled(False)
+        self.dlg.anyDadesOficialsEstimadesLabel.setText("2020")
+        self.dlg.anyDadesOficialsEstimadesLabel.setEnabled(False)
+        self.dlg.evolucioDadesOficialsSlider.setValue(2020)
+        self.dlg.evolucioDadesEstimadesSlider.setValue(2020)
+        self.dlg.evolucioDadesOficialsEstimadesSlider.setValue(2020)
+        self.dlg.metodeEvolucioCombo_cert.setCurrentIndex(0)
         self.dlg.consumGasButton.setChecked(False)
         self.dlg.consumElectricButton.setChecked(False)
         self.dlg.consumSumaButton.setChecked(False)
@@ -4100,7 +4719,7 @@ class EficEnerg:
                     alg_params['VALUES_FIELD_NAME'] = 'consum'
                 if emissions:
                     alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat','origen_emissions']
-                    alg_params['VALUES_FIELD_NAME'] = 'consum'
+                    alg_params['VALUES_FIELD_NAME'] = 'emissions'
             if consumElectric or consumGas or self.dlg.consumSumaButton.isChecked():
                 alg_params['CATEGORIES_FIELD_NAME'] = ['idEntitat']
                 alg_params['VALUES_FIELD_NAME'] = 'consum_m2'
@@ -4577,8 +5196,59 @@ class EficEnerg:
                 self.dlg.loopSumaCheck.setEnabled(True)
             self.dlg.setEnabled(True)
 
+    def calculEvolucioCert(self, any_evolucio):
+        global any
+        global entitatLayer
+        global habitatgesLayer
+        global joinEntitatHabitatges
+        global entitatLayerResumNumHabit
+        global entitatLayerResumm2
+        global entitatLayerResumMitjana
+        global entitatLayerResumModa
+        global entitatLayerResumMediana
+
+        copiaOriginalHabitatges = habitatgesLayer
+
+        # No recordo ben bé perquè servia aquesta funció però la deixaré per si de cas
+
+        if not self.dlg.tabCalculs.currentIndex() == 3:
+            QMessageBox.warning(None, "Error", "Per calcular l'evolució cal que estiguis a la pestanya Evolució temporal de Certificats")
+            self.dlg.setEnabled(True)
+            return
+        else:
+            if evolucioDadesOficials:
+                self.configure_numhabit_diagram(self.dlg.anyDadesOficialsLabel.text())
+            if evolucioDadesEstimades:
+                self.configure_numhabit_diagram(self.dlg.anyDadesEstimadesLabel.text())
+            if evolucioDadesOficialsEstimades:
+                self.configure_numhabit_diagram(self.dlg.anyDadesOficialsEstimadesLabel.text())
+            QApplication.processEvents()
+
+            if evolucioDadesOficials:
+                self.dlg.evolucioDadesOficialsPlay.setVisible(True)
+                self.dlg.evolucioDadesOficialsPlay.setEnabled(True)
+                self.dlg.loopDadesOficialsCheck.setVisible(True)
+                self.dlg.loopDadesOficialsCheck.setEnabled(True)
+            if evolucioDadesEstimades:
+                self.dlg.evolucioDadesEstimadesPlay.setVisible(True)
+                self.dlg.evolucioDadesEstimadesPlay.setEnabled(True)
+                self.dlg.loopDadesEstimadesCheck.setVisible(True)
+                self.dlg.loopDadesEstimadesCheck.setEnabled(True)
+            if evolucioDadesOficialsEstimades:
+                self.dlg.evolucioDadesOficialsEstimadesPlay.setVisible(True)
+                self.dlg.evolucioDadesOficialsEstimadesPlay.setEnabled(True)
+                self.dlg.loopDadesOficialsEstimadesCheck.setVisible(True)
+                self.dlg.loopDadesOficialsEstimadesCheck.setEnabled(True)
+            self.dlg.setEnabled(True)
+
     def configure_numhabit_diagram(self, year):
         global primeraExecucio
+        global ranges
+
+        if self.dlg.consumButton.isChecked() or self.dlg.consumElectricButton.isChecked() or self.dlg.consumGasButton.isChecked() or self.dlg.consumSumaButton.isChecked() or self.dlg.evolucioGasButton.isChecked() or self.dlg.evolucioLlumButton.isChecked() or self.dlg.evolucioSumaButton.isChecked() or self.dlg.consumButtonEvolucio.isChecked():
+            ranges = ranges_consum
+        if self.dlg.emissionsButton.isChecked() or self.dlg.emissionsButtonEvolucio.isChecked():
+            ranges = ranges_emissions
         
         layer = evolucioLayer
 
@@ -4663,6 +5333,12 @@ class EficEnerg:
     
     def configure_m2_diagram(self, year):
         global primeraExecucio
+        global ranges
+
+        if self.dlg.consumButton.isChecked() or self.dlg.consumElectricButton.isChecked() or self.dlg.consumGasButton.isChecked() or self.dlg.consumSumaButton.isChecked() or self.dlg.evolucioGasButton.isChecked() or self.dlg.evolucioLlumButton.isChecked() or self.dlg.evolucioSumaButton.isChecked() or self.dlg.consumButtonEvolucio.isChecked():
+            ranges = ranges_consum
+        if self.dlg.emissionsButton.isChecked() or self.dlg.emissionsButtonEvolucio.isChecked():
+            ranges = ranges_emissions
 
         layer = evolucioLayer
 
@@ -4746,6 +5422,12 @@ class EficEnerg:
 
     def configure_mitjana_diagram(self, year):
         global primeraExecucio
+        global ranges
+
+        if self.dlg.consumButton.isChecked() or self.dlg.consumElectricButton.isChecked() or self.dlg.consumGasButton.isChecked() or self.dlg.consumSumaButton.isChecked() or self.dlg.evolucioGasButton.isChecked() or self.dlg.evolucioLlumButton.isChecked() or self.dlg.evolucioSumaButton.isChecked() or self.dlg.consumButtonEvolucio.isChecked():
+            ranges = ranges_consum
+        if self.dlg.emissionsButton.isChecked() or self.dlg.emissionsButtonEvolucio.isChecked():
+            ranges = ranges_emissions
 
         layer = evolucioLayer
         
@@ -4779,6 +5461,14 @@ class EficEnerg:
         text_format.setBackground(background_format)
 
         symbology = QgsGraduatedSymbolRenderer(f"indexMITJANA_{year}", ranges.values())
+
+        if self.dlg.consumButton.isChecked() or self.dlg.consumElectricButton.isChecked() or self.dlg.consumGasButton.isChecked() or self.dlg.consumSumaButton.isChecked() or self.dlg.evolucioGasButton.isChecked() or self.dlg.evolucioLlumButton.isChecked() or self.dlg.evolucioSumaButton.isChecked() or self.dlg.consumButtonEvolucio.isChecked():
+            symbolConsum = QgsFillSymbol()
+            symbolConsum.setColor(colors["colorConsum"])
+        if self.dlg.emissionsButton.isChecked() or self.dlg.emissionsButtonEvolucio.isChecked():
+            symbolEmissions = QgsFillSymbol()
+            symbolEmissions.setColor(colors["colorEmissions"])
+
         symbolA = QgsFillSymbol()
         symbolA.setColor(colors["colorA"])
         symbolB = QgsFillSymbol()
@@ -4794,13 +5484,25 @@ class EficEnerg:
         symbolG = QgsFillSymbol()
         symbolG.setColor(colors["colorG"])
 
-        symbology.updateRangeSymbol(0, symbolA)
-        symbology.updateRangeSymbol(1, symbolB)
-        symbology.updateRangeSymbol(2, symbolC)
-        symbology.updateRangeSymbol(3, symbolD)
-        symbology.updateRangeSymbol(4, symbolE)
-        symbology.updateRangeSymbol(5, symbolF)
-        symbology.updateRangeSymbol(6, symbolG)
+        #symbology.updateRangeSymbol(0, symbolA)
+        #symbology.updateRangeSymbol(1, symbolB)
+        #symbology.updateRangeSymbol(2, symbolC)
+        #symbology.updateRangeSymbol(3, symbolD)
+        #symbology.updateRangeSymbol(4, symbolE)
+        #symbology.updateRangeSymbol(5, symbolF)
+        #symbology.updateRangeSymbol(6, symbolG)
+
+        if self.dlg.consumButton.isChecked() or self.dlg.consumElectricButton.isChecked() or self.dlg.consumGasButton.isChecked() or self.dlg.consumSumaButton.isChecked() or self.dlg.evolucioGasButton.isChecked() or self.dlg.evolucioLlumButton.isChecked() or self.dlg.evolucioSumaButton.isChecked() or self.dlg.consumButtonEvolucio.isChecked():
+            symbology.updateRangeSymbol(0, symbolConsum)
+        if self.dlg.emissionsButton.isChecked() or self.dlg.emissionsButtonEvolucio.isChecked():
+            symbology.updateRangeSymbol(0, symbolEmissions)
+        symbology.updateRangeSymbol(1, symbolA)
+        symbology.updateRangeSymbol(2, symbolB)
+        symbology.updateRangeSymbol(3, symbolC)
+        symbology.updateRangeSymbol(4, symbolD)
+        symbology.updateRangeSymbol(5, symbolE)
+        symbology.updateRangeSymbol(6, symbolF)
+        symbology.updateRangeSymbol(7, symbolG)
 
         labelMitjana.setFormat(text_format)
 
@@ -4857,6 +5559,12 @@ class EficEnerg:
 
     def configure_moda_diagram(self, year):
         global primeraExecucio
+        global ranges
+
+        if self.dlg.consumButton.isChecked() or self.dlg.consumElectricButton.isChecked() or self.dlg.consumGasButton.isChecked() or self.dlg.consumSumaButton.isChecked() or self.dlg.evolucioGasButton.isChecked() or self.dlg.evolucioLlumButton.isChecked() or self.dlg.evolucioSumaButton.isChecked() or self.dlg.consumButtonEvolucio.isChecked():
+            ranges = ranges_consum
+        if self.dlg.emissionsButton.isChecked() or self.dlg.emissionsButtonEvolucio.isChecked():
+            ranges = ranges_emissions
 
         layer = evolucioLayer
         
@@ -4990,6 +5698,12 @@ class EficEnerg:
 
     def configure_mediana_diagram(self, year):
         global primeraExecucio
+        global ranges
+
+        if self.dlg.consumButton.isChecked() or self.dlg.consumElectricButton.isChecked() or self.dlg.consumGasButton.isChecked() or self.dlg.consumSumaButton.isChecked() or self.dlg.evolucioGasButton.isChecked() or self.dlg.evolucioLlumButton.isChecked() or self.dlg.evolucioSumaButton.isChecked() or self.dlg.consumButtonEvolucio.isChecked():
+            ranges = ranges_consum
+        if self.dlg.emissionsButton.isChecked() or self.dlg.emissionsButtonEvolucio.isChecked():
+            ranges = ranges_emissions
 
         layer = evolucioLayer
         
@@ -5023,7 +5737,14 @@ class EficEnerg:
         text_format.setBackground(background_format)
 
         symbology = QgsGraduatedSymbolRenderer(f"indexMEDIANA_{year}", ranges.values())
-        
+
+        if self.dlg.consumButton.isChecked() or self.dlg.consumElectricButton.isChecked() or self.dlg.consumGasButton.isChecked() or self.dlg.consumSumaButton.isChecked() or self.dlg.evolucioGasButton.isChecked() or self.dlg.evolucioLlumButton.isChecked() or self.dlg.evolucioSumaButton.isChecked() or self.dlg.consumButtonEvolucio.isChecked():
+            symbolConsum = QgsFillSymbol()
+            symbolConsum.setColor(colors["colorConsum"])
+        if self.dlg.emissionsButton.isChecked() or self.dlg.emissionsButtonEvolucio.isChecked():
+            symbolEmissions = QgsFillSymbol()
+            symbolEmissions.setColor(colors["colorEmissions"])
+
         symbolA = QgsFillSymbol()
         symbolA.setColor(colors["colorA"])
         symbolB = QgsFillSymbol()
@@ -5039,13 +5760,25 @@ class EficEnerg:
         symbolG = QgsFillSymbol()
         symbolG.setColor(colors["colorG"])
 
-        symbology.updateRangeSymbol(0, symbolA)
-        symbology.updateRangeSymbol(1, symbolB)
-        symbology.updateRangeSymbol(2, symbolC)
-        symbology.updateRangeSymbol(3, symbolD)
-        symbology.updateRangeSymbol(4, symbolE)
-        symbology.updateRangeSymbol(5, symbolF)
-        symbology.updateRangeSymbol(6, symbolG)
+        # symbology.updateRangeSymbol(0, symbolA)
+        # symbology.updateRangeSymbol(1, symbolB)
+        # symbology.updateRangeSymbol(2, symbolC)
+        # symbology.updateRangeSymbol(3, symbolD)
+        # symbology.updateRangeSymbol(4, symbolE)
+        # symbology.updateRangeSymbol(5, symbolF)
+        # symbology.updateRangeSymbol(6, symbolG)
+
+        if self.dlg.consumButton.isChecked() or self.dlg.consumElectricButton.isChecked() or self.dlg.consumGasButton.isChecked() or self.dlg.consumSumaButton.isChecked() or self.dlg.evolucioGasButton.isChecked() or self.dlg.evolucioLlumButton.isChecked() or self.dlg.evolucioSumaButton.isChecked() or self.dlg.consumButtonEvolucio.isChecked():
+            symbology.updateRangeSymbol(0, symbolConsum)
+        if self.dlg.emissionsButton.isChecked() or self.dlg.emissionsButtonEvolucio.isChecked():
+            symbology.updateRangeSymbol(0, symbolEmissions)
+        symbology.updateRangeSymbol(1, symbolA)
+        symbology.updateRangeSymbol(2, symbolB)
+        symbology.updateRangeSymbol(3, symbolC)
+        symbology.updateRangeSymbol(4, symbolD)
+        symbology.updateRangeSymbol(5, symbolE)
+        symbology.updateRangeSymbol(6, symbolF)
+        symbology.updateRangeSymbol(7, symbolG)
 
         labelMediana.setFormat(text_format)
 
@@ -5148,169 +5881,255 @@ class EficEnerg:
         else:
             raise ValueError(f"Tipus de model desconegut: '{tipus1}'")
 
-        feedback = QgsProcessingFeedback()
-
-        feedback.progressChanged.connect(self.updateProgress)
+        # IMPORTANT: s'ha d'ajustar l'antiguitat en cas de no ser 2025 abans d'aplicar qualsevol formula
+        if self.dlg.tabCalculs.currentIndex() == 0:
+            if self.dlg.comboAny_cert.currentText() != "2025":
+                alg_params = {
+                    'INPUT': habitatgesLayer,
+                    'FIELD_NAME': "antiguitat",
+                    'FIELD_TYPE': 1,
+                    'FIELD_LENGTH': 0,
+                    'FIELD_PRECISION': 0,
+                    'FORMULA': f'CASE WHEN {self.dlg.comboAny_cert.currentText()} > 2025 THEN "antiguitat" + ({self.dlg.comboAny_cert.currentText()} - 2025) ELSE "antiguitat" - (2025 - {self.dlg.comboAny_cert.currentText()}) END',
+                    'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT,
+                }
+                try:
+                    result = processing.run('qgis:fieldcalculator', alg_params)
+                    habitatgesLayer = result['OUTPUT']
+                    QApplication.processEvents()
+                except Exception as ex:
+                    print("Error al calcular valors del model")
+                    template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+                    message = template.format(type(ex).__name__, ex.args)
+                    print(message)
+                    QMessageBox.critical(None, "Error", "Error al calcular valors del model")
+                    self.dlg.setEnabled(True)
+                    return
 
         # Paràmetres de l'aggregate
-        alg_params = {
-            'AGGREGATES': [{
-                'aggregate': 'first_value',
-                'delimiter': ',',
-                'input': '"id"',
-                'length': 0,
-                'name': 'id',
-                'precision': 0,
-                'sub_type': 0,
-                'type': 2,
-                'type_name': 'integer'
-            },{
-                'aggregate': 'first_value',
-                'delimiter': ',',
-                'input': '"id_building"',
-                'length': -1,
-                'name': 'id_building',
-                'precision': 0,
-                'sub_type': 0,
-                'type': 2,
-                'type_name': 'integer'
-            },{
-                'aggregate': 'first_value',
-                'delimiter': ',',
-                'input': '"cadastral_reference"',
-                'length': -1,
-                'name': 'cadastral_reference',
-                'precision': 0,
-                'sub_type': 0,
-                'type': 10,
-                'type_name': 'text'
-            },{
-                'aggregate': 'first_value',
-                'delimiter': ',',
-                'input': '"current_use"',
-                'length': -1,
-                'name': 'current_use',
-                'precision': 0,
-                'sub_type': 0,
-                'type': 10,
-                'type_name': 'text'
-            },{
-                'aggregate': 'first_value',
-                'delimiter': ',',
-                'input': '"metres_cadastre"',
-                'length': -1,
-                'name': 'metres_cadastre',
-                'precision': 0,
-                'sub_type': 0,
-                'type': 6,
-                'type_name': 'double precision'
-            },{
-                'aggregate': 'first_value',
-                'delimiter': ',',
-                'input': '"antiguitat"',
-                'length': -1,
-                'name': 'antiguitat',
-                'precision': 0,
-                'sub_type': 0,
-                'type': 2,
-                'type_name': 'integer'
-            },{
-                'aggregate': 'first_value',
-                'delimiter': ',',
-                'input': case_certificats_consum,
-                'length': -1,
-                'name': 'qualificació de consum energia primaria no renovable',
-                'precision': 0,
-                'sub_type': 0,
-                'type': 10,
-                'type_name': 'text'
-            },{
-                'aggregate': 'first_value',
-                'delimiter': ',',
-                'input': qgis_formula_consum,
-                'length': -1,
-                'name': 'energia primària no renovable',
-                'precision': 0,
-                'sub_type': 0,
-                'type': 10,
-                'type_name': 'text'
-            },{
-                'aggregate': 'first_value',
-                'delimiter': ',',
-                'input': case_certificats_emissions,
-                'length': -1,
-                'name': 'qualificacio emissions de co2',
-                'precision': 0,
-                'sub_type': 0,
-                'type': 10,
-                'type_name': 'text'
-            },{
-                'aggregate': 'first_value',
-                'delimiter': ',',
-                'input': qgis_formula_emissions,
-                'length': -1,
-                'name': 'emissions de co2',
-                'precision': 0,
-                'sub_type': 0,
-                'type': 10,
-                'type_name': 'text'
-            },{
-                'aggregate': 'first_value',
-                'delimiter': ',',
-                'input': '"n_residents"',
-                'length': 0,
-                'name': 'n_residents',
-                'precision': 0,
-                'sub_type': 0,
-                'type': 2,
-                'type_name': 'integer'
-            },{
-                'aggregate': 'first_value',
-                'delimiter': ',',
-                'input': '"n_habitatges"',
-                'length': 0,
-                'name': 'n_habitatges',
-                'precision': 0,
-                'sub_type': 0,
-                'type': 2,
-                'type_name': 'integer'
-            },{
-                'aggregate': 'first_value',
-                'delimiter': ',',
-                'input': '"origen_consum"',
-                'length': 0,
-                'name': 'origen_consum',
-                'precision': 0,
-                'sub_type': 0,
-                'type': 10,
-                'type_name': 'text'
-            },{
-                'aggregate': 'first_value',
-                'delimiter': ',',
-                'input': '"origen_emissions"',
-                'length': 0,
-                'name': 'origen_emissions',
-                'precision': 0,
-                'sub_type': 0,
-                'type': 10,
-                'type_name': 'text'
-            }],
-            'GROUP_BY': 'id',
-            'INPUT': habitatgesLayer,
-            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-        }
-        try:
-            result = processing.run('qgis:aggregate', alg_params, feedback=feedback)
-            habitatgesLayer = result['OUTPUT']
-            QApplication.processEvents()
-        except Exception as ex:
-            print("Error al fer aggregate final del model")
-            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-            message = template.format(type(ex).__name__, ex.args)
-            print(message)
-            QMessageBox.critical(None, "Error", "Error al fer aggregate final del model.")
-            self.dlg.setEnabled(True)
-            return
+        # alg_params = {
+        #     'AGGREGATES': [{
+        #         'aggregate': 'first_value',
+        #         'delimiter': ',',
+        #         'input': '"id"',
+        #         'length': 0,
+        #         'name': 'id',
+        #         'precision': 0,
+        #         'sub_type': 0,
+        #         'type': 2,
+        #         'type_name': 'integer'
+        #     },{
+        #         'aggregate': 'first_value',
+        #         'delimiter': ',',
+        #         'input': '"id_building"',
+        #         'length': -1,
+        #         'name': 'id_building',
+        #         'precision': 0,
+        #         'sub_type': 0,
+        #         'type': 2,
+        #         'type_name': 'integer'
+        #     },{
+        #         'aggregate': 'first_value',
+        #         'delimiter': ',',
+        #         'input': '"cadastral_reference"',
+        #         'length': -1,
+        #         'name': 'cadastral_reference',
+        #         'precision': 0,
+        #         'sub_type': 0,
+        #         'type': 10,
+        #         'type_name': 'text'
+        #     },{
+        #         'aggregate': 'first_value',
+        #         'delimiter': ',',
+        #         'input': '"current_use"',
+        #         'length': -1,
+        #         'name': 'current_use',
+        #         'precision': 0,
+        #         'sub_type': 0,
+        #         'type': 10,
+        #         'type_name': 'text'
+        #     },{
+        #         'aggregate': 'first_value',
+        #         'delimiter': ',',
+        #         'input': '"metres_cadastre"',
+        #         'length': -1,
+        #         'name': 'metres_cadastre',
+        #         'precision': 0,
+        #         'sub_type': 0,
+        #         'type': 6,
+        #         'type_name': 'double precision'
+        #     },{
+        #         'aggregate': 'first_value',
+        #         'delimiter': ',',
+        #         'input': '"antiguitat"',
+        #         'length': -1,
+        #         'name': 'antiguitat',
+        #         'precision': 0,
+        #         'sub_type': 0,
+        #         'type': 2,
+        #         'type_name': 'integer'
+        #     },{
+        #         'aggregate': 'first_value',
+        #         'delimiter': ',',
+        #         'input': case_certificats_consum,
+        #         'length': -1,
+        #         'name': 'qualificació de consum energia primaria no renovable',
+        #         'precision': 0,
+        #         'sub_type': 0,
+        #         'type': 10,
+        #         'type_name': 'text'
+        #     },{
+        #         'aggregate': 'first_value',
+        #         'delimiter': ',',
+        #         'input': qgis_formula_consum,
+        #         'length': -1,
+        #         'name': 'energia primària no renovable',
+        #         'precision': 0,
+        #         'sub_type': 0,
+        #         'type': 10,
+        #         'type_name': 'text'
+        #     },{
+        #         'aggregate': 'first_value',
+        #         'delimiter': ',',
+        #         'input': case_certificats_emissions,
+        #         'length': -1,
+        #         'name': 'qualificacio emissions de co2',
+        #         'precision': 0,
+        #         'sub_type': 0,
+        #         'type': 10,
+        #         'type_name': 'text'
+        #     },{
+        #         'aggregate': 'first_value',
+        #         'delimiter': ',',
+        #         'input': qgis_formula_emissions,
+        #         'length': -1,
+        #         'name': 'emissions de co2',
+        #         'precision': 0,
+        #         'sub_type': 0,
+        #         'type': 10,
+        #         'type_name': 'text'
+        #     },{
+        #         'aggregate': 'first_value',
+        #         'delimiter': ',',
+        #         'input': '"n_residents"',
+        #         'length': 0,
+        #         'name': 'n_residents',
+        #         'precision': 0,
+        #         'sub_type': 0,
+        #         'type': 2,
+        #         'type_name': 'integer'
+        #     },{
+        #         'aggregate': 'first_value',
+        #         'delimiter': ',',
+        #         'input': '"n_habitatges"',
+        #         'length': 0,
+        #         'name': 'n_habitatges',
+        #         'precision': 0,
+        #         'sub_type': 0,
+        #         'type': 2,
+        #         'type_name': 'integer'
+        #     },{
+        #         'aggregate': 'first_value',
+        #         'delimiter': ',',
+        #         'input': '"origen_consum"',
+        #         'length': 0,
+        #         'name': 'origen_consum',
+        #         'precision': 0,
+        #         'sub_type': 0,
+        #         'type': 10,
+        #         'type_name': 'text'
+        #     },{
+        #         'aggregate': 'first_value',
+        #         'delimiter': ',',
+        #         'input': '"origen_emissions"',
+        #         'length': 0,
+        #         'name': 'origen_emissions',
+        #         'precision': 0,
+        #         'sub_type': 0,
+        #         'type': 10,
+        #         'type_name': 'text'
+        #     }],
+        #     'GROUP_BY': 'id',
+        #     'INPUT': habitatgesLayer,
+        #     'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        # }
+        # try:
+        #     result = processing.run('qgis:aggregate', alg_params, feedback=feedback)
+        #     habitatgesLayer = result['OUTPUT']
+        #     QApplication.processEvents()
+        # except Exception as ex:
+        #     print("Error al fer aggregate final del model")
+        #     template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+        #     message = template.format(type(ex).__name__, ex.args)
+        #     print(message)
+        #     QMessageBox.critical(None, "Error", "Error al fer aggregate final del model.")
+        #     self.dlg.setEnabled(True)
+        #     return
+        if self.dlg.consumButton.isChecked():
+            if tipus1 == "LLETRA":
+                alg_params = {
+                    'INPUT': habitatgesLayer,
+                    'FIELD_NAME': "qualificació de consum energia primaria no renovable",
+                    'FIELD_TYPE': 2,
+                    'FIELD_LENGTH': 0,
+                    'FIELD_PRECISION': 0,
+                    'FORMULA': case_certificats_consum,
+                    'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+                }
+            if tipus1 == "NUMERO":
+                alg_params = {
+                    'INPUT': habitatgesLayer,
+                    'FIELD_NAME': "energia primària no renovable",
+                    'FIELD_TYPE': 0,
+                    'FIELD_LENGTH': 0,
+                    'FIELD_PRECISION': 0,
+                    'FORMULA': qgis_formula_consum,
+                    'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+                }
+            try:
+                result = processing.run('qgis:fieldcalculator', alg_params)
+                habitatgesLayer = result['OUTPUT']
+                QApplication.processEvents()
+            except Exception as ex:
+                print("Error al calcular valors del model")
+                template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+                message = template.format(type(ex).__name__, ex.args)
+                print(message)
+                QMessageBox.critical(None, "Error", "Error al calcular valors del model")
+                self.dlg.setEnabled(True)
+                return
+        if self.dlg.emissionsButton.isChecked():
+            alg_params = {
+                    'INPUT': habitatgesLayer,
+                    'FIELD_NAME': "qualificacio emissions de co2",
+                    'FIELD_TYPE': 2,
+                    'FIELD_LENGTH': 0,
+                    'FIELD_PRECISION': 0,
+                    'FORMULA': case_certificats_emissions,
+                    'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+                }
+            if tipus1 == "NUMERO":
+                alg_params = {
+                    'INPUT': habitatgesLayer,
+                    'FIELD_NAME': "emissions de co2",
+                    'FIELD_TYPE': 0,
+                    'FIELD_LENGTH': 0,
+                    'FIELD_PRECISION': 0,
+                    'FORMULA': qgis_formula_emissions,
+                    'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+                }
+            try:
+                result = processing.run('qgis:fieldcalculator', alg_params)
+                habitatgesLayer = result['OUTPUT']
+                QApplication.processEvents()
+            except Exception as ex:
+                print("Error al calcular valors del model")
+                template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+                message = template.format(type(ex).__name__, ex.args)
+                print(message)
+                QMessageBox.critical(None, "Error", "Error al calcular valors del model")
+                self.dlg.setEnabled(True)
+                return
 
         if tipus1 == "NUMERO":
             self.recalcular_rangs()
@@ -5323,42 +6142,83 @@ class EficEnerg:
         global habitatges
         global habitatgesLayer
 
-        feedback = QgsProcessingFeedback()
+        # alg_params = {
+        #     'AGGREGATES': [
+        #         {'aggregate': 'first_value','delimiter': ',','input': '"id"','length': -1,'name': 'id','precision': 0,'sub_type': 0,'type': 4,'type_name': 'int8'},
+        #         {'aggregate': 'first_value','delimiter': ',','input': '"id_building"','length': -1,'name': 'id_building','precision': 0,'sub_type': 0,'type': 2,'type_name': 'integer'},
+        #         {'aggregate': 'first_value','delimiter': ',','input': '"cadastral_reference"','length': -1,'name': 'cadastral_reference','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+        #         {'aggregate': 'first_value','delimiter': ',','input': '"current_use"','length': -1,'name': 'current_use','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+        #         {'aggregate': 'first_value','delimiter': ',','input': '"metres_cadastre"','length': -1,'name': 'metres_cadastre','precision': 0,'sub_type': 0,'type': 6,'type_name': 'double precision'},
+        #         {'aggregate': 'first_value','delimiter': ',','input': '"antiguitat"','length': -1,'name': 'antiguitat','precision': 0,'sub_type': 0,'type': 2,'type_name': 'integer'},
+        #         {'aggregate': 'first_value','delimiter': ',','input': 'CASE WHEN "origen_consum" IS \'oficial\' THEN "qualificació de consum energia primaria no renovable" ELSE CASE\r\n\tWHEN "energia primària no renovable" > 0.0 AND "energia primària no renovable" <= 44.6 THEN \'A\'\r\n\tWHEN "energia primària no renovable" > 44.6 AND "energia primària no renovable" <= 72.3 THEN \'B\'\r\n\tWHEN "energia primària no renovable" > 72.3 AND "energia primària no renovable" <= 112.1 THEN \'C\'\r\n\tWHEN "energia primària no renovable" > 112.1 AND "energia primària no renovable" <= 172.3 THEN \'D\'\r\n\tWHEN "energia primària no renovable" > 172.3 AND "energia primària no renovable" <= 303.7 THEN \'E\'\r\n\tWHEN "energia primària no renovable" > 303.7 AND "energia primària no renovable" <= 382.6 THEN \'F\'\r\n\tWHEN "energia primària no renovable" > 382.6 THEN \'G\'\r\nEND END','length': -1,'name': 'qualificació de consum energia primaria no renovable','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+        #         {'aggregate': 'first_value','delimiter': ',','input': '"energia primària no renovable"','length': -1,'name': 'energia primària no renovable','precision': 0,'sub_type': 0,'type': 6,'type_name': 'double precision'},
+        #         {'aggregate': 'first_value','delimiter': ',','input': 'CASE WHEN "origen_emissions" IS \'oficial\' THEN "qualificacio emissions de co2" ELSE CASE\r\n\tWHEN "emissions de co2" > 0.0 AND "emissions de co2" <= 10.1 THEN \'A\'\r\n\tWHEN "emissions de co2" > 10.1 AND "emissions de co2" <= 16.3 THEN \'B\'\r\n\tWHEN "emissions de co2" > 16.3 AND "emissions de co2" <= 25.3 THEN \'C\'\r\n\tWHEN "emissions de co2" > 25.3 AND "emissions de co2" <= 38.9 THEN \'D\'\r\n\tWHEN "emissions de co2" > 38.9 AND "emissions de co2" <= 66.0 THEN \'E\'\r\n\tWHEN "emissions de co2" > 66.0 AND "emissions de co2" <= 79.2 THEN \'F\'\r\n\tWHEN "emissions de co2" > 79.2 THEN \'G\'\r\nEND END','length': -1,'name': 'qualificacio emissions de co2','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+        #         {'aggregate': 'first_value','delimiter': ',','input': '"emissions de co2"','length': -1,'name': 'emissions de co2','precision': 0,'sub_type': 0,'type': 6,'type_name': 'double precision'},
+        #         {'aggregate': 'first_value','delimiter': ',','input': '"n_residents"','length': -1,'name': 'n_residents','precision': 0,'sub_type': 0,'type': 2,'type_name': 'integer'},
+        #         {'aggregate': 'first_value','delimiter': ',','input': '"n_habitatges"','length': -1,'name': 'n_habitatges','precision': 0,'sub_type': 0,'type': 2,'type_name': 'integer'},
+        #         {'aggregate': 'first_value','delimiter': ',','input': '"origen_consum"','length': -1,'name': 'origen_consum','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
+        #         {'aggregate': 'first_value','delimiter': ',','input': '"origen_emissions"','length': -1,'name': 'origen_emissions','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'}],
+        #     'GROUP_BY': '"id"',
+        #     'INPUT': habitatgesLayer,
+        #     'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        # }
+        # try:
+        #     result = processing.run('qgis:aggregate', alg_params)
+        #     habitatgesLayer = result['OUTPUT']
+        #     QApplication.processEvents()
+        # except Exception as ex:
+        #     print("Error al calcular qualificacions a partir de rangs oficials a la capa de certificacions energètiques amb estimacions")
+        #     template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+        #     message = template.format(type(ex).__name__, ex.args)
+        #     print(message)
+        #     QMessageBox.critical(None, "Error", "Error al calcular qualificacions a partir de rangs oficials a la capa de certificacions energètiques amb estimacions")
+        #     self.dlg.setEnabled(True)
+        #     return
 
-        feedback.progressChanged.connect(self.dlg.progressBar.setValue)
-
-        alg_params = {
-            'AGGREGATES': [
-                {'aggregate': 'first_value','delimiter': ',','input': '"id"','length': -1,'name': 'id','precision': 0,'sub_type': 0,'type': 4,'type_name': 'int8'},
-                {'aggregate': 'first_value','delimiter': ',','input': '"id_building"','length': -1,'name': 'id_building','precision': 0,'sub_type': 0,'type': 2,'type_name': 'integer'},
-                {'aggregate': 'first_value','delimiter': ',','input': '"cadastral_reference"','length': -1,'name': 'cadastral_reference','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
-                {'aggregate': 'first_value','delimiter': ',','input': '"current_use"','length': -1,'name': 'current_use','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
-                {'aggregate': 'first_value','delimiter': ',','input': '"metres_cadastre"','length': -1,'name': 'metres_cadastre','precision': 0,'sub_type': 0,'type': 6,'type_name': 'double precision'},
-                {'aggregate': 'first_value','delimiter': ',','input': '"antiguitat"','length': -1,'name': 'antiguitat','precision': 0,'sub_type': 0,'type': 2,'type_name': 'integer'},
-                {'aggregate': 'first_value','delimiter': ',','input': 'CASE WHEN "origen_consum" IS \'oficial\' THEN "qualificació de consum energia primaria no renovable" ELSE CASE\r\n\tWHEN "energia primària no renovable" > 0.0 AND "energia primària no renovable" <= 44.6 THEN \'A\'\r\n\tWHEN "energia primària no renovable" > 44.6 AND "energia primària no renovable" <= 72.3 THEN \'B\'\r\n\tWHEN "energia primària no renovable" > 72.3 AND "energia primària no renovable" <= 112.1 THEN \'C\'\r\n\tWHEN "energia primària no renovable" > 112.1 AND "energia primària no renovable" <= 172.3 THEN \'D\'\r\n\tWHEN "energia primària no renovable" > 172.3 AND "energia primària no renovable" <= 303.7 THEN \'E\'\r\n\tWHEN "energia primària no renovable" > 303.7 AND "energia primària no renovable" <= 382.6 THEN \'F\'\r\n\tWHEN "energia primària no renovable" > 382.6 THEN \'G\'\r\nEND END','length': -1,'name': 'qualificació de consum energia primaria no renovable','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
-                {'aggregate': 'first_value','delimiter': ',','input': '"energia primària no renovable"','length': -1,'name': 'energia primària no renovable','precision': 0,'sub_type': 0,'type': 6,'type_name': 'double precision'},
-                {'aggregate': 'first_value','delimiter': ',','input': 'CASE WHEN "origen_emissions" IS \'oficial\' THEN "qualificacio emissions de co2" ELSE CASE\r\n\tWHEN "emissions de co2" > 0.0 AND "emissions de co2" <= 10.1 THEN \'A\'\r\n\tWHEN "emissions de co2" > 10.1 AND "emissions de co2" <= 16.3 THEN \'B\'\r\n\tWHEN "emissions de co2" > 16.3 AND "emissions de co2" <= 25.3 THEN \'C\'\r\n\tWHEN "emissions de co2" > 25.3 AND "emissions de co2" <= 38.9 THEN \'D\'\r\n\tWHEN "emissions de co2" > 38.9 AND "emissions de co2" <= 66.0 THEN \'E\'\r\n\tWHEN "emissions de co2" > 66.0 AND "emissions de co2" <= 79.2 THEN \'F\'\r\n\tWHEN "emissions de co2" > 79.2 THEN \'G\'\r\nEND END','length': -1,'name': 'qualificacio emissions de co2','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
-                {'aggregate': 'first_value','delimiter': ',','input': '"emissions de co2"','length': -1,'name': 'emissions de co2','precision': 0,'sub_type': 0,'type': 6,'type_name': 'double precision'},
-                {'aggregate': 'first_value','delimiter': ',','input': '"n_residents"','length': -1,'name': 'n_residents','precision': 0,'sub_type': 0,'type': 2,'type_name': 'integer'},
-                {'aggregate': 'first_value','delimiter': ',','input': '"n_habitatges"','length': -1,'name': 'n_habitatges','precision': 0,'sub_type': 0,'type': 2,'type_name': 'integer'},
-                {'aggregate': 'first_value','delimiter': ',','input': '"origen_consum"','length': -1,'name': 'origen_consum','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'},
-                {'aggregate': 'first_value','delimiter': ',','input': '"origen_emissions"','length': -1,'name': 'origen_emissions','precision': 0,'sub_type': 0,'type': 10,'type_name': 'text'}],
-            'GROUP_BY': '"id"',
-            'INPUT': habitatgesLayer,
-            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-        }
-        try:
-            result = processing.run('qgis:aggregate', alg_params, feedback=feedback)
-            habitatgesLayer = result['OUTPUT']
-            QApplication.processEvents()
-        except Exception as ex:
-            print("Error al calcular qualificacions a partir de rangs oficials a la capa de certificacions energètiques amb estimacions")
-            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-            message = template.format(type(ex).__name__, ex.args)
-            print(message)
-            QMessageBox.critical(None, "Error", "Error al calcular qualificacions a partir de rangs oficials a la capa de certificacions energètiques amb estimacions")
-            self.dlg.setEnabled(True)
-            return
+        if self.dlg.consumButton.isChecked():
+            alg_params = {
+                'INPUT': habitatgesLayer,
+                'FIELD_NAME': "qualificació de consum energia primaria no renovable",
+                'FIELD_TYPE': 2,
+                'FIELD_LENGTH': 0,
+                'FIELD_PRECISION': 0,
+                'FORMULA': '''CASE WHEN "origen_consum" IS 'oficial' THEN "qualificació de consum energia primaria no renovable" ELSE CASE WHEN "energia primària no renovable" > 0.0 AND "energia primària no renovable" <= 44.6 THEN 'A' WHEN "energia primària no renovable" > 44.6 AND "energia primària no renovable" <= 72.3 THEN 'B' WHEN "energia primària no renovable" > 72.3 AND "energia primària no renovable" <= 112.1 THEN 'C' WHEN "energia primària no renovable" > 112.1 AND "energia primària no renovable" <= 172.3 THEN 'D' WHEN "energia primària no renovable" > 172.3 AND "energia primària no renovable" <= 303.7 THEN 'E' WHEN "energia primària no renovable" > 303.7 AND "energia primària no renovable" <= 382.6 THEN 'F' WHEN "energia primària no renovable" > 382.6 THEN 'G' END END''',
+                'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+            }
+            try:
+                result = processing.run('qgis:fieldcalculator', alg_params)
+                habitatgesLayer = result['OUTPUT']
+                QApplication.processEvents()
+            except Exception as ex:
+                print("Error al calcular qualificacions a partir de rangs oficials a la capa de certificacions energètiques amb estimacions")
+                template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+                message = template.format(type(ex).__name__, ex.args)
+                print(message)
+                QMessageBox.critical(None, "Error", "Error al calcular qualificacions a partir de rangs oficials a la capa de certificacions energètiques amb estimacions")
+                self.dlg.setEnabled(True)
+                return
+        if self.dlg.emissionsButton.isChecked():
+            alg_params = {
+                'INPUT': habitatgesLayer,
+                'FIELD_NAME': "qualificacio emissions de co2",
+                'FIELD_TYPE': 2,
+                'FIELD_LENGTH': 0,
+                'FIELD_PRECISION': 0,
+                'FORMULA': '''CASE WHEN "origen_emissions" IS 'oficial' THEN "qualificacio emissions de co2" ELSE CASE WHEN "emissions de co2" > 0.0 AND "emissions de co2" <= 10.1 THEN 'A' WHEN "emissions de co2" > 10.1 AND "emissions de co2" <= 16.3 THEN 'B' WHEN "emissions de co2" > 16.3 AND "emissions de co2" <= 25.3 THEN 'C' WHEN "emissions de co2" > 25.3 AND "emissions de co2" <= 38.9 THEN 'D' WHEN "emissions de co2" > 38.9 AND "emissions de co2" <= 66.0 THEN 'E' WHEN "emissions de co2" > 66.0 AND "emissions de co2" <= 79.2 THEN 'F' WHEN "emissions de co2" > 79.2 THEN 'G' END END''',
+                'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+            }
+            try:
+                result = processing.run('qgis:fieldcalculator', alg_params)
+                habitatgesLayer = result['OUTPUT']
+                QApplication.processEvents()
+            except Exception as ex:
+                print("Error al calcular qualificacions a partir de rangs oficials a la capa de certificacions energètiques amb estimacions")
+                template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+                message = template.format(type(ex).__name__, ex.args)
+                print(message)
+                QMessageBox.critical(None, "Error", "Error al calcular qualificacions a partir de rangs oficials a la capa de certificacions energètiques amb estimacions")
+                self.dlg.setEnabled(True)
+                return
 
     def scroll_text(self):
         self.dlg.textEstat.moveCursor(QTextCursor.End)
@@ -5469,13 +6329,13 @@ class EficEnerg:
             conn.rollback()
             self.dlg.setEnabled(True)
             return
-        if (not self.dlg.checkNumHabit.isChecked() and not self.dlg.checkm2.isChecked() and not self.dlg.checkMitjana.isChecked() and not self.dlg.checkModa.isChecked() and not self.dlg.checkMediana.isChecked() and not self.dlg.checkNumHabit_2.isChecked() and not self.dlg.checkm2_2.isChecked() and not self.dlg.checkMitjana_2.isChecked() and not self.dlg.checkModa_2.isChecked() and not self.dlg.checkMediana_2.isChecked()) and (not evolucioGas and evolucioLlum and evolucioSuma):
+        if (not self.dlg.checkNumHabit.isChecked() and not self.dlg.checkm2.isChecked() and not self.dlg.checkMitjana.isChecked() and not self.dlg.checkModa.isChecked() and not self.dlg.checkMediana.isChecked() and not self.dlg.checkNumHabit_2.isChecked() and not self.dlg.checkm2_2.isChecked() and not self.dlg.checkMitjana_2.isChecked() and not self.dlg.checkModa_2.isChecked() and not self.dlg.checkMediana_2.isChecked()) and (not evolucioGas and evolucioLlum and evolucioSuma) and (not evolucioDadesOficials and evolucioDadesEstimades and evolucioDadesOficialsEstimades):
             print ("No s'ha seleccionat cap càlcul que realitzar")
             QMessageBox.warning(None, "Error", "No s'ha seleccionat cap càlcul que realitzar")
             conn.rollback()
             self.dlg.setEnabled(True)
             return
-        if (not self.dlg.consumButton.isChecked() and not self.dlg.emissionsButton.isChecked()) and (not self.dlg.consumElectricButton.isChecked() and not self.dlg.consumGasButton.isChecked() and not self.dlg.consumSumaButton.isChecked()) and (not evolucioGas and not evolucioLlum and not evolucioSuma):
+        if (not self.dlg.consumButton.isChecked() and not self.dlg.emissionsButton.isChecked()) and (not self.dlg.consumElectricButton.isChecked() and not self.dlg.consumGasButton.isChecked() and not self.dlg.consumSumaButton.isChecked()) and (not evolucioGas and not evolucioLlum and not evolucioSuma) and (not evolucioDadesOficials and not evolucioDadesEstimades and not evolucioDadesOficialsEstimades):
             print ("No s'ha seleccionat ni consum ni emissions")
             QMessageBox.warning(None, "Error", "No s'ha seleccionat ni consum ni emissions")
             conn.rollback()
@@ -5575,6 +6435,16 @@ class EficEnerg:
             if evolucioSuma:
                 if habitatges != "consums_mataro_suma":
                     self.on_change_comboEntitat()
+        if self.dlg.tabCalculs.currentIndex() == 3:
+            if evolucioDadesOficials:
+                if habitatges != "cert_efi_energ_edif_mataro_geom":
+                    self.on_change_comboEntitat()
+            if evolucioDadesEstimades:
+                if habitatges != "cert_efi_energ_edif_mataro_geom_estimacions":
+                    self.on_change_comboEntitat()
+            if evolucioDadesOficialsEstimades:
+                if habitatges != "cert_efi_energ_edif_mataro_geom_mixta":
+                    self.on_change_comboEntitat()
 
         self.updateProgress(5)
 
@@ -5600,6 +6470,18 @@ class EficEnerg:
                 self.calculEvolucio(self.dlg.anyLlumLabel.text())
             if evolucioSuma:
                 self.calculEvolucio(self.dlg.anySumaLabel.text())
+            return
+        if self.dlg.tabCalculs.currentIndex() == 3:
+            if self.dlg.consumButtonEvolucio.isChecked():
+                ranges = ranges_consum
+            if self.dlg.emissionsButtonEvolucio.isChecked():
+                ranges = ranges_emissions
+            if evolucioDadesOficials:
+                self.calculEvolucio(self.dlg.anyDadesOficialsLabel.text())
+            if evolucioDadesEstimades:
+                self.calculEvolucio(self.dlg.anyDadesEstimadesLabel.text())
+            if evolucioDadesOficialsEstimades:
+                self.calculEvolucio(self.dlg.anyDadesOficialsEstimadesLabel.text())
             return
         if not self.dlg.checkComparativa.isChecked():
             any = self.dlg.comboAny.currentText()
